@@ -90,23 +90,22 @@ bool SkipList<T>::remove(T value){
             Node<T>* nodeToRemove = succs[bottomLevel];
 
             for(int level = nodeToRemove->topLevel; level >= bottomLevel + 1; --level){
-                CONVERSION<Node<T>> current;
-                current.node = nodeToRemove->next[level];
-                
-                CONVERSION<Node<T>> next;
-                next.node = nodeToRemove->next[level];
-
-                while(!(current.value & 0x1)){
-                    next.value |= 0x1;
-                    CASPTR(&nodeToRemove->next[level], current.node, next.node);
+                while(!isMarked(nodeToRemove->next[level])){
+                    CONVERSION<Node<T>> current;
                     current.node = nodeToRemove->next[level];
+                    current.value &= 0x0;
+
+                    CONVERSION<Node<T>> next;
+                    next.node = nodeToRemove->next[level];
+                    next.value |= 0x1;
+
+                    CASPTR(&nodeToRemove->next[level], current.node, next.node);
                 }
             }
 
             while(true){
                 CONVERSION<Node<T>> current;
                 current.node = nodeToRemove->next[bottomLevel];
-                bool marked = current.value & 0x1;
                 current.value &= 0x0;
                 
                 CONVERSION<Node<T>> next;
@@ -118,7 +117,7 @@ bool SkipList<T>::remove(T value){
                 if(iMarkedIt){
                     find(value, preds, succs);
                     return true;
-                } else if(marked){
+                } else if(isMarked(nodeToRemove->next[bottomLevel])){
                     return false;
                 }
             }
