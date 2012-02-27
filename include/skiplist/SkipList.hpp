@@ -10,87 +10,99 @@ template<typename T>
 class SkipList {
     public:
         SkipList();
+        ~SkipList();
 
-        void add(T value);
+        bool add(T value);
         bool remove(T value);
         bool contains(T value);
 
     private:
         bool find(T x, Node<T>** preds, Node<T>** succs);
 
-        Node<T> head;
-        Node<T> tail;
+        Node<T>* head;
+        Node<T>* tail;
 };
 
 template<typename T>
-SkipList<T>::SkipList() : head(INT_MIN), tail(INT_MAX) {
-    for(int i = 0; i < head.length; ++i){
-        head.next[i] = &tail;   
+SkipList<T>::SkipList(){
+    head = new Node<T>(INT_MIN);
+    tail = new Node<T>(INT_MAX);
+
+    for(int i = 0; i < head->length; ++i){
+        head->next[i] = tail;
     }
 }
 
 template<typename T>
-void SkipList<T>::add(T value){
+SkipList<T>::~SkipList(){
+    delete head;
+    delete tail;
+}
+
+template<typename T>
+bool SkipList<T>::add(T value){
     int topLevel = random(P, MAX_LEVEL);
     int bottomLevel = 0;
 
-    Node<T>** preds = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
-    Node<T>** succs = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+    Node<T>* preds[MAX_LEVEL + 1];
+    Node<T>* succs[MAX_LEVEL + 1];
 
     while(true){
-        find(value, preds, succs);
+        if(find(value, preds, succs)){
+            return false;
+        } else {
+            Node<T>* newNode = new Node<T>(value, topLevel);
 
-        Node<T>* newNode = new Node<T>(value, topLevel);
-
-        for(int level = bottomLevel; level <= topLevel; ++level){
-            CONVERSION<Node<T>> succ;
-            succ.node = succs[level];
-            succ.value &= (~0 - 1);
-
-            newNode->next[level] = succ.node;
-        }
-
-        Node<T>* pred = preds[bottomLevel];
-        Node<T>* succ = succs[bottomLevel]; 
-            
-        CONVERSION<Node<T>> succConv;
-        succConv.node = succ;
-        succConv.value &= (~0 - 1);
-
-        newNode->next[bottomLevel] = succConv.node;
-        
-        CONVERSION<Node<T>> current;
-        current.node = succ;
-        current.value &= (~0 - 1);
-        
-        CONVERSION<Node<T>> next;
-        next.node = newNode;
-        next.value &= (~0 - 1);
-
-        if(!CASPTR(&pred->next[bottomLevel], current.node, next.node)){
-            continue;
-        }
-
-        for(int level = bottomLevel + 1; level <= topLevel; ++level){
-            while(true){
-                pred = preds[level];
-                succ = succs[level];
-        
-                current.node = succ;
-                current.value &= (~0 - 1);
-
-                next.node = newNode;
-                next.value &= (~0 - 1);
-
-                if(CASPTR(&pred->next[level], current.node, next.node)){ 
-                    break;
-                }
-
-                find(value, preds, succs);
+            for(int level = bottomLevel; level <= topLevel; ++level){
+                /*CONVERSION<Node<T>> succ;
+                succ.node = succs[level];
+                succ.value &= (~0l - 1);*/
+                
+                Set(&newNode->next[level], succs[level], false);
             }
-        }
 
-        return;
+            Node<T>* pred = preds[bottomLevel];
+            Node<T>* succ = succs[bottomLevel]; 
+
+/*            CONVERSION<Node<T>> succConv;
+            succConv.node = succ;
+            succConv.value &= (~0l - 1);*/
+
+            Set(&newNode->next[bottomLevel], succ, false);
+
+            /*CONVERSION<Node<T>> current;
+            current.node = succ;
+            current.value &= (~0l - 1);
+
+            CONVERSION<Node<T>> next;
+            next.node = newNode;
+            next.value &= (~0l - 1);*/
+
+            if(!CompareAndSet(&pred->next[bottomLevel], succ, newNode, false, false)){
+                continue;
+            }
+
+            for(int level = bottomLevel + 1; level <= topLevel; ++level){
+                while(true){
+                    pred = preds[level];
+                    succ = succs[level];
+
+                    /*current.node = succ;
+                    current.value &= (~0l - 1);
+
+                    next.node = newNode;
+                    next.value &= (~0l - 1);*/
+
+                    if(CompareAndSet(&pred->next[level], succ, newNode, false, false)){ 
+                        break;
+                    }
+
+                    find(value, preds, succs);
+                }
+            }
+
+            return true;
+        }
     }
 }
 
@@ -98,8 +110,8 @@ template<typename T>
 bool SkipList<T>::remove(T value){
     int bottomLevel = 0;
     
-    Node<T>** preds = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
-    Node<T>** succs = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+    Node<T>* preds[MAX_LEVEL + 1];
+    Node<T>* succs[MAX_LEVEL + 1];
 
     while(true){
         bool found = find(value, preds, succs);
@@ -110,37 +122,47 @@ bool SkipList<T>::remove(T value){
             Node<T>* nodeToRemove = succs[bottomLevel];
 
             for(int level = nodeToRemove->topLevel; level >= bottomLevel + 1; --level){
-                while(!isMarked(nodeToRemove->next[level])){
-                    CONVERSION<Node<T>> current;
-                    current.node = nodeToRemove->next[level];
-                    current.value &= (~0 - 1);
+                //Node<T>* succ = nodeToRemove->next[level];
 
-                    CONVERSION<Node<T>> next;
-                    next.node = nodeToRemove->next[level];
-                    next.value |= 0x1;
-                    
-                    CASPTR(&nodeToRemove->next[level], current.node, next.node);
+                while(!isMarked(nodeToRemove->next[level])){
+                    CompareAndSet(&nodeToRemove->next[level], nodeToRemove->next[level], nodeToRemove->next[level], false, true);
+
+                  //  succ = nodeToRemove->next[level];
                 }
             }
 
+            Node<T>* succ = nodeToRemove->next[bottomLevel];
             while(true){
-                CONVERSION<Node<T>> current;
-                current.node = nodeToRemove->next[bottomLevel];
-                current.value &= (~0 - 1);
+                /*CONVERSION<Node<T>> current;
+                current.node = succ;
+                current.value &= (~0l - 1);
                 
                 CONVERSION<Node<T>> next;
-                next.node = nodeToRemove->next[bottomLevel];
-                next.value |= 0x1;
+                next.node = succ;
+                next.value |= 0x1;*/
 
-                if(CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node)){
+                bool iMarkedIt = CompareAndSet(&nodeToRemove->next[bottomLevel], succ, succ, false, true);
+
+                succ = succs[bottomLevel]->next[bottomLevel];
+
+                if(iMarkedIt){
                     find(value, preds, succs);
                     return true;
-                } else if(isMarked(nodeToRemove->next[bottomLevel])){
-                    return false;
+                } else if(isMarked(succ)){//Someone else marked it
+                    return false;//TODO Check if that's correct in the context of multiset
                 }
             }
         }
     }
+}
+
+template<typename T>
+T* reference(T* ptr){
+    CONVERSION<T> current;
+    current.node = ptr;
+    current.value &= (~0l - 1);
+    
+    return current.node;
 }
 
 template<typename T>
@@ -149,7 +171,7 @@ bool SkipList<T>::contains(T value){
 
     int v = hash(value);
 
-    Node<T>* pred = &head;
+    Node<T>* pred = head;
     Node<T>* curr = nullptr;
     Node<T>* succ = nullptr;
 
@@ -157,7 +179,7 @@ bool SkipList<T>::contains(T value){
         curr = pred->next[level];
 
         while(true){
-            succ = curr->next[level]; 
+            succ = curr->next[level];
 
             while(isMarked(succ)){
                curr = pred->next[level];
@@ -188,7 +210,7 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
     while(true){
         retry:
 
-        pred = &head;
+        pred = head;
 
         for(int level = MAX_LEVEL; level >= bottomLevel; --level){
             curr = pred->next[level];
@@ -196,16 +218,20 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
             while(true){
                 succ = curr->next[level];
 
-                while(isMarked(curr->next[level])){
-                    CONVERSION<Node<T>> current;
+                while(isMarked(succ)){
+                    /*CONVERSION<Node<T>> current;
                     current.node = curr;
-                    current.value &= (~0 - 1);
+                    current.value &= (~0l - 1);
 
                     CONVERSION<Node<T>> next;
                     next.node = succ;
-                    next.value &= (~0 - 1);
+                    next.value &= (~0l - 1);
 
                     if(!CASPTR(&pred->next[level], current.node, next.node)){
+                        goto retry;
+                    }*/
+
+                    if(!CompareAndSet(&pred->next[level], curr, succ, false, false)){
                         goto retry;
                     }
 

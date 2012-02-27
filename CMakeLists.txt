@@ -15,7 +15,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
   endif()
 elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fopenmp -std=c++0x -pedantic -Wall -Wextra -Wno-long-long")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -g -fopenmp -std=c++0x -pedantic -Wall -Wextra -Wno-long-long")
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH bin)

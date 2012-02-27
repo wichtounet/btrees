@@ -63,10 +63,12 @@ void testST(const std::string& name){
     for(unsigned int i = 0; i < N; ++i){
         int number = random();
 
-        tree.add(number);     
-        assert(tree.contains(number));
+        if(!tree.contains(number)){
+            tree.add(number);     
+            assert(tree.contains(number));
 
-        rand.push_back(number);
+            rand.push_back(number);
+        }
     }
     
     //Try remove when the number is not in the tree
@@ -93,7 +95,7 @@ void testST(const std::string& name){
     std::cout << "Test passed successfully" << std::endl;
 }
 
-template<typename T, int Threads>
+template<typename T, unsigned int Threads>
 void testMT(){
     std::cout << "Test with " << Threads << " threads" << std::endl;
 
@@ -103,18 +105,30 @@ void testMT(){
 
     #pragma omp parallel shared(tree)
     {
+        unsigned int tid = omp_get_thread_num();
+
         //Insert sequential numbers
-        for(unsigned int i = 0; i < N; ++i){
-            tree.add(i);     
+        for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
+            assert(tree.add(i));
             assert(tree.contains(i));
         }
 
         //Remove all the sequential numbers
-        for(unsigned int i = 0; i < N; ++i){
+        for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
             assert(tree.contains(i));
-            assert(tree.remove(i));     
+            assert(tree.remove(i));   
         }
     }
+    
+    #pragma omp parallel shared(tree)
+    {
+        //Verify that every numbers has been removed correctly
+        for(unsigned int i = 0; i < Threads * N; ++i){
+            assert(!tree.contains(i));
+        }
+    }
+    
+    std::cout << "Test with " << Threads << " threads passed succesfully" << std::endl;
 }
 
 template<typename T>
@@ -122,6 +136,12 @@ void testMT(const std::string& name){
     std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;
     
     testMT<T, 2>();
+    testMT<T, 3>();
+    testMT<T, 4>();
+    testMT<T, 6>();
+    testMT<T, 8>();
+    testMT<T, 12>();
+    testMT<T, 16>();
 }
 
 template<typename T>
