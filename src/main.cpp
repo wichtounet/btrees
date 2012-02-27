@@ -31,7 +31,9 @@ int main(int argc, const char* argv[]) {
 }
 
 template<typename T>
-void testVersion(){
+void testVersion(const std::string& name){
+    std::cout << "Test " << name << std::endl;
+
     T tree;
 
     tree.add(1);
@@ -42,7 +44,7 @@ void testVersion(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    testVersion<SkipList>();
+    testVersion<SkipList>("SkipList");
 }
 
 void perfTest(){
