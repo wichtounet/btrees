@@ -191,10 +191,6 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
         retry:
             continue;
     }
-
-
-    //TODO
-    return false;
 }
 
 }
