@@ -54,29 +54,13 @@ bool SkipList<T>::add(T value){
             Node<T>* newNode = new Node<T>(value, topLevel);
 
             for(int level = bottomLevel; level <= topLevel; ++level){
-                /*CONVERSION<Node<T>> succ;
-                succ.node = succs[level];
-                succ.value &= (~0l - 1);*/
-                
                 Set(&newNode->next[level], succs[level], false);
             }
 
             Node<T>* pred = preds[bottomLevel];
             Node<T>* succ = succs[bottomLevel]; 
 
-/*            CONVERSION<Node<T>> succConv;
-            succConv.node = succ;
-            succConv.value &= (~0l - 1);*/
-
             Set(&newNode->next[bottomLevel], succ, false);
-
-            /*CONVERSION<Node<T>> current;
-            current.node = succ;
-            current.value &= (~0l - 1);
-
-            CONVERSION<Node<T>> next;
-            next.node = newNode;
-            next.value &= (~0l - 1);*/
 
             if(!CompareAndSet(&pred->next[bottomLevel], succ, newNode, false, false)){
                 continue;
@@ -86,12 +70,6 @@ bool SkipList<T>::add(T value){
                 while(true){
                     pred = preds[level];
                     succ = succs[level];
-
-                    /*current.node = succ;
-                    current.value &= (~0l - 1);
-
-                    next.node = newNode;
-                    next.value &= (~0l - 1);*/
 
                     if(CompareAndSet(&pred->next[level], succ, newNode, false, false)){ 
                         break;
@@ -122,25 +100,16 @@ bool SkipList<T>::remove(T value){
             Node<T>* nodeToRemove = succs[bottomLevel];
 
             for(int level = nodeToRemove->topLevel; level >= bottomLevel + 1; --level){
-                //Node<T>* succ = nodeToRemove->next[level];
+                Node<T>* succ = nodeToRemove->next[level];
 
-                while(!isMarked(nodeToRemove->next[level])){
-                    CompareAndSet(&nodeToRemove->next[level], nodeToRemove->next[level], nodeToRemove->next[level], false, true);
-
-                  //  succ = nodeToRemove->next[level];
+                while(!isMarked(succ)){
+                    CompareAndSet(&nodeToRemove->next[level], succ, succ, false, true);
+                    succ = nodeToRemove->next[level];
                 }
             }
 
             Node<T>* succ = nodeToRemove->next[bottomLevel];
             while(true){
-                /*CONVERSION<Node<T>> current;
-                current.node = succ;
-                current.value &= (~0l - 1);
-                
-                CONVERSION<Node<T>> next;
-                next.node = succ;
-                next.value |= 0x1;*/
-
                 bool iMarkedIt = CompareAndSet(&nodeToRemove->next[bottomLevel], succ, succ, false, true);
 
                 succ = succs[bottomLevel]->next[bottomLevel];
@@ -154,15 +123,6 @@ bool SkipList<T>::remove(T value){
             }
         }
     }
-}
-
-template<typename T>
-T* reference(T* ptr){
-    CONVERSION<T> current;
-    current.node = ptr;
-    current.value &= (~0l - 1);
-    
-    return current.node;
 }
 
 template<typename T>
@@ -219,18 +179,6 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
                 succ = curr->next[level];
 
                 while(isMarked(succ)){
-                    /*CONVERSION<Node<T>> current;
-                    current.node = curr;
-                    current.value &= (~0l - 1);
-
-                    CONVERSION<Node<T>> next;
-                    next.node = succ;
-                    next.value &= (~0l - 1);
-
-                    if(!CASPTR(&pred->next[level], current.node, next.node)){
-                        goto retry;
-                    }*/
-
                     if(!CompareAndSet(&pred->next[level], curr, succ, false, false)){
                         goto retry;
                     }
