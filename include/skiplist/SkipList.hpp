@@ -99,11 +99,7 @@ bool SkipList<T>::remove(T value){
                     next.node = nodeToRemove->next[level];
                     next.value |= 0x1;
                     
-                    //std::cout << "before:" << &nodeToRemove->next[level] << std::endl;
-
                     CASPTR(&nodeToRemove->next[level], current.node, next.node);
-
-                    //std::cout << "after:" << &nodeToRemove->next[level] << std::endl;
                 }
             }
 
@@ -116,12 +112,7 @@ bool SkipList<T>::remove(T value){
                 next.node = nodeToRemove->next[bottomLevel];
                 next.value |= 0x1;
 
-                bool iMarkedIt = CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node);
-
-                //std::cout << "imarkedit:" << iMarkedIt << std::endl;
-                //std::cout << "ismarked:" << isMarked(nodeToRemove->next[bottomLevel]) << std::endl;
-
-                if(iMarkedIt){
+                if(CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node)){
                     find(value, preds, succs);
                     return true;
                 } else if(isMarked(nodeToRemove->next[bottomLevel])){

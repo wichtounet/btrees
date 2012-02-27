@@ -31,8 +31,8 @@ int main(int argc, const char* argv[]) {
 }
 
 template<typename T>
-void testVersion(const std::string& name){
-    std::cout << "Test " << name << std::endl;
+void testST(const std::string& name){
+    std::cout << "Test single-threaded " << name << std::endl;
 
     T tree;
 
@@ -47,6 +47,11 @@ void testVersion(const std::string& name){
     
     std::cout << "contains 1" << std::endl;
     std::cout << "\tresult = " << tree.contains(1) << std::endl;
+}
+
+template<typename T>
+void testVersion(const std::string& name){
+    testST<T>(name);
 }
 
 void test(){
