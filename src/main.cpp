@@ -3,6 +3,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <omp.h>
+
 #include "Constants.hpp"
 
 #include "skiplist/SkipList.hpp"
@@ -91,9 +93,41 @@ void testST(const std::string& name){
     std::cout << "Test passed successfully" << std::endl;
 }
 
+template<typename T, int Threads>
+void testMT(){
+    std::cout << "Test with " << Threads << " threads" << std::endl;
+
+    T tree;
+
+    omp_set_num_threads(Threads);
+
+    #pragma omp parallel shared(tree)
+    {
+        //Insert sequential numbers
+        for(unsigned int i = 0; i < N; ++i){
+            tree.add(i);     
+            assert(tree.contains(i));
+        }
+
+        //Remove all the sequential numbers
+        for(unsigned int i = 0; i < N; ++i){
+            assert(tree.contains(i));
+            assert(tree.remove(i));     
+        }
+    }
+}
+
+template<typename T>
+void testMT(const std::string& name){
+    std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;
+    
+    testMT<T, 2>();
+}
+
 template<typename T>
 void testVersion(const std::string& name){
     testST<T>(name);
+    testMT<T>(name);
 }
 
 void test(){
