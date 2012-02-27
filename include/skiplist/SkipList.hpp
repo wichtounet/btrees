@@ -1,5 +1,7 @@
 #include <climits>
 
+#include "Utils.hpp"
+
 #include "skiplist/Node.hpp"
 
 namespace skiplist {
@@ -29,7 +31,44 @@ SkipList<T>::SkipList() : head(INT_MIN), tail(INT_MAX) {
 
 template<typename T>
 void SkipList<T>::add(T value){
-   //TODO 
+    int topLevel = randomLevel(MAX_LEVEL + 1);
+    int bottomLevel = 0;
+
+    Node<T>** preds = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+    Node<T>** succs = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+
+    while(true){
+        Node<T>* newNode = new Node<T>(value, topLevel);
+
+        for(int level = bottomLevel; level <= topLevel; ++level){
+            Node<T>* succ = succs[level];
+            newNode.next[level].set(succ, false);
+        }
+
+        Node<T>* pred = preds[bottomLevel];
+        Node<T>* succ = succs[bottomLevel]; 
+
+        newNode.next[bottomLevel].set(succ, false);
+
+        if(!pred.next[bottomLevel].compareAndSet(succ, newNode, false, false)){
+            continue;
+        }
+
+        for(int level = bottomLevel + 1; level <= topLevel; ++level){
+            while(true){
+                pred = preds[level];
+                succ = succs[level];
+
+                if(pred.next[level].compareAndSet(succ, newNode, false, false)){
+                    break;
+                }
+
+                find(x, preds, succs);
+            }
+        }
+
+        return;
+    }
 }
 
 template<typename T>
