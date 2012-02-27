@@ -36,9 +36,17 @@ void testVersion(const std::string& name){
 
     T tree;
 
+    std::cout << "add 1" << std::endl;
     tree.add(1);
-    tree.contains(1);
-    tree.remove(1);
+    
+    std::cout << "contains 1" << std::endl;
+    std::cout << "\tresult = " << tree.contains(1) << std::endl;
+    
+    std::cout << "remove 1" << std::endl;
+    std::cout << "\tresult = " << tree.remove(1) << std::endl;
+    
+    std::cout << "contains 1" << std::endl;
+    std::cout << "\tresult = " << tree.contains(1) << std::endl;
 }
 
 void test(){
