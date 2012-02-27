@@ -111,7 +111,7 @@ bool SkipList<T>::remove(T value){
                 
                 CONVERSION<Node<T>> next;
                 next.node = nodeToRemove->next[bottomLevel];
-                next.value &= true;
+                next.value |= 0x1;
 
                 bool iMarkedIt = CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node);
 
@@ -133,7 +133,66 @@ bool SkipList<T>::contains(T/* value*/){
 }
 
 template<typename T>
-bool SkipList<T>::find(T /*x*/, Node<T>** /*preds*/, Node<T>** /*succs*/){
+bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
+    int bottomLevel = 0;
+    int key = hash(value);
+
+    Node<T>* pred = nullptr;
+    Node<T>* curr = nullptr;
+    Node<T>* succ = nullptr;
+
+    while(true){
+        pred = &head;
+
+        for(int level = MAX_LEVEL; level >= bottomLevel; --level){
+            curr = pred->next[level];
+
+            while(true){
+                succ = curr->next[level];
+                
+                CONVERSION<Node<T>> current;
+                current.node = curr->next[level];
+                bool marked = current.value & 0x1;
+                current.value &= 0x0;
+                
+                CONVERSION<Node<T>> next;
+                next.node = curr->next[level];
+                next.value &= 0x0;
+
+                while(marked){
+                    if(!CASPTR(&pred->next[level], current.node, next.node)){
+                        goto retry;
+                    }
+
+                    curr = pred->next[level];
+                    succ = curr->next[level];
+                
+                    current.node = curr->next[level];
+                    marked = current.value & 0x1;
+                    current.value &= 0x0;
+                
+                    next.node = curr->next[level];
+                    next.value &= 0x0;
+                }
+                if(curr->key < key){
+                    pred = curr;
+                    curr = succ;
+                } else {
+                    break;
+                }
+            }
+
+            preds[level] = pred;
+            succs[level] = curr;
+        }
+
+        return curr->key == key;
+
+        retry:
+            continue;
+    }
+
+
     //TODO
     return false;
 }
