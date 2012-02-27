@@ -93,26 +93,33 @@ bool SkipList<T>::remove(T value){
                 while(!isMarked(nodeToRemove->next[level])){
                     CONVERSION<Node<T>> current;
                     current.node = nodeToRemove->next[level];
-                    current.value &= 0x0;
+                    current.value &= (~0 - 1);
 
                     CONVERSION<Node<T>> next;
                     next.node = nodeToRemove->next[level];
                     next.value |= 0x1;
+                    
+                    //std::cout << "before:" << &nodeToRemove->next[level] << std::endl;
 
                     CASPTR(&nodeToRemove->next[level], current.node, next.node);
+
+                    //std::cout << "after:" << &nodeToRemove->next[level] << std::endl;
                 }
             }
 
             while(true){
                 CONVERSION<Node<T>> current;
                 current.node = nodeToRemove->next[bottomLevel];
-                current.value &= 0x0;
+                current.value &= (~0 - 1);
                 
                 CONVERSION<Node<T>> next;
                 next.node = nodeToRemove->next[bottomLevel];
                 next.value |= 0x1;
 
                 bool iMarkedIt = CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node);
+
+                //std::cout << "imarkedit:" << iMarkedIt << std::endl;
+                //std::cout << "ismarked:" << isMarked(nodeToRemove->next[bottomLevel]) << std::endl;
 
                 if(iMarkedIt){
                     find(value, preds, succs);
@@ -168,6 +175,8 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
     Node<T>* succ = nullptr;
 
     while(true){
+        retry:
+
         pred = &head;
 
         for(int level = MAX_LEVEL; level >= bottomLevel; --level){
@@ -175,31 +184,24 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
 
             while(true){
                 succ = curr->next[level];
-                
-                CONVERSION<Node<T>> current;
-                current.node = curr->next[level];
-                bool marked = current.value & 0x1;
-                current.value &= 0x0;
-                
-                CONVERSION<Node<T>> next;
-                next.node = curr->next[level];
-                next.value &= 0x0;
 
-                while(marked){
+                while(isMarked(curr->next[level])){
+                    CONVERSION<Node<T>> current;
+                    current.node = curr;
+                    current.value &= (~0 - 1);
+
+                    CONVERSION<Node<T>> next;
+                    next.node = succ;
+                    next.value &= (~0 - 1);
+
                     if(!CASPTR(&pred->next[level], current.node, next.node)){
                         goto retry;
                     }
 
                     curr = pred->next[level];
                     succ = curr->next[level];
-                
-                    current.node = curr->next[level];
-                    marked = current.value & 0x1;
-                    current.value &= 0x0;
-                
-                    next.node = curr->next[level];
-                    next.value &= 0x0;
                 }
+
                 if(curr->key < key){
                     pred = curr;
                     curr = succ;
@@ -213,9 +215,6 @@ bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
         }
 
         return curr->key == key;
-
-        retry:
-            continue;
     }
 }
 
