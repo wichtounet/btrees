@@ -2,6 +2,8 @@
 
 #include "skiplist/SkipList.hpp"
 
+typedef skiplist::SkipList<int> SkipList;
+
 void test();
 void perfTest();
 
@@ -40,7 +42,7 @@ void testVersion(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    testVersion<skiplist::SkipList<int>>();
+    testVersion<SkipList>();
 }
 
 void perfTest(){
