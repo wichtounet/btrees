@@ -16,7 +16,7 @@ class SkipList {
         bool contains(T value);
 
     private:
-        bool find(T x, Node<T>* preds, Node<T>* succs);
+        bool find(T x, Node<T>** preds, Node<T>** succs);
 
         Node<T> head;
         Node<T> tail;
@@ -42,15 +42,16 @@ void SkipList<T>::add(T value){
 
         for(int level = bottomLevel; level <= topLevel; ++level){
             Node<T>* succ = succs[level];
-            newNode.next[level].set(succ, false);
+
+            newNode->next[level] = succ; //(succ,false)
         }
 
         Node<T>* pred = preds[bottomLevel];
         Node<T>* succ = succs[bottomLevel]; 
 
-        newNode.next[bottomLevel].set(succ, false);
+        newNode->next[bottomLevel] = succ; //(succ,false)
 
-        if(!pred.next[bottomLevel].compareAndSet(succ, newNode, false, false)){
+        if(!CASPTR(&pred->next[bottomLevel], succ, newNode)){ //(succ, false) -> (newNode, false)
             continue;
         }
 
@@ -59,11 +60,11 @@ void SkipList<T>::add(T value){
                 pred = preds[level];
                 succ = succs[level];
 
-                if(pred.next[level].compareAndSet(succ, newNode, false, false)){
+                if(CASPTR(&pred->next[level], succ, newNode)){ //(succ, false) -> (newNode, false)
                     break;
                 }
 
-                find(x, preds, succs);
+                find(value, preds, succs);
             }
         }
 
@@ -72,13 +73,19 @@ void SkipList<T>::add(T value){
 }
 
 template<typename T>
-bool SkipList<T>::remove(T value){
+bool SkipList<T>::remove(T/* value*/){
     //TODO
     return false;
 }
 
 template<typename T>
-bool SkipList<T>::contains(T value){
+bool SkipList<T>::contains(T/* value*/){
+    //TODO
+    return false;
+}
+
+template<typename T>
+bool SkipList<T>::find(T /*x*/, Node<T>** /*preds*/, Node<T>** /*succs*/){
     //TODO
     return false;
 }
