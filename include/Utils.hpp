@@ -18,3 +18,10 @@ union CONVERSION {
     unsigned long value;
 };
 
+template<typename T>
+bool isMarked(T* node){
+    CONVERSION<T> conv;
+    conv.node = node;
+
+    return conv.value & 0x1;
+}

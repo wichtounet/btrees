@@ -127,9 +127,36 @@ bool SkipList<T>::remove(T value){
 }
 
 template<typename T>
-bool SkipList<T>::contains(T/* value*/){
-    //TODO
-    return false;
+bool SkipList<T>::contains(T value){
+    int bottomLevel = 0;
+
+    int v = hash(value);
+
+    Node<T>* pred = &head;
+    Node<T>* curr = nullptr;
+    Node<T>* succ = nullptr;
+
+    for(int level = MAX_LEVEL; level >= bottomLevel; --level){
+        curr = pred->next[level];
+
+        while(true){
+            succ = curr->next[level]; 
+
+            while(isMarked(succ)){
+               curr = pred->next[level];
+               succ = curr->next[level]; 
+            }
+
+            if(curr->key < v){
+                pred = curr;
+                curr = succ;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return curr->key == v;
 }
 
 template<typename T>
