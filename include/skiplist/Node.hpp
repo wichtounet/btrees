@@ -26,8 +26,7 @@ class Node {
 };
 
 template<typename T>
-Node<T>::Node(int k) : value(k), key(k), topLevel(MAX_LEVEL), length(MAX_LEVEL + 1) {
-
+Node<T>::Node(int k) : value(k), key(k), length(MAX_LEVEL + 1), topLevel(MAX_LEVEL) {
     next = (Node<T>**) malloc(sizeof(Node<T>*) * length);
 
     for(int i = 0; i < length; ++i){
@@ -36,7 +35,7 @@ Node<T>::Node(int k) : value(k), key(k), topLevel(MAX_LEVEL), length(MAX_LEVEL +
 }
 
 template<typename T>
-Node<T>::Node(T x, int height) : value(x), key(hash(x)), topLevel(height), length(height + 1) {
+Node<T>::Node(T x, int height) : value(x), key(hash(x)), length(height + 1), topLevel(height) {
     next = (Node<T>**) malloc(sizeof(Node<T>*) * length);
 
     for(int i = 0; i < length; ++i){

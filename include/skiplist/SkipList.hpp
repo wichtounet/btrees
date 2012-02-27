@@ -16,13 +16,15 @@ class SkipList {
     private:
         bool find(T x, Node<T>* preds, Node<T>* succs);
 
-        const Node<T> head;
-        const Node<T> tail;
+        Node<T> head;
+        Node<T> tail;
 };
 
 template<typename T>
 SkipList<T>::SkipList() : head(INT_MIN), tail(INT_MAX) {
-    //TODO
+    for(int i = 0; i < head.length; ++i){
+        head.next[i] = &tail;   
+    }
 }
 
 template<typename T>
