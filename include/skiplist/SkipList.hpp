@@ -38,6 +38,8 @@ void SkipList<T>::add(T value){
     Node<T>** succs = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
 
     while(true){
+        find(value, preds, succs);
+
         Node<T>* newNode = new Node<T>(value, topLevel);
 
         for(int level = bottomLevel; level <= topLevel; ++level){
@@ -73,9 +75,55 @@ void SkipList<T>::add(T value){
 }
 
 template<typename T>
-bool SkipList<T>::remove(T/* value*/){
-    //TODO
-    return false;
+bool SkipList<T>::remove(T value){
+    int bottomLevel = 0;
+    
+    Node<T>** preds = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+    Node<T>** succs = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
+
+    while(true){
+        bool found = find(value, preds, succs);
+
+        if(!found){
+            return false;
+        } else {
+            Node<T>* nodeToRemove = succs[bottomLevel];
+
+            for(int level = nodeToRemove->topLevel; level >= bottomLevel + 1; --level){
+                CONVERSION<Node<T>> current;
+                current.node = nodeToRemove->next[level];
+                
+                CONVERSION<Node<T>> next;
+                next.node = nodeToRemove->next[level];
+
+                while(!(current.value & 0x1)){
+                    next.value |= 0x1;
+                    CASPTR(&nodeToRemove->next[level], current.node, next.node);
+                    current.node = nodeToRemove->next[level];
+                }
+            }
+
+            while(true){
+                CONVERSION<Node<T>> current;
+                current.node = nodeToRemove->next[bottomLevel];
+                bool marked = current.value & 0x1;
+                current.value &= 0x0;
+                
+                CONVERSION<Node<T>> next;
+                next.node = nodeToRemove->next[bottomLevel];
+                next.value &= true;
+
+                bool iMarkedIt = CASPTR(&nodeToRemove->next[bottomLevel], current.node, next.node);
+
+                if(iMarkedIt){
+                    find(value, preds, succs);
+                    return true;
+                } else if(marked){
+                    return false;
+                }
+            }
+        }
+    }
 }
 
 template<typename T>

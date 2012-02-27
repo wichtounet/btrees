@@ -11,8 +11,6 @@ class Node {
         const int key;
         Node<T>** next;//TODO Check if possible to declare directly static array
         const int length;
-
-    private:
         int topLevel;
 
     public:
