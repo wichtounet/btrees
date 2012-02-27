@@ -20,6 +20,8 @@ endif()
 
 set(EXECUTABLE_OUTPUT_PATH bin)
 
+include_directories(include)
+
 file(
 	GLOB_RECURSE
 	btrees_source_files

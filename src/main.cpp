@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include "skiplist/SkipList.hpp"
+
 void test();
 void perfTest();
 
@@ -26,8 +28,19 @@ int main(int argc, const char* argv[]) {
     return 0;
 }
 
+template<typename T>
+void testVersion(){
+    T tree;
+
+    tree.add(1);
+    tree.contains(1);
+    tree.remove(1);
+}
+
 void test(){
     std::cout << "Tests the different versions" << std::endl;
+
+    testVersion<skiplist::SkipList<int>>();
 }
 
 void perfTest(){
