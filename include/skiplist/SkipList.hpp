@@ -43,17 +43,31 @@ void SkipList<T>::add(T value){
         Node<T>* newNode = new Node<T>(value, topLevel);
 
         for(int level = bottomLevel; level <= topLevel; ++level){
-            Node<T>* succ = succs[level];
+            CONVERSION<Node<T>> succ;
+            succ.node = succs[level];
+            succ.value &= (~0 - 1);
 
-            newNode->next[level] = succ; //(succ,false)
+            newNode->next[level] = succ.node;
         }
 
         Node<T>* pred = preds[bottomLevel];
         Node<T>* succ = succs[bottomLevel]; 
+            
+        CONVERSION<Node<T>> succConv;
+        succConv.node = succ;
+        succConv.value &= (~0 - 1);
 
-        newNode->next[bottomLevel] = succ; //(succ,false)
+        newNode->next[bottomLevel] = succConv.node;
+        
+        CONVERSION<Node<T>> current;
+        current.node = succ;
+        current.value &= (~0 - 1);
+        
+        CONVERSION<Node<T>> next;
+        next.node = newNode;
+        next.value &= (~0 - 1);
 
-        if(!CASPTR(&pred->next[bottomLevel], succ, newNode)){ //(succ, false) -> (newNode, false)
+        if(!CASPTR(&pred->next[bottomLevel], current.node, next.node)){
             continue;
         }
 
@@ -61,8 +75,14 @@ void SkipList<T>::add(T value){
             while(true){
                 pred = preds[level];
                 succ = succs[level];
+        
+                current.node = succ;
+                current.value &= (~0 - 1);
 
-                if(CASPTR(&pred->next[level], succ, newNode)){ //(succ, false) -> (newNode, false)
+                next.node = newNode;
+                next.value &= (~0 - 1);
+
+                if(CASPTR(&pred->next[level], current.node, next.node)){ 
                     break;
                 }
 
