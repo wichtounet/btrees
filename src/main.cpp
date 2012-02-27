@@ -1,4 +1,9 @@
 #include <iostream>
+#include <cassert>
+#include <vector>
+#include <algorithm>
+
+#include "Constants.hpp"
 
 #include "skiplist/SkipList.hpp"
 
@@ -32,21 +37,58 @@ int main(int argc, const char* argv[]) {
 
 template<typename T>
 void testST(const std::string& name){
-    std::cout << "Test single-threaded " << name << std::endl;
-
+    std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
+    
     T tree;
 
-    std::cout << "add 1" << std::endl;
-    tree.add(1);
+    //Insert sequential numbers
+    for(unsigned int i = 0; i < N; ++i){
+        assert(!tree.contains(i));
+        tree.add(i);     
+        assert(tree.contains(i));
+    }
     
-    std::cout << "contains 1" << std::endl;
-    std::cout << "\tresult = " << tree.contains(1) << std::endl;
+    //Remove all the sequential numbers
+    for(unsigned int i = 0; i < N; ++i){
+        assert(tree.contains(i));
+        assert(tree.remove(i));     
+        assert(!tree.contains(i));
+    }
+
+    std::vector<int> rand;
+
+    //Insert random numbers in the tree
+    for(unsigned int i = 0; i < N; ++i){
+        int number = random();
+
+        tree.add(number);     
+        assert(tree.contains(number));
+
+        rand.push_back(number);
+    }
     
-    std::cout << "remove 1" << std::endl;
-    std::cout << "\tresult = " << tree.remove(1) << std::endl;
-    
-    std::cout << "contains 1" << std::endl;
-    std::cout << "\tresult = " << tree.contains(1) << std::endl;
+    //Try remove when the number is not in the tree
+    for(unsigned int i = 0; i < N; ++i){
+        int number = random();
+
+        if(!tree.contains(number)){
+            assert(!tree.remove(number));
+            assert(!tree.contains(number));
+        }
+    }
+
+    //Avoid removing in the same order
+    random_shuffle(rand.begin(), rand.end());
+
+    //Verify that we can remove all the numbers from the tree
+    for(unsigned int i = 0; i < N; ++i){
+        int number = rand[i];
+
+        assert(tree.contains(number));
+        assert(tree.remove(number));
+    }
+
+    std::cout << "Test passed successfully" << std::endl;
 }
 
 template<typename T>

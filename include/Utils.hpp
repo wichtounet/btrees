@@ -1,10 +1,21 @@
 #include <cstdlib>
 #include <ctime>
+#include <climits>
 
-int randomLevel(int max){
+int random(int max){
     srand(time(NULL));
 
     return rand() % max;
+}
+
+int random(double p, int maxLevel){
+    int level = 0;
+
+    while (((double) rand() / (double) RAND_MAX) < p){
+        level++;
+    }
+
+    return (level >= maxLevel) ? maxLevel : level;
 }
         
 template<typename T>

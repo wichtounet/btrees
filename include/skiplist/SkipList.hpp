@@ -31,7 +31,7 @@ SkipList<T>::SkipList() : head(INT_MIN), tail(INT_MAX) {
 
 template<typename T>
 void SkipList<T>::add(T value){
-    int topLevel = randomLevel(MAX_LEVEL + 1);
+    int topLevel = random(P, MAX_LEVEL);
     int bottomLevel = 0;
 
     Node<T>** preds = (Node<T>**) malloc(sizeof(Node<T>*) * (MAX_LEVEL + 1));
