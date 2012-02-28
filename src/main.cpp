@@ -157,7 +157,7 @@ void test(){
     std::cout << "Tests the different versions" << std::endl;
 
     testVersion<SkipList>("SkipList");
-    //testVersion<NBBST>("Non-Blocking Binary Search Tree");
+    testVersion<NBBST>("Non-Blocking Binary Search Tree");
 }
 
 void perfTest(){
