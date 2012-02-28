@@ -8,17 +8,17 @@ namespace skiplist {
 
 template<typename T>
 inline Node<T>* Unmark(Node<T>* node){
-    return (Node<T>*)((unsigned long)(node) & (~0l - 1));
+    return reinterpret_cast<Node<T>*>(reinterpret_cast<unsigned long>(node) & (~0l - 1));
 }
 
 template<typename T>
 inline Node<T>* Mark(Node<T>* node){
-    return (Node<T>*)((unsigned long)(node) | 0x1);
+    return reinterpret_cast<Node<T>*>(reinterpret_cast<unsigned long>(node) | 0x1);
 }
 
 template<typename T>
 inline bool IsMarked(Node<T>* node){
-    return ((unsigned long)(node) & 0x1);
+    return reinterpret_cast<unsigned long>(node) & 0x1;
 }
 
 template<typename T>
