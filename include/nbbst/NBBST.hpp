@@ -35,7 +35,7 @@ UpdateState getState(Update update){
 }
 
 inline Update Unmark(Update info){
-    return (Update)((unsigned long)(info) & (~0l - 3));
+    return reinterpret_cast<Update>(reinterpret_cast<unsigned long>(info) & (~0l - 3));
 }
 
 template<typename T>
