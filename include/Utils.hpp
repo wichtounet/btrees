@@ -32,49 +32,4 @@ union CONVERSION {
     unsigned long value;
 };
 
-template<typename T>
-bool isMarked(T* node){
-    CONVERSION<T> conv;
-    conv.node = node;
-
-    return conv.value & 0x1;
-}
-
-template<typename T>
-void Set(T** ptr, T* ref, bool value){
-    CONVERSION<T> current;
-    current.node = ref;
-    
-    if(value){
-        current.value |= 1l; 
-    } else {
-        current.value &= (~0l - 1);
-    }
-
-    *ptr = current.node;
-}
-
-template<typename T>
-bool CompareAndSet(T** ptr, T* ref, T* newRef, bool value, bool newValue){
-    CONVERSION<T> current;
-    current.node = ref;
-
-    if(value){
-        current.value |= 1l; 
-    } else {
-        current.value &= (~0l - 1);
-    }
-
-    CONVERSION<T> next;
-    next.node = newRef;
-    
-    if(newValue){
-        next.value |= 1l; 
-    } else {
-        next.value &= (~0l - 1);
-    }
-   
-    return CASPTR(ptr, current.node, next.node); 
-}
-
 #endif

@@ -48,7 +48,7 @@ void testST(const std::string& name){
     //Insert sequential numbers
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
-        tree.add(i);     
+        assert(tree.add(i));
         assert(tree.contains(i));
     }
     
@@ -155,8 +155,8 @@ void testVersion(const std::string& name){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    //testVersion<SkipList>("SkipList");
-    testVersion<NBBST>("Non-Blocking Binary Search Tree");
+    testVersion<SkipList>("SkipList");
+    //testVersion<NBBST>("Non-Blocking Binary Search Tree");
 }
 
 void perfTest(){

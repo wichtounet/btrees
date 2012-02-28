@@ -40,7 +40,7 @@ Node<T>::Node(T x, int height) : value(x), key(hash(x)), length(height + 1), top
 
 template<typename T>
 Node<T>::~Node(){
-    std::cout << "caca" << std::endl;
+    //TODO Eventually
 }
 
 }

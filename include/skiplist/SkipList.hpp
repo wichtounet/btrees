@@ -6,6 +6,11 @@
 
 namespace skiplist {
 
+#define ADDRESSMASK (~0l - 1)
+#define GetMarkedAddress(a) (Node<T>*)((unsigned long)(a) | 0x1)
+#define GetUnmarkedAddress(a) (Node<T>*)((unsigned long)(a) & ADDRESSMASK)
+#define IsMarkedAddress(a) ((unsigned long)(a) & 0x1)
+
 template<typename T>
 class SkipList {
     public:
@@ -31,6 +36,8 @@ SkipList<T>::SkipList(){
     for(int i = 0; i < head->length; ++i){
         head->next[i] = tail;
     }
+
+    tail->topLevel = 0;
 }
 
 template<typename T>
@@ -42,83 +49,69 @@ SkipList<T>::~SkipList(){
 template<typename T>
 bool SkipList<T>::add(T value){
     int topLevel = random(P, MAX_LEVEL);
-    int bottomLevel = 0;
 
     Node<T>* preds[MAX_LEVEL + 1];
     Node<T>* succs[MAX_LEVEL + 1];
+            
+    Node<T>* newNode = new Node<T>(value, topLevel);
 
     while(true){
         if(find(value, preds, succs)){
+            delete newNode;
+
             return false;
         } else {
-            Node<T>* newNode = new Node<T>(value, topLevel);
-
-            for(int level = bottomLevel; level <= topLevel; ++level){
-                Set(&newNode->next[level], succs[level], false);
+            for(int level = 0; level <= topLevel; ++level){
+                newNode->next[level] = succs[level];
             }
 
-            Node<T>* pred = preds[bottomLevel];
-            Node<T>* succ = succs[bottomLevel]; 
-
-            Set(&newNode->next[bottomLevel], succ, false);
-
-            if(!CompareAndSet(&pred->next[bottomLevel], succ, newNode, false, false)){
-                continue;
-            }
-
-            for(int level = bottomLevel + 1; level <= topLevel; ++level){
-                while(true){
-                    pred = preds[level];
-                    succ = succs[level];
-
-                    if(CompareAndSet(&pred->next[level], succ, newNode, false, false)){ 
-                        break;
+            if(CASPTR(&preds[0]->next[0], succs[0], newNode)){
+                for(int level = 1; level <= topLevel; ++level){
+                    while(true){
+                        if(CASPTR(&preds[level]->next[level], succs[level], newNode)){ 
+                            break;
+                        } else {
+                            find(value, preds, succs);
+                        }
                     }
-
-                    find(value, preds, succs);
                 }
-            }
 
-            return true;
+                return true;
+            }
         }
     }
 }
 
 template<typename T>
 bool SkipList<T>::remove(T value){
-    int bottomLevel = 0;
-    
     Node<T>* preds[MAX_LEVEL + 1];
     Node<T>* succs[MAX_LEVEL + 1];
 
     while(true){
-        bool found = find(value, preds, succs);
-
-        if(!found){
+        if(!find(value, preds, succs)){
             return false;
         } else {
-            Node<T>* nodeToRemove = succs[bottomLevel];
+            Node<T>* nodeToRemove = succs[0];
 
-            for(int level = nodeToRemove->topLevel; level >= bottomLevel + 1; --level){
-                Node<T>* succ = nodeToRemove->next[level];
-
-                while(!isMarked(succ)){
-                    CompareAndSet(&nodeToRemove->next[level], succ, succ, false, true);
+            for(int level = nodeToRemove->topLevel; level > 0; --level){
+                Node<T>* succ = nullptr;
+                do {
                     succ = nodeToRemove->next[level];
-                }
+
+                    if(IsMarkedAddress(succ)){
+                        break;
+                    }
+                } while (!CASPTR(&nodeToRemove->next[level], succ, GetMarkedAddress(succ)));
             }
 
-            Node<T>* succ = nodeToRemove->next[bottomLevel];
             while(true){
-                bool iMarkedIt = CompareAndSet(&nodeToRemove->next[bottomLevel], succ, succ, false, true);
+                Node<T>* succ = nodeToRemove->next[0];
 
-                succ = succs[bottomLevel]->next[bottomLevel];
-
-                if(iMarkedIt){
+                if(IsMarkedAddress(succ)){
+                    break;
+                } else if(CASPTR(&nodeToRemove->next[0], succ, GetMarkedAddress(succ))){
                     find(value, preds, succs);
                     return true;
-                } else if(isMarked(succ)){//Someone else marked it
-                    return false;//TODO Check if that's correct in the context of multiset
                 }
             }
         }
@@ -127,26 +120,24 @@ bool SkipList<T>::remove(T value){
 
 template<typename T>
 bool SkipList<T>::contains(T value){
-    int bottomLevel = 0;
-
-    int v = hash(value);
+    int key = hash(value);
 
     Node<T>* pred = head;
     Node<T>* curr = nullptr;
     Node<T>* succ = nullptr;
 
-    for(int level = MAX_LEVEL; level >= bottomLevel; --level){
-        curr = pred->next[level];
+    for(int level = MAX_LEVEL; level >= 0; --level){
+        curr = GetUnmarkedAddress(pred->next[level]);
 
         while(true){
             succ = curr->next[level];
 
-            while(isMarked(succ)){
-               curr = pred->next[level];
+            while(IsMarkedAddress(succ)){
+               curr = GetUnmarkedAddress(curr->next[level]);
                succ = curr->next[level]; 
             }
 
-            if(curr->key < v){
+            if(curr->key < key){
                 pred = curr;
                 curr = succ;
             } else {
@@ -155,52 +146,56 @@ bool SkipList<T>::contains(T value){
         }
     }
 
-    return curr->key == v;
+    return curr->key == key;
 }
 
 template<typename T>
 bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
-    int bottomLevel = 0;
     int key = hash(value);
 
     Node<T>* pred = nullptr;
     Node<T>* curr = nullptr;
     Node<T>* succ = nullptr;
+        
+retry:
+    pred = head;
 
-    while(true){
-        retry:
+    for(int level = MAX_LEVEL; level >= 0; --level){
+        curr = pred->next[level];
 
-        pred = head;
-
-        for(int level = MAX_LEVEL; level >= bottomLevel; --level){
-            curr = pred->next[level];
-
-            while(true){
-                succ = curr->next[level];
-
-                while(isMarked(succ)){
-                    if(!CompareAndSet(&pred->next[level], curr, succ, false, false)){
-                        goto retry;
-                    }
-
-                    curr = pred->next[level];
-                    succ = curr->next[level];
-                }
-
-                if(curr->key < key){
-                    pred = curr;
-                    curr = succ;
-                } else {
-                    break;
-                }
+        while(true){
+            if(IsMarkedAddress(curr)){
+                goto retry;
             }
 
-            preds[level] = pred;
-            succs[level] = curr;
+            succ = curr->next[level];
+
+            while(IsMarkedAddress(succ)){
+                if(!CASPTR(&pred->next[level], curr, GetUnmarkedAddress(succ))){
+                    goto retry;
+                }
+
+                curr = pred->next[level];
+
+                if(IsMarkedAddress(curr)){
+                    goto retry;
+                }
+                succ = curr->next[level];
+            }
+
+            if(curr->key < key){
+                pred = curr;
+                curr = succ;
+            } else {
+                break;
+            }
         }
 
-        return curr->key == key;
+        preds[level] = pred;
+        succs[level] = curr;
     }
+
+    return curr->key == key;
 }
 
 }
