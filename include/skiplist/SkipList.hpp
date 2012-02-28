@@ -6,10 +6,9 @@
 
 namespace skiplist {
 
-#define ADDRESSMASK (~0l - 1)
-#define GetMarkedAddress(a) (Node<T>*)((unsigned long)(a) | 0x1)
-#define GetUnmarkedAddress(a) (Node<T>*)((unsigned long)(a) & ADDRESSMASK)
-#define IsMarkedAddress(a) ((unsigned long)(a) & 0x1)
+#define Mark(a) (Node<T>*)((unsigned long)(a) | 0x1)
+#define Unmark(a) (Node<T>*)((unsigned long)(a) & (~0l - 1))
+#define IsMarked(a) ((unsigned long)(a) & 0x1)
 
 template<typename T>
 class SkipList {
@@ -98,18 +97,18 @@ bool SkipList<T>::remove(T value){
                 do {
                     succ = nodeToRemove->next[level];
 
-                    if(IsMarkedAddress(succ)){
+                    if(IsMarked(succ)){
                         break;
                     }
-                } while (!CASPTR(&nodeToRemove->next[level], succ, GetMarkedAddress(succ)));
+                } while (!CASPTR(&nodeToRemove->next[level], succ, Mark(succ)));
             }
 
             while(true){
                 Node<T>* succ = nodeToRemove->next[0];
 
-                if(IsMarkedAddress(succ)){
+                if(IsMarked(succ)){
                     break;
-                } else if(CASPTR(&nodeToRemove->next[0], succ, GetMarkedAddress(succ))){
+                } else if(CASPTR(&nodeToRemove->next[0], succ, Mark(succ))){
                     find(value, preds, succs);
                     return true;
                 }
@@ -127,13 +126,13 @@ bool SkipList<T>::contains(T value){
     Node<T>* succ = nullptr;
 
     for(int level = MAX_LEVEL; level >= 0; --level){
-        curr = GetUnmarkedAddress(pred->next[level]);
+        curr = Unmark(pred->next[level]);
 
         while(true){
             succ = curr->next[level];
 
-            while(IsMarkedAddress(succ)){
-               curr = GetUnmarkedAddress(curr->next[level]);
+            while(IsMarked(succ)){
+               curr = Unmark(curr->next[level]);
                succ = curr->next[level]; 
             }
 
@@ -164,22 +163,23 @@ retry:
         curr = pred->next[level];
 
         while(true){
-            if(IsMarkedAddress(curr)){
+            if(IsMarked(curr)){
                 goto retry;
             }
 
             succ = curr->next[level];
 
-            while(IsMarkedAddress(succ)){
-                if(!CASPTR(&pred->next[level], curr, GetUnmarkedAddress(succ))){
+            while(IsMarked(succ)){
+                if(!CASPTR(&pred->next[level], curr, Unmark(succ))){
                     goto retry;
                 }
 
                 curr = pred->next[level];
 
-                if(IsMarkedAddress(curr)){
+                if(IsMarked(curr)){
                     goto retry;
                 }
+
                 succ = curr->next[level];
             }
 

@@ -12,16 +12,11 @@ class Node {
         int topLevel;
 
     public:
-        Node() = delete;
-        Node(const Node& rhs)  = delete;
-
         //constructor for sentinel nodes
         Node(int key);
 
         //constructor for ordinary nodes
         Node(T x, int height);
-
-        ~Node();
 };
 
 template<typename T>
@@ -36,11 +31,6 @@ Node<T>::Node(T x, int height) : value(x), key(hash(x)), length(height + 1), top
     for(int i = 0; i < MAX_LEVEL + 1; ++i){
         next[i] = nullptr;
     }
-}
-
-template<typename T>
-Node<T>::~Node(){
-    //TODO Eventually
 }
 
 }
