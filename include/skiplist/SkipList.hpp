@@ -32,7 +32,7 @@ SkipList<T>::SkipList(){
     head = new Node<T>(INT_MIN);
     tail = new Node<T>(INT_MAX);
 
-    for(int i = 0; i < head->length; ++i){
+    for(int i = 0; i < MAX_LEVEL + 1; ++i){
         head->next[i] = tail;
     }
 
