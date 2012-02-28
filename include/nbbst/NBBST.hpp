@@ -34,12 +34,8 @@ UpdateState getState(Update update){
    assert(false);
 }
 
-Info* getRef(Update update){
-   CONVERSION<Info> conversion;
-   conversion.node = update;
-   conversion.value &= (~0l - 3); //Clear the last two bits
-
-   return conversion.node;
+inline Update Unmark(Update info){
+    return (Update)((unsigned long)(info) & (~0l - 3));
 }
 
 template<typename T>
@@ -229,7 +225,7 @@ bool NBBST::add(int value){
             op->newInternal = newInternal;
 
             Update result = p->update;
-            if(CompareAndSet(&p->update, getRef(pupdate), getRef(op), getState(pupdate), IFLAG)){
+            if(CompareAndSet(&p->update, Unmark(pupdate), Unmark(op), getState(pupdate), IFLAG)){
                 HelpInsert(op);
                 return true;
             } else {
@@ -243,7 +239,7 @@ void NBBST::HelpInsert(IInfo* op){
     //std::cout << "help insert " << std::endl;
 
     CASChild(op->p, op->l, op->newInternal);
-    CompareAndSet(&op->p->update, getRef(op), getRef(op), IFLAG, CLEAN);
+    CompareAndSet(&op->p->update, Unmark(op), Unmark(op), IFLAG, CLEAN);
 }
 
 bool NBBST::remove(int value){
@@ -275,7 +271,7 @@ bool NBBST::remove(int value){
             op->pupdate = pupdate;
 
             Update result = gp->update;
-            if(CompareAndSet(&gp->update, getRef(gpupdate), getRef(op), getState(gpupdate), DFLAG)){
+            if(CompareAndSet(&gp->update, Unmark(gpupdate), Unmark(op), getState(gpupdate), DFLAG)){
                 if(HelpDelete(op)){
                     return true;
                 }
@@ -292,12 +288,12 @@ bool NBBST::HelpDelete(DInfo* op){
     Update result = op->p->update;
 
     //If we succeed or if another has succeeded for us
-    if(CompareAndSet(&op->p->update, getRef(op->pupdate), getRef(op), getState(op->pupdate), MARK) || (getState(op->p->update) == MARK && getRef(op->p->update) == getRef(op))){
-        HelpMarked(static_cast<DInfo*>(getRef(op)));
+    if(CompareAndSet(&op->p->update, Unmark(op->pupdate), Unmark(op), getState(op->pupdate), MARK) || (getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op))){
+        HelpMarked(static_cast<DInfo*>(Unmark(op)));
         return true;
     } else {
         Help(result);
-        CompareAndSet(&op->gp->update, getRef(op), getRef(op), DFLAG, CLEAN);
+        CompareAndSet(&op->gp->update, Unmark(op), Unmark(op), DFLAG, CLEAN);
         return false;
     }
 }
@@ -315,18 +311,18 @@ void NBBST::HelpMarked(DInfo* op){
 
     CASChild(op->gp, op->p, other);
 
-    CompareAndSet(&op->gp->update, getRef(op), getRef(op), DFLAG, CLEAN);
+    CompareAndSet(&op->gp->update, Unmark(op), Unmark(op), DFLAG, CLEAN);
 }
 
 void NBBST::Help(Update u){
     //std::cout << "help" << std::endl;
 
     if(getState(u) == IFLAG){
-        HelpInsert(static_cast<IInfo*>(getRef(u)));
+        HelpInsert(static_cast<IInfo*>(Unmark(u)));
     } else if(getState(u) == MARK){
-        HelpMarked(static_cast<DInfo*>(getRef(u)));
+        HelpMarked(static_cast<DInfo*>(Unmark(u)));
     } else if(getState(u) == DFLAG){
-        HelpDelete(static_cast<DInfo*>(getRef(u)));
+        HelpDelete(static_cast<DInfo*>(Unmark(u)));
     }
 }
         
