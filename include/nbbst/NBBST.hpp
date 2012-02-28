@@ -34,9 +34,16 @@ UpdateState getState(Update update){
    assert(false);
 }
 
-void set(Update* update, Info* info, UpdateState state){
-    CONVERSION<Info> conversion;
-    conversion.node = info;
+Info* getRef(Update update){
+   CONVERSION<Info> conversion;
+   conversion.node = update;
+   conversion.value &= (~0 - 3); //Clear the last two bits
+
+   return conversion.node;
+}
+
+template<typename T>
+void setState(CONVERSION<T>& conversion, UpdateState state){
     conversion.value &= (~0 - 3); //Clear the last two bits
 
     if(state == CLEAN){
@@ -48,8 +55,26 @@ void set(Update* update, Info* info, UpdateState state){
     } else if(state == MARK){
        conversion.value |= 3; 
     }
+}
+
+void set(Update* update, Info* info, UpdateState state){
+    CONVERSION<Info> conversion;
+    conversion.node = info;
+    setState(conversion, state);
 
     *update = conversion.node;
+}
+
+bool CompareAndSet(Update* ptr, Info* ref, Info* newRef, UpdateState state, UpdateState newState){
+    CONVERSION<Info> current;
+    current.node = ref;
+    setState(current, state);
+
+    CONVERSION<Info> next;
+    next.node = newRef;
+    setState(next, newState);
+   
+    return CASPTR(ptr, current.node, next.node); 
 }
 
 /* struct Update {
@@ -166,21 +191,14 @@ bool NBBST::contains(int value){
 bool NBBST::add(int value){
     unsigned int key = hash(value);
 
-    Internal* p;
-    Internal* newInternal;
-    Leaf* l;
-    Leaf* newSibling;
     Leaf* newLeaf = new Leaf(key);
-    Update pupdate;
-    Update result;
-    IInfo* op;
 
     while(true){
         SearchResult search = Search(value);
 
-        p = search.p;
-        l = search.l;
-        pupdate = search.pupdate;
+        Internal* p = search.p;
+        Leaf* l = search.l;
+        Update pupdate = search.pupdate;
 
         if(l->key == key){
             return false; //Key already in the set
@@ -189,8 +207,8 @@ bool NBBST::add(int value){
         if(getState(pupdate) != CLEAN){
             Help(pupdate);
         } else {
-            newSibling = new Leaf(l->key);
-            newInternal = new Internal(std::max(key, l->key));
+            Leaf* newSibling = new Leaf(l->key);
+            Internal* newInternal = new Internal(std::max(key, l->key));
             set(&newInternal->update, nullptr, CLEAN);
             
             //Put the smaller child on the left
@@ -202,45 +220,37 @@ bool NBBST::add(int value){
                 newInternal->right = newLeaf;
             }
 
-            op = new IInfo();
+            IInfo* op = new IInfo();
             op->p = p;
             op->l = l;
             op->newInternal = newInternal;
 
-            bool cas = true; //TODO
-            if(cas){
+            Update result = p->update;
+            if(CompareAndSet(&p->update, getRef(pupdate), op, getState(pupdate), CLEAN)){
                 HelpInsert(op);
                 return true;
             } else {
-                Help(result); //TODO result = old value before CAS
+                Help(result);
             }
         }
     }
 }
 
 void NBBST::HelpInsert(IInfo* op){
-    //CAS-Child(op->p,op-l, op->newInternal)
-    //CAS(op->p->update, (iflag,op), (clean,op))
+    CASChild(op->p, op->l, op->newInternal);
+    CompareAndSet(&op->p->update, op, op, IFLAG, CLEAN);
 }
 
 bool NBBST::remove(int value){
     unsigned int key = hash(value);
 
-    Internal* gp;
-    Internal* p;
-    Leaf* l;
-    Update pupdate;
-    Update gpupdate;
-    Update result;
-    DInfo* op;
-
     while(true){
         SearchResult search = Search(value);
-        gp = search.gp;
-        p = search.p;
-        l = search.l;
-        pupdate = search.pupdate;
-        gpupdate = search.gpupdate;
+        Internal* gp = search.gp;
+        Internal* p = search.p;
+        Leaf* l = search.l;
+        Update pupdate = search.pupdate;
+        Update gpupdate = search.gpupdate;
         
         if(l->key != key){
             return false;
@@ -251,21 +261,36 @@ bool NBBST::remove(int value){
         } else if(getState(pupdate) != CLEAN){
             Help(pupdate);
         } else {
-            op = new DInfo();
+            DInfo* op = new DInfo();
             op->gp = gp;
             op->p = p;
             op->l = l;
             op->pupdate = pupdate;
 
-            //CAS SHIT
+            Update result = gp->update;
+            if(CompareAndSet(&gp->update, getRef(gpupdate), op, getState(gpupdate), DFLAG)){
+                if(HelpDelete(op)){
+                    return true;
+                }
+            } else {
+                Help(result);
+            }
         }
     }
 }
 
 bool NBBST::HelpDelete(DInfo* op){
-    Update result;
-    //CAS
+    Update result = op->p->update;
 
+    //If we succeed or if another has succeeded for us
+    if(CompareAndSet(&op->p->update, op->pupdate, op, getState(op->pupdate), MARK) || (getState(op->p->update) == MARK && getRef(op->p->update) == op)){
+        HelpMarked(op);
+        return true;
+    } else {
+        Help(result);
+        CompareAndSet(&op->gp->update, op, op, DFLAG, CLEAN);
+        return false;
+    }
 }
 
 void NBBST::HelpMarked(DInfo* op){
@@ -279,16 +304,16 @@ void NBBST::HelpMarked(DInfo* op){
 
     CASChild(op->gp, op->p, other);
 
-    //TODO CAS(op->gp->update, (DFLAG, op), (CLEAN,op))
+    CompareAndSet(&op->gp->update, op, op, DFLAG, CLEAN);
 }
 
 void NBBST::Help(Update u){
-    if(u.state == IFLAG){
-        HelpInsert((IInfo*) u.info);
-    } else if(u.state == MARK){
-        HelpMarked((DInfo*) u.info);
-    } else if(u.state == DFLAG){
-        HelpDelete((DInfo*) u.info);
+    if(getState(u) == IFLAG){
+        HelpInsert((IInfo*) u);
+    } else if(getState(u) == MARK){
+        HelpMarked((DInfo*) u);
+    } else if(getState(u) == DFLAG){
+        HelpDelete((DInfo*) u);
     }
 }
         
