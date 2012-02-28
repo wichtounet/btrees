@@ -1,3 +1,6 @@
+#ifndef UTILS
+#define UTILS
+
 #include <cstdlib>
 #include <ctime>
 #include <climits>
@@ -73,3 +76,5 @@ bool CompareAndSet(T** ptr, T* ref, T* newRef, bool value, bool newValue){
    
     return CASPTR(ptr, current.node, next.node); 
 }
+
+#endif

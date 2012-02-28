@@ -8,8 +8,10 @@
 #include "Constants.hpp"
 
 #include "skiplist/SkipList.hpp"
+#include "nbbst/NBBST.hpp"
 
 typedef skiplist::SkipList<int> SkipList;
+typedef nbbst::NBBST NBBST;
 
 void test();
 void perfTest();
