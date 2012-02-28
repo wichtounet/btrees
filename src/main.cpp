@@ -144,6 +144,7 @@ void testMT(const std::string& name){
     testMT<T, 8>();
     testMT<T, 12>();
     testMT<T, 16>();
+    testMT<T, 32>();
 }
 
 template<typename T>
