@@ -133,7 +133,7 @@ class NBBST {
         bool remove(int value); //TODO Change to T value
 
     private:
-        SearchResult Search(int value); //TODO Change to T value       
+        SearchResult Search(unsigned int key); //TODO Change to T value       
         void HelpInsert(IInfo* op);
         bool HelpDelete(DInfo* op);
         void HelpMarked(DInfo* op);
@@ -155,9 +155,7 @@ NBBST::NBBST(){
     root->right = right;
 }
 
-SearchResult NBBST::Search(int value){
-    unsigned int key = hash(value);
-
+SearchResult NBBST::Search(unsigned int key){
     Internal* gp;
     Internal* p;
     Node* l = root;
@@ -183,7 +181,7 @@ SearchResult NBBST::Search(int value){
 bool NBBST::contains(int value){
     unsigned int key = hash(value);
 
-    SearchResult result = Search(value);
+    SearchResult result = Search(key);
 
     return result.l->key == key;
 }
@@ -194,7 +192,7 @@ bool NBBST::add(int value){
     Leaf* newLeaf = new Leaf(key);
 
     while(true){
-        SearchResult search = Search(value);
+        SearchResult search = Search(key);
 
         Internal* p = search.p;
         Leaf* l = search.l;
@@ -245,7 +243,7 @@ bool NBBST::remove(int value){
     unsigned int key = hash(value);
 
     while(true){
-        SearchResult search = Search(value);
+        SearchResult search = Search(key);
         Internal* gp = search.gp;
         Internal* p = search.p;
         Leaf* l = search.l;

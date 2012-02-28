@@ -17,7 +17,7 @@ void test();
 void perfTest();
 
 int main(int argc, const char* argv[]) {
-    std::cout << "BTrees perf test" << std::endl;
+    std::cout << "Concurrent Binary Trees test" << std::endl;
 
     //By default launch perf test
     if(argc == 1){
@@ -155,7 +155,7 @@ void testVersion(const std::string& name){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    testVersion<SkipList>("SkipList");
+    //testVersion<SkipList>("SkipList");
     testVersion<NBBST>("Non-Blocking Binary Search Tree");
 }
 
