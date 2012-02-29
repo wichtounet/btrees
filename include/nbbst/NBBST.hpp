@@ -16,12 +16,19 @@ struct Info {
 
 typedef Info* Update; 
 
-/* struct Update {
+/* 
+Update is equivalent to the following struct:
+
+struct Update {
     Info* info;
     UpdateState state;
-};*/
+};
 
-UpdateState getState(Update update){
+but stored inside a single word.
+
+*/
+
+inline UpdateState getState(Update update){
    return static_cast<UpdateState>(reinterpret_cast<unsigned long>(update) & 3l);
 }
 
@@ -29,30 +36,8 @@ inline Update Unmark(Update info){
     return reinterpret_cast<Update>(reinterpret_cast<unsigned long>(info) & (~0l - 3));
 }
 
-template<typename T>
-void setState(CONVERSION<T>& conversion, UpdateState state){
-    conversion.value &= (~0l - 3); //Clear the last two bits
-    conversion.value |= static_cast<unsigned int>(state);
-}
-
-void set(Update* update, Info* info, UpdateState state){
-    CONVERSION<Info> conversion;
-    conversion.node = info;
-    setState(conversion, state);
-
-    *update = conversion.node;
-}
-
-bool CompareAndSet(Update* ptr, Info* ref, Info* newRef, UpdateState state, UpdateState newState){
-    CONVERSION<Info> current;
-    current.node = ref;
-    setState(current, state);
-
-    CONVERSION<Info> next;
-    next.node = newRef;
-    setState(next, newState);
-   
-    return CASPTR(ptr, current.node, next.node); 
+inline Update Mark(Update info, UpdateState state){
+    return reinterpret_cast<Update>((reinterpret_cast<unsigned long>(info) & (~0l - 3)) | static_cast<unsigned int>(state));
 }
 
 struct Node {
@@ -127,7 +112,7 @@ template<typename T>
 NBBST<T>::NBBST(){
     root = new Internal();
     root->key = INT_MAX;//TODO Check int_max
-    set(&root->update, nullptr, CLEAN);
+    root->update = Mark(nullptr, CLEAN);
 
     root->left = new Leaf(INT_MIN);
     root->right = new Leaf(INT_MAX);
@@ -185,7 +170,7 @@ bool NBBST<T>::add(T value){
         } else {
             Leaf* newSibling = new Leaf(search.l->key);
             Internal* newInternal = new Internal(std::max(key, search.l->key));
-            set(&newInternal->update, nullptr, CLEAN);
+            newInternal->update = Mark(nullptr, CLEAN);
             
             //Put the smaller child on the left
             if(newLeaf->key <= newSibling->key){
@@ -199,7 +184,7 @@ bool NBBST<T>::add(T value){
             IInfo* op = new IInfo(search.p, newInternal, search.l);
 
             Update result = search.p->update;
-            if(CompareAndSet(&search.p->update, Unmark(search.pupdate), Unmark(op), getState(search.pupdate), IFLAG)){
+            if(CASPTR(&search.p->update, search.pupdate, Mark(op, IFLAG))){
                 HelpInsert(op);
                 return true;
             } else {
@@ -216,7 +201,7 @@ bool NBBST<T>::add(T value){
 template<typename T>
 void NBBST<T>::HelpInsert(IInfo* op){
     CASChild(op->p, op->l, op->newInternal);
-    CompareAndSet(&op->p->update, Unmark(op), Unmark(op), IFLAG, CLEAN);
+    CASPTR(&op->p->update, Mark(op, IFLAG), Mark(op, CLEAN));
 }
 
 template<typename T>
@@ -240,7 +225,7 @@ bool NBBST<T>::remove(T value){
             DInfo* op = new DInfo(search.gp, search.p, search.l, search.pupdate);
 
             Update result = search.gp->update;
-            if(CompareAndSet(&search.gp->update, Unmark(search.gpupdate), Unmark(op), getState(search.gpupdate), DFLAG)){
+            if(CASPTR(&search.gp->update, search.gpupdate, Mark(op, DFLAG))){
                 if(HelpDelete(op)){
                     return true;
                 }
@@ -256,12 +241,12 @@ bool NBBST<T>::HelpDelete(DInfo* op){
     Update result = op->p->update;
 
     //If we succeed or if another has succeeded for us
-    if(CompareAndSet(&op->p->update, Unmark(op->pupdate), Unmark(op), getState(op->pupdate), MARK) || (getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op))){
+    if(CASPTR(&op->p->update, op->pupdate, Mark(op, MARK)) || (getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op))){
         HelpMarked(static_cast<DInfo*>(Unmark(op)));
         return true;
     } else {
         Help(result);
-        CompareAndSet(&op->gp->update, Unmark(op), Unmark(op), DFLAG, CLEAN);
+        CASPTR(&op->gp->update, Mark(op, DFLAG), Mark(op, CLEAN));
         return false;
     }
 }
@@ -278,7 +263,7 @@ void NBBST<T>::HelpMarked(DInfo* op){
 
     CASChild(op->gp, op->p, other);
 
-    CompareAndSet(&op->gp->update, Unmark(op), Unmark(op), DFLAG, CLEAN);
+    CASPTR(&op->gp->update, Mark(op, DFLAG), Mark(op, CLEAN));
 }
 
 template<typename T>
