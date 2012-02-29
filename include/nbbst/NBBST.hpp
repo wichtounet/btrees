@@ -103,6 +103,8 @@ struct IInfo : public Info {
     Internal* p;
     Internal* newInternal;
     Leaf* l;
+
+    IInfo(Internal* p, Internal* newInternal, Leaf* l) : p(p), newInternal(newInternal), l(l) {}
 };
 
 struct DInfo : public Info {
@@ -110,6 +112,8 @@ struct DInfo : public Info {
     Internal* p;
     Leaf* l;
     Update pupdate;
+
+    DInfo(Internal* gp, Internal* p, Leaf* l, Update pupdate) : gp(gp), p(p), l(l), pupdate(pupdate) {}
 };
 
 struct SearchResult {
@@ -216,10 +220,7 @@ bool NBBST<T>::add(T value){
                 newInternal->right = newLeaf;
             }
 
-            IInfo* op = new IInfo();
-            op->p = p;
-            op->l = l;
-            op->newInternal = newInternal;
+            IInfo* op = new IInfo(p, newInternal, l);
 
             Update result = p->update;
             if(CompareAndSet(&p->update, Unmark(pupdate), Unmark(op), getState(pupdate), IFLAG)){
@@ -259,11 +260,7 @@ bool NBBST<T>::remove(T value){
         } else if(getState(pupdate) != CLEAN){
             Help(pupdate);
         } else {
-            DInfo* op = new DInfo();
-            op->gp = gp;
-            op->p = p;
-            op->l = l;
-            op->pupdate = pupdate;
+            DInfo* op = new DInfo(gp, p, l, pupdate);
 
             Update result = gp->update;
             if(CompareAndSet(&gp->update, Unmark(gpupdate), Unmark(op), getState(gpupdate), DFLAG)){
