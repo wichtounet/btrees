@@ -11,7 +11,7 @@
 #include "nbbst/NBBST.hpp"
 
 typedef skiplist::SkipList<int> SkipList;
-typedef nbbst::NBBST NBBST;
+typedef nbbst::NBBST<int> NBBST;
 
 void test();
 void perfTest();

@@ -122,16 +122,17 @@ struct SearchResult {
     Update gpupdate;
 };
 
+template<typename T>
 class NBBST {
     public:
         NBBST();
 
-        bool contains(int value); //TODO Change to T value
-        bool add(int value); //TODO Change to T value
-        bool remove(int value); //TODO Change to T value
+        bool contains(T value);
+        bool add(T value);
+        bool remove(T value);
 
     private:
-        SearchResult Search(int key); //TODO Change to T value       
+        SearchResult Search(int key);      
         void HelpInsert(IInfo* op);
         bool HelpDelete(DInfo* op);
         void HelpMarked(DInfo* op);
@@ -141,7 +142,8 @@ class NBBST {
         Internal* root;
 };
 
-NBBST::NBBST(){
+template<typename T>
+NBBST<T>::NBBST(){
     root = new Internal();
     root->key = INT_MAX;//TODO Check int_max
     set(&root->update, nullptr, CLEAN);
@@ -150,7 +152,8 @@ NBBST::NBBST(){
     root->right = new Leaf(INT_MAX);
 }
 
-SearchResult NBBST::Search(int key){
+template<typename T>
+SearchResult NBBST<T>::Search(int key){
     //std::cout << "search " << key << std::endl;
 
     Internal* gp;
@@ -175,7 +178,8 @@ SearchResult NBBST::Search(int key){
     return {gp, p, (Leaf*) l, pupdate, gpupdate};
 }
 
-bool NBBST::contains(int value){
+template<typename T>
+bool NBBST<T>::contains(T value){
     //std::cout << "contains " << value << std::endl;
 
     int key = hash(value);
@@ -185,7 +189,8 @@ bool NBBST::contains(int value){
     return result.l->key == key;
 }
 
-bool NBBST::add(int value){
+template<typename T>
+bool NBBST<T>::add(T value){
     ////std::cout << "add " << value << std::endl;
 
     int key = hash(value);
@@ -235,14 +240,16 @@ bool NBBST::add(int value){
     }
 }
 
-void NBBST::HelpInsert(IInfo* op){
+template<typename T>
+void NBBST<T>::HelpInsert(IInfo* op){
     //std::cout << "help insert " << std::endl;
 
     CASChild(op->p, op->l, op->newInternal);
     CompareAndSet(&op->p->update, Unmark(op), Unmark(op), IFLAG, CLEAN);
 }
 
-bool NBBST::remove(int value){
+template<typename T>
+bool NBBST<T>::remove(T value){
     //std::cout << "remove " << value << std::endl;
 
     int key = hash(value);
@@ -282,7 +289,8 @@ bool NBBST::remove(int value){
     }
 }
 
-bool NBBST::HelpDelete(DInfo* op){
+template<typename T>
+bool NBBST<T>::HelpDelete(DInfo* op){
     //std::cout << "help delete " << std::endl;
 
     Update result = op->p->update;
@@ -298,7 +306,8 @@ bool NBBST::HelpDelete(DInfo* op){
     }
 }
 
-void NBBST::HelpMarked(DInfo* op){
+template<typename T>
+void NBBST<T>::HelpMarked(DInfo* op){
     //std::cout << "help marked" << std::endl;
 
     Node* other;
@@ -314,7 +323,8 @@ void NBBST::HelpMarked(DInfo* op){
     CompareAndSet(&op->gp->update, Unmark(op), Unmark(op), DFLAG, CLEAN);
 }
 
-void NBBST::Help(Update u){
+template<typename T>
+void NBBST<T>::Help(Update u){
     //std::cout << "help" << std::endl;
 
     if(getState(u) == IFLAG){
@@ -326,7 +336,8 @@ void NBBST::Help(Update u){
     }
 }
         
-void NBBST::CASChild(Internal* parent, Node* old, Node* newNode){
+template<typename T>
+void NBBST<T>::CASChild(Internal* parent, Node* old, Node* newNode){
     //std::cout << "cas child" << std::endl;
 
     if(newNode->key < parent->key){
