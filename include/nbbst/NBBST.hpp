@@ -4,10 +4,10 @@
 namespace nbbst {
     
 enum UpdateState {
-    CLEAN,
-    DFLAG,
-    IFLAG,
-    MARK
+    CLEAN = 0,
+    DFLAG = 1,
+    IFLAG = 2,
+    MARK  = 3
 };
 
 struct Info {
@@ -25,18 +25,8 @@ UpdateState getState(Update update){
    CONVERSION<Info> conversion;
    conversion.node = update;
    conversion.value &= 3l; //Clear all the bits except the last two bits
-   
-   if(conversion.value == 0){
-        return CLEAN;   
-   } else if(conversion.value == 1){
-        return DFLAG;
-   } else if(conversion.value == 2){
-        return IFLAG;
-   } else if(conversion.value == 3){
-        return MARK;
-   }
 
-   assert(false);
+   return static_cast<UpdateState>(conversion.value);
 }
 
 inline Update Unmark(Update info){
@@ -46,16 +36,7 @@ inline Update Unmark(Update info){
 template<typename T>
 void setState(CONVERSION<T>& conversion, UpdateState state){
     conversion.value &= (~0l - 3); //Clear the last two bits
-
-    if(state == CLEAN){
-       conversion.value |= 0; 
-    } else if(state == DFLAG){
-       conversion.value |= 1; 
-    } else if(state == IFLAG){
-       conversion.value |= 2; 
-    } else if(state == MARK){
-       conversion.value |= 3; 
-    }
+    conversion.value |= static_cast<unsigned int>(state);
 }
 
 void set(Update* update, Info* info, UpdateState state){
