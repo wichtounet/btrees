@@ -22,11 +22,7 @@ typedef Info* Update;
 };*/
 
 UpdateState getState(Update update){
-   CONVERSION<Info> conversion;
-   conversion.node = update;
-   conversion.value &= 3l; //Clear all the bits except the last two bits
-
-   return static_cast<UpdateState>(conversion.value);
+   return static_cast<UpdateState>(reinterpret_cast<unsigned long>(update) & 3l);
 }
 
 inline Update Unmark(Update info){
