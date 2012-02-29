@@ -6,18 +6,15 @@
 
 namespace skiplist {
 
-template<typename T>
-inline Node<T>* Unmark(Node<T>* node){
-    return reinterpret_cast<Node<T>*>(reinterpret_cast<unsigned long>(node) & (~0l - 1));
+inline Node* Unmark(Node* node){
+    return reinterpret_cast<Node*>(reinterpret_cast<unsigned long>(node) & (~0l - 1));
 }
 
-template<typename T>
-inline Node<T>* Mark(Node<T>* node){
-    return reinterpret_cast<Node<T>*>(reinterpret_cast<unsigned long>(node) | 0x1);
+inline Node* Mark(Node* node){
+    return reinterpret_cast<Node*>(reinterpret_cast<unsigned long>(node) | 0x1);
 }
 
-template<typename T>
-inline bool IsMarked(Node<T>* node){
+inline bool IsMarked(Node* node){
     return reinterpret_cast<unsigned long>(node) & 0x1;
 }
 
@@ -32,16 +29,16 @@ class SkipList {
         bool contains(T value);
 
     private:
-        bool find(T x, Node<T>** preds, Node<T>** succs);
+        bool find(T x, Node** preds, Node** succs);
 
-        Node<T>* head;
-        Node<T>* tail;
+        Node* head;
+        Node* tail;
 };
 
 template<typename T>
 SkipList<T>::SkipList(){
-    head = new Node<T>(INT_MIN);
-    tail = new Node<T>(INT_MAX);
+    head = new Node(INT_MIN);
+    tail = new Node(INT_MAX);
 
     for(int i = 0; i < MAX_LEVEL + 1; ++i){
         head->next[i] = tail;
@@ -60,10 +57,10 @@ template<typename T>
 bool SkipList<T>::add(T value){
     int topLevel = random(P, MAX_LEVEL);
 
-    Node<T>* preds[MAX_LEVEL + 1];
-    Node<T>* succs[MAX_LEVEL + 1];
+    Node* preds[MAX_LEVEL + 1];
+    Node* succs[MAX_LEVEL + 1];
             
-    Node<T>* newNode = new Node<T>(value, topLevel);
+    Node* newNode = new Node(hash(value), topLevel);
 
     while(true){
         if(find(value, preds, succs)){
@@ -94,17 +91,17 @@ bool SkipList<T>::add(T value){
 
 template<typename T>
 bool SkipList<T>::remove(T value){
-    Node<T>* preds[MAX_LEVEL + 1];
-    Node<T>* succs[MAX_LEVEL + 1];
+    Node* preds[MAX_LEVEL + 1];
+    Node* succs[MAX_LEVEL + 1];
 
     while(true){
         if(!find(value, preds, succs)){
             return false;
         } else {
-            Node<T>* nodeToRemove = succs[0];
+            Node* nodeToRemove = succs[0];
 
             for(int level = nodeToRemove->topLevel; level > 0; --level){
-                Node<T>* succ = nullptr;
+                Node* succ = nullptr;
                 do {
                     succ = nodeToRemove->next[level];
 
@@ -115,7 +112,7 @@ bool SkipList<T>::remove(T value){
             }
 
             while(true){
-                Node<T>* succ = nodeToRemove->next[0];
+                Node* succ = nodeToRemove->next[0];
 
                 if(IsMarked(succ)){
                     break;
@@ -132,9 +129,9 @@ template<typename T>
 bool SkipList<T>::contains(T value){
     int key = hash(value);
 
-    Node<T>* pred = head;
-    Node<T>* curr = nullptr;
-    Node<T>* succ = nullptr;
+    Node* pred = head;
+    Node* curr = nullptr;
+    Node* succ = nullptr;
 
     for(int level = MAX_LEVEL; level >= 0; --level){
         curr = Unmark(pred->next[level]);
@@ -160,12 +157,12 @@ bool SkipList<T>::contains(T value){
 }
 
 template<typename T>
-bool SkipList<T>::find(T value, Node<T>** preds, Node<T>** succs){
+bool SkipList<T>::find(T value, Node** preds, Node** succs){
     int key = hash(value);
 
-    Node<T>* pred = nullptr;
-    Node<T>* curr = nullptr;
-    Node<T>* succ = nullptr;
+    Node* pred = nullptr;
+    Node* curr = nullptr;
+    Node* succ = nullptr;
         
 retry:
     pred = head;
