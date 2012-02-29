@@ -3,6 +3,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <sys/time.h> //TODO It's not portable...
+
 #include <omp.h>
 
 #include "Constants.hpp"
@@ -160,6 +162,66 @@ void test(){
     testVersion<NBBST>("Non-Blocking Binary Search Tree");
 }
 
+template<typename Tree, unsigned int Threads>
+void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+    timespec ts1 = {0,0};
+    timespec ts2 = {0,0};
+
+    Tree tree;
+
+    omp_set_num_threads(Threads);
+
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
+
+    #pragma omp parallel shared(tree)
+    {
+        for(int i = 0; i < OPERATIONS; ++i){
+            unsigned int value = random(range);
+
+            unsigned int op = random(100);
+
+            if(op < add){
+                tree.add(value);
+            } else if(op < (add + remove)){
+                tree.remove(value);
+            } else {
+                tree.contains(i);
+            }
+        }
+    }
+    
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
+
+    unsigned long duration = (ts2.tv_sec - ts1.tv_sec) * 1000000000l + (ts2.tv_nsec - ts1.tv_nsec);
+    unsigned long operations = Threads * OPERATIONS;
+    unsigned long throughput = duration / operations;
+
+    //std::cout << (Threads * OPERATIONS) << " operations on " << name << " took " << duration << "ns" << std::endl;
+    std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+}
+
+template<typename Tree>
+void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+    bench<Tree, 1>(name, range, add, remove);
+    bench<Tree, 2>(name, range, add, remove);
+    bench<Tree, 4>(name, range, add, remove);
+}
+
+void bench(unsigned int range, unsigned int add, unsigned int remove){
+    std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
+
+    bench<SkipList>("SkipList", range, add, remove);
+    bench<NBBST>("Non-blocking Binary Search Tree", range, add, remove);
+}
+
+void bench(unsigned int range){
+    bench(range, 50, 50);   //50% put, 50% remove, 0% contains
+    bench(range, 20, 10);   //20% put, 10% remove, 70% contains
+    bench(range, 9, 1);     //9% put, 1% remove, 90% contains
+}
+
 void perfTest(){
     std::cout << "Tests the performance of the different versions" << std::endl;
+
+    bench(2000);            //Key in {0, 2000}
 }
