@@ -103,6 +103,8 @@ struct SearchResult {
     Leaf* l;
     Update pupdate;
     Update gpupdate;
+
+    SearchResult() : gp(nullptr), p(nullptr), l(nullptr), pupdate(nullptr), gpupdate(nullptr) {}
 };
 
 template<typename T>
@@ -115,7 +117,7 @@ class NBBST {
         bool remove(T value);
 
     private:
-        SearchResult Search(int key);      
+        void Search(int key, SearchResult* result);      
         void HelpInsert(IInfo* op);
         bool HelpDelete(DInfo* op);
         void HelpMarked(DInfo* op);
@@ -136,34 +138,31 @@ NBBST<T>::NBBST(){
 }
 
 template<typename T>
-SearchResult NBBST<T>::Search(int key){
-    Internal* gp;
-    Internal* p;
+void NBBST<T>::Search(int key, SearchResult* result){
     Node* l = root;
-    Update gpupdate;
-    Update pupdate;
 
     while(l->internal){
-        gp = p;
-        p = static_cast<Internal*>(l);
-        gpupdate = pupdate;
-        pupdate = p->update;
+        result->gp = result->p;
+        result->p = static_cast<Internal*>(l);
+        result->gpupdate = result->pupdate;
+        result->pupdate = result->p->update;
 
         if(key < l->key){
-            l = p->left;
+            l = result->p->left;
         } else {
-            l = p->right;
+            l = result->p->right;
         }
     }
 
-    return {gp, p, (Leaf*) l, pupdate, gpupdate};
+    result->l = static_cast<Leaf*>(l);
 }
 
 template<typename T>
 bool NBBST<T>::contains(T value){
     int key = hash(value);
 
-    SearchResult result = Search(key);
+    SearchResult result;
+    Search(key, &result);
 
     return result.l->key == key;
 }
@@ -174,22 +173,20 @@ bool NBBST<T>::add(T value){
 
     Leaf* newLeaf = new Leaf(key);
 
+    SearchResult search;
+
     while(true){
-        SearchResult search = Search(key);
+        Search(key, &search);
 
-        Internal* p = search.p;
-        Leaf* l = search.l;
-        Update pupdate = search.pupdate;
-
-        if(l->key == key){
+        if(search.l->key == key){
             return false; //Key already in the set
         }
 
-        if(getState(pupdate) != CLEAN){
-            Help(pupdate);
+        if(getState(search.pupdate) != CLEAN){
+            Help(search.pupdate);
         } else {
-            Leaf* newSibling = new Leaf(l->key);
-            Internal* newInternal = new Internal(std::max(key, l->key));
+            Leaf* newSibling = new Leaf(search.l->key);
+            Internal* newInternal = new Internal(std::max(key, search.l->key));
             set(&newInternal->update, nullptr, CLEAN);
             
             //Put the smaller child on the left
@@ -201,10 +198,10 @@ bool NBBST<T>::add(T value){
                 newInternal->right = newLeaf;
             }
 
-            IInfo* op = new IInfo(p, newInternal, l);
+            IInfo* op = new IInfo(search.p, newInternal, search.l);
 
-            Update result = p->update;
-            if(CompareAndSet(&p->update, Unmark(pupdate), Unmark(op), getState(pupdate), IFLAG)){
+            Update result = search.p->update;
+            if(CompareAndSet(&search.p->update, Unmark(search.pupdate), Unmark(op), getState(search.pupdate), IFLAG)){
                 HelpInsert(op);
                 return true;
             } else {
@@ -224,27 +221,24 @@ template<typename T>
 bool NBBST<T>::remove(T value){
     int key = hash(value);
 
+    SearchResult search;
+
     while(true){
-        SearchResult search = Search(key);
-        Internal* gp = search.gp;
-        Internal* p = search.p;
-        Leaf* l = search.l;
-        Update pupdate = search.pupdate;
-        Update gpupdate = search.gpupdate;
+        Search(key, &search);
         
-        if(l->key != key){
+        if(search.l->key != key){
             return false;
         }
 
-        if(getState(gpupdate) != CLEAN){
-            Help(gpupdate);
-        } else if(getState(pupdate) != CLEAN){
-            Help(pupdate);
+        if(getState(search.gpupdate) != CLEAN){
+            Help(search.gpupdate);
+        } else if(getState(search.pupdate) != CLEAN){
+            Help(search.pupdate);
         } else {
-            DInfo* op = new DInfo(gp, p, l, pupdate);
+            DInfo* op = new DInfo(search.gp, search.p, search.l, search.pupdate);
 
-            Update result = gp->update;
-            if(CompareAndSet(&gp->update, Unmark(gpupdate), Unmark(op), getState(gpupdate), DFLAG)){
+            Update result = search.gp->update;
+            if(CompareAndSet(&search.gp->update, Unmark(search.gpupdate), Unmark(op), getState(search.gpupdate), DFLAG)){
                 if(HelpDelete(op)){
                     return true;
                 }
