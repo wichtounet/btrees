@@ -179,6 +179,8 @@ bool NBBST<T>::add(T value){
         Search(key, &search);
 
         if(search.l->key == key){
+            delete newLeaf;
+
             return false; //Key already in the set
         }
 
@@ -205,6 +207,10 @@ bool NBBST<T>::add(T value){
                 HelpInsert(op);
                 return true;
             } else {
+                delete newSibling;
+                delete newInternal;
+                delete op;
+
                 Help(result);
             }
         }
