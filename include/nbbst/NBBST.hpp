@@ -16,6 +16,11 @@ struct Info {
 
 typedef Info* Update; 
 
+/* struct Update {
+    Info* info;
+    UpdateState state;
+};*/
+
 UpdateState getState(Update update){
    CONVERSION<Info> conversion;
    conversion.node = update;
@@ -62,8 +67,6 @@ void set(Update* update, Info* info, UpdateState state){
 }
 
 bool CompareAndSet(Update* ptr, Info* ref, Info* newRef, UpdateState state, UpdateState newState){
-    //std::cout << "CompareAndSet" << std::endl;
-
     CONVERSION<Info> current;
     current.node = ref;
     setState(current, state);
@@ -74,11 +77,6 @@ bool CompareAndSet(Update* ptr, Info* ref, Info* newRef, UpdateState state, Upda
    
     return CASPTR(ptr, current.node, next.node); 
 }
-
-/* struct Update {
-    Info* info;
-    UpdateState state;
-};*/
 
 struct Node {
     bool internal;
@@ -154,8 +152,6 @@ NBBST<T>::NBBST(){
 
 template<typename T>
 SearchResult NBBST<T>::Search(int key){
-    //std::cout << "search " << key << std::endl;
-
     Internal* gp;
     Internal* p;
     Node* l = root;
@@ -180,8 +176,6 @@ SearchResult NBBST<T>::Search(int key){
 
 template<typename T>
 bool NBBST<T>::contains(T value){
-    //std::cout << "contains " << value << std::endl;
-
     int key = hash(value);
 
     SearchResult result = Search(key);
@@ -191,8 +185,6 @@ bool NBBST<T>::contains(T value){
 
 template<typename T>
 bool NBBST<T>::add(T value){
-    ////std::cout << "add " << value << std::endl;
-
     int key = hash(value);
 
     Leaf* newLeaf = new Leaf(key);
@@ -242,16 +234,12 @@ bool NBBST<T>::add(T value){
 
 template<typename T>
 void NBBST<T>::HelpInsert(IInfo* op){
-    //std::cout << "help insert " << std::endl;
-
     CASChild(op->p, op->l, op->newInternal);
     CompareAndSet(&op->p->update, Unmark(op), Unmark(op), IFLAG, CLEAN);
 }
 
 template<typename T>
 bool NBBST<T>::remove(T value){
-    //std::cout << "remove " << value << std::endl;
-
     int key = hash(value);
 
     while(true){
@@ -291,8 +279,6 @@ bool NBBST<T>::remove(T value){
 
 template<typename T>
 bool NBBST<T>::HelpDelete(DInfo* op){
-    //std::cout << "help delete " << std::endl;
-
     Update result = op->p->update;
 
     //If we succeed or if another has succeeded for us
@@ -308,8 +294,6 @@ bool NBBST<T>::HelpDelete(DInfo* op){
 
 template<typename T>
 void NBBST<T>::HelpMarked(DInfo* op){
-    //std::cout << "help marked" << std::endl;
-
     Node* other;
 
     if(op->p->right == op->l){
@@ -325,8 +309,6 @@ void NBBST<T>::HelpMarked(DInfo* op){
 
 template<typename T>
 void NBBST<T>::Help(Update u){
-    //std::cout << "help" << std::endl;
-
     if(getState(u) == IFLAG){
         HelpInsert(static_cast<IInfo*>(Unmark(u)));
     } else if(getState(u) == MARK){
@@ -338,8 +320,6 @@ void NBBST<T>::Help(Update u){
         
 template<typename T>
 void NBBST<T>::CASChild(Internal* parent, Node* old, Node* newNode){
-    //std::cout << "cas child" << std::endl;
-
     if(newNode->key < parent->key){
         CASPTR(&parent->left, old, newNode);
     } else {
