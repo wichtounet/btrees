@@ -9,8 +9,10 @@
 
 #include "Constants.hpp"
 
+//Include all the trees implementations
 #include "skiplist/SkipList.hpp"
 #include "nbbst/NBBST.hpp"
+#include "avltree/AVLTree.hpp"
 
 typedef skiplist::SkipList<int> SkipList;
 typedef nbbst::NBBST<int> NBBST;
