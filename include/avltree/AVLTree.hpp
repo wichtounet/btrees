@@ -17,17 +17,17 @@ static long IgnoreGrow = ~(Growing | GrowCountMask);
 static int SpinCount = 100;
 
 struct Node {
-    volatile int height;
+    int height;
     int key;
-    volatile long version;
-    volatile Node* parent;
-    volatile Node* left;
-    volatile Node* right;
+    long version;
+    Node* parent;
+    Node* left;
+    Node* right;
 
     Node(){};
     Node(int height, int key, long version, Node* parent, Node* left, Node* right) : height(height), key(key), version(version), parent(parent), left(left), right(right) {} 
 
-    volatile Node* child(int direction){
+    Node* child(int direction){
         if(direction > 0){
             return right;
         } else if(direction < 0){
@@ -38,7 +38,7 @@ struct Node {
     }
 
     //Should only be called with lock on Node
-    void setChild(int direction, volatile Node* child){
+    void setChild(int direction, Node* child){
         if(direction > 0){
             right = child;
         } else if(direction < 0){
@@ -71,15 +71,12 @@ class AVLTree {
         Result attemptGet(int key, Node* node, int dir, long nodeV);
         Result attemptPut(int key, Node* node, int dir, long nodeV);
         Result attemptInsert(int key, Node* node, int dir, long nodeV);
-        //Result attemptUpdate(int key, Node* node, int dir, long nodeV);
         Result attemptRemove(int key, Node* node, int dir, long nodeV);
         Result attemptRmNode(Node* parent, Node * node);
 
         bool canUnlink(Node* n);
-
         void waitUntilNotChanging(Node* node);
         void fixHeightAndRebalance(Node* node);
-        
         void rotateRight(Node* node);
 };
 
@@ -189,7 +186,7 @@ Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
 
     fixHeightAndRebalance(node);
 
-    return nullptr;
+    return NOT_FOUND;
 }
 
 template<typename T>
@@ -309,7 +306,7 @@ void AVLTree<T>::waitUntilNotChanging(Node* node){
 }
 
 template<typename T>
-void AVLTree<T>::fixHeightAndRebalance(Node* node){
+void AVLTree<T>::fixHeightAndRebalance(Node* /* node*/){
     //No rebalancing yet
 }
 
