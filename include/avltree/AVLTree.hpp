@@ -20,6 +20,7 @@ struct Node {
     int height;
     int key;
     long version;
+    bool value;
     Node* parent;
     Node* left;
     Node* right;
@@ -45,7 +46,7 @@ struct Node {
             child = left;
         }
 
-        assert(false);
+        assert(direction != 0);
     }
 };
 
@@ -73,6 +74,7 @@ class AVLTree {
         Result attemptInsert(int key, Node* node, int dir, long nodeV);
         Result attemptRemove(int key, Node* node, int dir, long nodeV);
         Result attemptRmNode(Node* parent, Node * node);
+        Result attemptUpdate(Node* node);
 
         bool canUnlink(Node* n);
         void waitUntilNotChanging(Node* node);
@@ -83,8 +85,12 @@ class AVLTree {
 template<typename T>
 AVLTree<T>::AVLTree(){
     rootHolder = new Node();
+    rootHolder->version = 0;
+    rootHolder->value = false;
 
     rootHolder->right = new Node();
+    rootHolder->right->version = 0;
+    rootHolder->right->value = false;
 }
         
 template<typename T>        
@@ -108,7 +114,7 @@ Result AVLTree<T>::attemptGet(int key, Node* node, int dir, long nodeV){
         int nextD = key - child->key; //Compare to the other key
 
         if(nextD == 0){
-            return FOUND;
+            return child->value ? FOUND : NOT_FOUND;//Verify that it's a value node
         }
 
         long chV = child->version;
@@ -124,7 +130,6 @@ Result AVLTree<T>::attemptGet(int key, Node* node, int dir, long nodeV){
             if(result != RETRY){
                 return result;
             }
-
         }
     }
 }
@@ -151,8 +156,7 @@ Result AVLTree<T>::attemptPut(int key, Node* node, int dir, long nodeV){
             int nextD = key - child->key;
 
             if(nextD == 0){
-                //p = attemptUpdate(child);
-                return NOT_FOUND;   //No update, the key is already inside the set
+                p = attemptUpdate(child);
             } else {
                 long chV = child->version;
 
@@ -173,6 +177,21 @@ Result AVLTree<T>::attemptPut(int key, Node* node, int dir, long nodeV){
 }
 
 template<typename T>
+Result AVLTree<T>::attemptUpdate(Node* node){
+   //synchronized(node){
+     
+     if(node->version == Unlinked){
+        return RETRY;
+     }
+
+     bool old = node->value;
+     node->value = true;
+     return old ? FOUND : NOT_FOUND;
+       
+   //}
+}
+
+template<typename T>
 Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
     //synchronized(node){
 
@@ -180,7 +199,9 @@ Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
             return RETRY;
         }
 
-        node->setChild(dir, new Node(1, key, 0, node, nullptr, nullptr));
+        Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
+        newNode->value = true;
+        node->setChild(dir, newNode);
 
     //}
 
