@@ -1,4 +1,4 @@
-#define N 10000//00
+#define N 10//000//00
 
 //For SkipList
 #define MAX_LEVEL 30 //Should be choosen as log(1/p)(n)

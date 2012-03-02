@@ -243,7 +243,7 @@ Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
                         return RETRY;
                     }
 
-                    p = attemptPut(key, child, nextD, chV);
+                    p = attemptRemove(key, child, nextD, chV);
                 }
             }
         }
@@ -254,12 +254,11 @@ Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
 
 template<typename T>
 Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
-    /*
-    Verify
     if(!node->value){
-        return null;
-    }*/
+        return NOT_FOUND;
+    }
 
+    bool prev;
     if(!canUnlink(node)){
         //synchronized(node){
 
@@ -267,8 +266,8 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
             return RETRY;
         }
 
-        //prev = n.value
-        //node->value = null;
+        prev = node->value;
+        node->value = false;
 
         //}
     } else {
@@ -278,8 +277,8 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
             }
 
             //synchronized(node){
-                //prev = node->value;
-                //node->value = null;
+                prev = node->value;
+                node->value = false;
 
                 if(canUnlink(node)){
                     Node* c = !node->left ? node->right : node->left;
@@ -301,12 +300,12 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
         fixHeightAndRebalance(parent);
     }
 
-    //return prev;
+    return prev ? FOUND : NOT_FOUND;
 }
 
 template<typename T>
 bool AVLTree<T>::canUnlink(Node* n){
-    return !n->left || !n->right;
+    return !(n->left) || !(n->right);
 }
 
 template<typename T>
