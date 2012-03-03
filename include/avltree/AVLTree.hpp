@@ -18,14 +18,14 @@ static int SpinCount = 100;
 
 struct Node {
     int height;
-    int key;
+    const int key;
     long version;
     bool value;
     Node* parent;
     Node* left;
     Node* right;
 
-    Node(){};
+    Node(int key) : key(key) {};
     Node(int height, int key, long version, Node* parent, Node* left, Node* right) : height(height), key(key), version(version), parent(parent), left(left), right(right) {} 
 
     Node* child(int direction){
@@ -84,13 +84,15 @@ class AVLTree {
 
 template<typename T>
 AVLTree<T>::AVLTree(){
-    rootHolder = new Node();
+    rootHolder = new Node(INT_MIN);
+    rootHolder->height = 1;
     rootHolder->version = 0;
     rootHolder->value = false;
 
-    rootHolder->right = new Node();
+    /*rootHolder->right = new Node(0);
     rootHolder->right->version = 0;
     rootHolder->right->value = false;
+    rootHolder->right->parent = rootHolder;*/
 }
         
 template<typename T>        
@@ -202,7 +204,6 @@ Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
         Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
         newNode->value = true;
         node->setChild(dir, newNode);
-
     //}
 
     fixHeightAndRebalance(node);
@@ -217,6 +218,8 @@ bool AVLTree<T>::remove(T value){
 
 template<typename T>
 Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
+    //std::cout << "attempt remove " << std::endl;
+
     Result p = RETRY;
 
     do {
@@ -254,6 +257,8 @@ Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
 
 template<typename T>
 Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
+    //std::cout << "attempt rm node" << std::endl;
+
     if(!node->value){
         return NOT_FOUND;
     }
@@ -273,6 +278,12 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
     } else {
         //synchronized(parent){
             if(parent->version == Unlinked || node->parent != parent || node->version == Unlinked){
+                //std::cout << "parent->version " << parent->version << std::endl;
+                //std::cout << "node->version   " << node->version << std::endl;
+                //std::cout << "node->parent    " << node->parent << std::endl;
+                //std::cout << "parent          " << parent << std::endl;
+
+
                 return RETRY;
             }
 
