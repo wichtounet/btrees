@@ -49,6 +49,8 @@ template<typename T>
 void testST(const std::string& name){
     std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
     
+    srand(time(NULL));
+    
     T tree;
 
     //Insert sequential numbers
@@ -64,15 +66,25 @@ void testST(const std::string& name){
         assert(tree.remove(i));     
         assert(!tree.contains(i));
     }
+    
+    //Verify again that all the numbers have been removed
+    for(unsigned int i = 0; i < N; ++i){
+        assert(!tree.contains(i));
+    }
 
     std::vector<int> rand;
 
-    //Insert random numbers in the tree
+    //Insert N random numbers in the tree
     for(unsigned int i = 0; i < N; ++i){
         int number = random();
 
-        if(!tree.contains(number)){
-            tree.add(number);     
+        std::cout << "random : " << number << std::endl;
+
+        if(tree.contains(number)){
+            assert(!tree.add(number));     
+            assert(tree.contains(number));
+        } else {
+            assert(tree.add(number));     
             assert(tree.contains(number));
 
             rand.push_back(number);
