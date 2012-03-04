@@ -53,12 +53,16 @@ void testST(const std::string& name){
     
     T tree;
 
+    std::cout << "insert sequential" << std::endl;
+
     //Insert sequential numbers
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
         assert(tree.add(i));
         assert(tree.contains(i));
     }
+    
+    std::cout << "remove sequential" << std::endl;
     
     //Remove all the sequential numbers
     for(unsigned int i = 0; i < N; ++i){
@@ -67,18 +71,20 @@ void testST(const std::string& name){
         assert(!tree.contains(i));
     }
     
+    std::cout << "verify remove sequential" << std::endl;
+    
     //Verify again that all the numbers have been removed
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
     }
+    
+    std::cout << "insert random" << std::endl;
 
     std::vector<int> rand;
 
     //Insert N random numbers in the tree
     for(unsigned int i = 0; i < N; ++i){
         int number = random();
-
-        std::cout << "random : " << number << std::endl;
 
         if(tree.contains(number)){
             assert(!tree.add(number));     
@@ -90,6 +96,8 @@ void testST(const std::string& name){
             rand.push_back(number);
         }
     }
+    
+    std::cout << "remove not in set random" << std::endl;
     
     //Try remove when the number is not in the tree
     for(unsigned int i = 0; i < N; ++i){
@@ -103,10 +111,13 @@ void testST(const std::string& name){
 
     //Avoid removing in the same order
     random_shuffle(rand.begin(), rand.end());
+    
+    std::cout << "remove all random" << std::endl;
 
     //Verify that we can remove all the numbers from the tree
-    for(unsigned int i = 0; i < N; ++i){
-        int number = rand[i];
+    for(int number : rand){
+    //for(unsigned int i = 0; i < N; ++i){
+    //    int number = rand[i];
 
         assert(tree.contains(number));
         assert(tree.remove(number));
@@ -174,9 +185,9 @@ void testVersion(const std::string& name){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    //testVersion<SkipList>("SkipList");
+    testVersion<SkipList>("SkipList");
     //testVersion<NBBST>("Non-Blocking Binary Search Tree");
-    testVersion<AVLTree>("Optimistic AVL Tree");
+    //testVersion<AVLTree>("Optimistic AVL Tree");
 }
 
 template<typename Tree, unsigned int Threads>
