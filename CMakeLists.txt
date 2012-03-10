@@ -29,3 +29,5 @@ file(
 )
 
 add_executable(btrees ${btrees_source_files})
+
+target_link_libraries(btrees rt)
