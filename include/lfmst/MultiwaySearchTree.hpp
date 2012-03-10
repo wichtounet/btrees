@@ -254,6 +254,21 @@ int binary_search(int a[], int low, int high, int target) {
     return -1;
 }
 
+#define MAX_HEIGHT 10
+
+template<typename T>
+int MultiwaySearchTree<T>::randomLevel(){
+    static std::mt19937 gen;
+    std::geometric_distribution<int> dist(1.0 - 1.0 / 32.0);
+    
+    int x;
+    do{
+        x = dist(gen);
+    } while (x > MAX_HEIGHT);
+
+    return x;
+}
+
 template<typename T>
 int MultiwaySearchTree<T>::search(array* items, int key){
     return binary_search(items->elements, 0, items->length, key);
