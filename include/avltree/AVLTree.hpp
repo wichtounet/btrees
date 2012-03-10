@@ -25,7 +25,7 @@ struct Node {
     Node* left;
     Node* right;
 
-    Node(int key) : key(key) {};
+    Node(int key) : key(key), parent(nullptr), left(nullptr), right(nullptr) {};
     Node(int height, int key, long version, Node* parent, Node* left, Node* right) : height(height), key(key), version(version), parent(parent), left(left), right(right) {} 
 
     Node* child(int direction){
@@ -43,7 +43,7 @@ struct Node {
         if(direction > 0){
             right = child;
         } else if(direction < 0){
-            child = left;
+            left = child;
         }
 
         assert(direction != 0);
@@ -155,6 +155,8 @@ Result AVLTree<T>::attemptPut(int key, Node* node, int dir, long nodeV){
         if(!child){
             p = attemptInsert(key, node, dir, nodeV);
         } else {
+            assert(child);
+
             int nextD = key - child->key;
 
             if(nextD == 0){
@@ -186,9 +188,10 @@ Result AVLTree<T>::attemptUpdate(Node* node){
         return RETRY;
      }
 
-     bool old = node->value;
+     //bool old = node->value;
      node->value = true;
-     return old ? FOUND : NOT_FOUND;
+     return NOT_FOUND;
+     //return old ? FOUND : NOT_FOUND;
        
    //}
 }
@@ -197,7 +200,7 @@ template<typename T>
 Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
     //synchronized(node){
 
-        if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir) != nullptr){
+        if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir)){
             return RETRY;
         }
 
@@ -263,7 +266,7 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
         return NOT_FOUND;
     }
 
-    bool prev;
+    //bool prev;
     if(!canUnlink(node)){
         //synchronized(node){
 
@@ -271,7 +274,7 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
             return RETRY;
         }
 
-        prev = node->value;
+        //prev = node->value;
         node->value = false;
 
         //}
@@ -288,7 +291,7 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
             }
 
             //synchronized(node){
-                prev = node->value;
+      //          prev = node->value;
                 node->value = false;
 
                 if(canUnlink(node)){
@@ -311,12 +314,13 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
         fixHeightAndRebalance(parent);
     }
 
-    return prev ? FOUND : NOT_FOUND;
+    return FOUND;
+    //return prev ? FOUND : NOT_FOUND;
 }
 
 template<typename T>
 bool AVLTree<T>::canUnlink(Node* n){
-    return !(n->left) || !(n->right);
+    return !n->left || !n->right;
 }
 
 template<typename T>
