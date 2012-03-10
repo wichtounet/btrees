@@ -238,6 +238,27 @@ Search* MultiwaySearchTree<T>::traverseAndCleanup(T value){
     }
 }
 
+int binary_search(int a[], int low, int high, int target) {
+    while (low <= high) {
+        int middle = low + (high - low)/2;
+
+        if (target < a[middle]){
+            high = middle - 1;
+        } else if (target > a[middle]){
+            low = middle + 1;
+        } else {
+            return middle;
+        }
+    }
+
+    return -1;
+}
+
+template<typename T>
+int MultiwaySearchTree<T>::search(array* items, int key){
+    return binary_search(items->elements, 0, items->length, key);
+}
+
 } //end of lfmst
 
 #endif
