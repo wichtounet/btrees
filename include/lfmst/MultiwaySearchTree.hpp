@@ -13,9 +13,13 @@ struct Node;
 
 struct array {
     int* elements;
-    int length;
+    const int length;
 
-    int operator[](int index){
+    array(int length) : length(length){
+        elements = (int*) calloc(length, sizeof(int*));
+    }
+
+    int& operator[](int index){
         return elements[index];
     }
 };
@@ -30,6 +34,8 @@ struct Contents {
 
 struct Node {
     Contents* contents;
+
+    Node(Contents* contents) : contents(contents) {}
 
     bool casContents(Contents* cts, Contents* newCts){
         return CASPTR(&contents, cts, newCts);
@@ -48,6 +54,8 @@ struct Search {
 struct HeadNode {
     Node* node;
     const int height;
+
+    HeadNode(Node* node, int height) : node(node), height(height) {}
 };
 
 template<typename T>
@@ -273,6 +281,28 @@ template<typename T>
 int MultiwaySearchTree<T>::search(array* items, int key){
     return binary_search(items->elements, 0, items->length, key);
 }
+
+template<typename T>
+HeadNode* MultiwaySearchTree<T>::increaseRootHeight(int target){
+    HeadNode* root = this->root;
+    int height = root->height;
+
+    while(height < target){
+        array* keys = new array(1);
+        Node** children = (Node**) calloc(1, sizeof(Node*));
+        (*keys)[0] = INT_MAX;//TODO Check that            
+        children[0] = root->node;
+        Contents* contents = new Contents(keys, children, nullptr);
+        Node* newNode = new Node(contents);
+        HeadNode* update = new HeadNode(newNode, height + 1);
+        CASPTR(&this->root, root, update);
+        root = this->root;
+        height = root->height;
+    }
+
+    return root;
+}
+
 
 } //end of lfmst
 
