@@ -180,9 +180,31 @@ void MultiwaySearchTree<T>::traverseAndTrack(T value, int h, Search** srchs){
     }
 }
 
+array* difference(array* a, int key){
+    array* newArray = new array(a->length - 1);
+    
+    int i = 0;
+    int* src = a->elements;
+    int* dest = newArray->elements;
+
+    while(i < a->length){
+        if(*src != key){
+            *dest = *src;
+            ++dest;
+        }
+        
+        ++i;
+        ++src;
+    }
+
+    return newArray;
+}
+
 template<typename T>
 bool MultiwaySearchTree<T>::remove(T value){
     Search* srch = traverseAndCleanup(value);
+
+    int key = hash(value);
 
     while(true){
         Node* node = srch->node;
@@ -191,7 +213,7 @@ bool MultiwaySearchTree<T>::remove(T value){
             return false;
         }
 
-        array* items = nullptr;//cts.items \ v; //difference
+        array* items = difference(cts->items, key);
         Contents* update = new Contents(items, nullptr, cts->link);
 
         if(node->casContents(cts, update)){
