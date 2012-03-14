@@ -9,6 +9,7 @@ template<typename Node, int Size = 2>
 class HazardManager {
     public:
         HazardManager();
+        ~HazardManager();
 
         void releaseNode(Node* node);
         Node* getFreeNode();
@@ -25,6 +26,25 @@ HazardManager<Node, Size>::HazardManager(){
     for(int tid = 0; tid < NUM_THREADS; ++tid){
         for(int j = 0; j < Size; ++j){
             Pointers[tid][j] = LocalQueues[tid][j] = nullptr;
+        }
+    }
+}
+
+template<typename Node, int Size>
+HazardManager<Node, Size>::~HazardManager(){
+    for(int tid = 0; tid < NUM_THREADS; ++tid){
+        for(int j = 0; j < Size; ++j){
+            if(Pointers[tid][j]){
+                delete Pointers[tid][j];
+            }
+        }
+
+        if(LocalQueues[tid][0]){
+            delete LocalQueues[tid][0];
+        }
+
+        if(LocalQueues[tid][1]){
+            delete LocalQueues[tid][1];
         }
     }
 }
@@ -57,7 +77,7 @@ Node* HazardManager<Node, Size>::getFreeNode(){
         }
 
         while((node = pred->nextNode)){
-            if(!IsReferenced(node)){
+            if(!isReferenced(node)){
                 if(!(pred->nextNode = node->nextNode)){
                     LocalQueues[tid][1] = pred;
                 }

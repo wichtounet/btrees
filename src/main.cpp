@@ -13,13 +13,13 @@
 #include "skiplist/SkipList.hpp"
 #include "nbbst/NBBST.hpp"
 #include "avltree/AVLTree.hpp"
-#include "lfmst/MultiwaySearchTree.hpp"
+//#include "lfmst/MultiwaySearchTree.hpp"
 
 //Typedefs for the different versions
 typedef skiplist::SkipList<int> SkipList;
 typedef nbbst::NBBST<int> NBBST;
 typedef avltree::AVLTree<int> AVLTree;
-typedef lfmst::MultiwaySearchTree<int> MultiwaySearchTree;
+//typedef lfmst::MultiwaySearchTree<int> MultiwaySearchTree;
 
 void test();
 void perfTest();
@@ -172,10 +172,10 @@ void testVersion(const std::string& name){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    //testVersion<SkipList>("SkipList");
+    testVersion<SkipList>("SkipList");
     //testVersion<NBBST>("Non-Blocking Binary Search Tree");
     //testVersion<AVLTree>("Optimistic AVL Tree");
-    testVersion<MultiwaySearchTree>("Multiway Search Tree");
+    //testVersion<MultiwaySearchTree>("Multiway Search Tree");
 }
 
 template<typename Tree, unsigned int Threads>

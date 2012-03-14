@@ -85,22 +85,22 @@ bool SkipList<T>::add(T value){
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
             
-    Node* newNode = newNode(hash(value), topLevel);
+    Node* newElement = newNode(hash(value), topLevel);
 
     while(true){
         if(find(value, preds, succs)){
-            delete newNode;
+            delete newElement;
 
             return false;
         } else {
             for(int level = 0; level <= topLevel; ++level){
-                newNode->next[level] = succs[level];
+                newElement->next[level] = succs[level];
             }
 
-            if(CASPTR(&preds[0]->next[0], succs[0], newNode)){
+            if(CASPTR(&preds[0]->next[0], succs[0], newElement)){
                 for(int level = 1; level <= topLevel; ++level){
                     while(true){
-                        if(CASPTR(&preds[level]->next[level], succs[level], newNode)){ 
+                        if(CASPTR(&preds[level]->next[level], succs[level], newElement)){ 
                             break;
                         } else {
                             find(value, preds, succs);
