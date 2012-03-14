@@ -32,14 +32,38 @@ class SkipList {
     private:
         bool find(T x, Node** preds, Node** succs);
 
+        Node* newNode(int key);
+        Node* newNode(int key, int height);
+
         Node* head;
         Node* tail;
+
+        HazardManager<Node, 2> hazard;
 };
 
 template<typename T>
+Node* SkipList<T>::newNode(int key){
+    Node* node = hazard.getFreeNode();
+
+    node->key = key;
+
+    return node;
+}
+
+template<typename T>
+Node* SkipList<T>::newNode(int key, int height){
+    Node* node = hazard.getFreeNode();
+
+    node->key = key;
+    node->topLevel = height;
+
+    return node;
+}
+
+template<typename T>
 SkipList<T>::SkipList(){
-    head = new Node(INT_MIN);
-    tail = new Node(INT_MAX);
+    head = newNode(INT_MIN);
+    tail = newNode(INT_MAX);
 
     for(int i = 0; i < MAX_LEVEL + 1; ++i){
         head->next[i] = tail;
@@ -61,7 +85,7 @@ bool SkipList<T>::add(T value){
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
             
-    Node* newNode = new Node(hash(value), topLevel);
+    Node* newNode = newNode(hash(value), topLevel);
 
     while(true){
         if(find(value, preds, succs)){
