@@ -1,6 +1,7 @@
 #include <climits>
 
 #include "Utils.hpp"
+#include "HazardManager.hpp"
 
 #include "skiplist/Node.hpp"
 

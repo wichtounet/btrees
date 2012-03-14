@@ -12,6 +12,8 @@ struct Node {
     const int key;
     int topLevel;
     Node* next[MAX_LEVEL + 1];
+
+    Node* nextNode; //For the hazard manager
 };
 
 Node::Node(int key) : key(key), topLevel(MAX_LEVEL) {}
