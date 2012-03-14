@@ -14,6 +14,10 @@ class HazardManager {
         void releaseNode(Node* node);
         Node* getFreeNode();
 
+        /* Manage references  */
+        void publish(Node* node, int i);
+        void release(int i);
+
     private:
         Node* Pointers[NUM_THREADS][Size];
         Node* LocalQueues[NUM_THREADS][2]; 
@@ -104,6 +108,21 @@ bool HazardManager<Node, Size>::isReferenced(Node* node){
     }
 
     return false;
+}
+        
+
+template<typename Node, int Size>
+void HazardManager<Node, Size>::publish(Node* node, int i){
+    int tid = omp_get_thread_num();
+   
+    Pointers[tid][i] = node;
+}
+
+template<typename Node, int Size>
+void HazardManager<Node, Size>::release(int i){
+    int tid = omp_get_thread_num();
+   
+    Pointers[tid][i] = nullptr;
 }
 
 #endif
