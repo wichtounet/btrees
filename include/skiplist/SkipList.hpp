@@ -30,7 +30,7 @@ class SkipList {
         bool contains(T value);
 
     private:
-        bool find(T x, Node** preds, Node** succs);
+        bool find(int key, Node** preds, Node** succs);
 
         Node* newNode(int key);
         Node* newNode(int key, int height);
@@ -80,16 +80,21 @@ SkipList<T, Threads>::~SkipList(){
 
 template<typename T, int Threads>
 bool SkipList<T, Threads>::add(T value){
+    int key = hash(value);
     int topLevel = random(P, MAX_LEVEL);
 
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
             
-    Node* newElement = newNode(hash(value), topLevel);
+    Node* newElement = newNode(key, topLevel);
     hazard.publish(newElement, 0);
 
+    if(!newElement){
+        std::cout << "shit" << std::endl;
+    }
+
     while(true){
-        if(find(value, preds, succs)){
+        if(find(key, preds, succs)){
             hazard.release(0);
             hazard.release(1);
             hazard.release(2);
@@ -114,7 +119,7 @@ bool SkipList<T, Threads>::add(T value){
                         if(CASPTR(&preds[level]->next[level], succs[level], newElement)){ 
                             break;
                         } else {
-                            find(value, preds, succs);
+                            find(key, preds, succs);
                         }
                     }
                 }
@@ -131,11 +136,13 @@ bool SkipList<T, Threads>::add(T value){
 
 template<typename T, int Threads>
 bool SkipList<T, Threads>::remove(T value){
+    int key = hash(value);
+
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
 
     while(true){
-        if(!find(value, preds, succs)){
+        if(!find(key, preds, succs)){
             hazard.release(1);
             hazard.release(0);
 
@@ -166,7 +173,7 @@ bool SkipList<T, Threads>::remove(T value){
                     hazard.release(1);
                     hazard.release(0);
                     
-                    find(value, preds, succs);
+                    find(key, preds, succs);
                     return true;
                 }
             }
@@ -212,17 +219,17 @@ bool SkipList<T, Threads>::contains(T value){
         }
     }
 
+    bool found = curr->key == key;
+
     hazard.release(0);
     hazard.release(1);
     hazard.release(2);
 
-    return curr->key == key;
+    return found;
 }
 
 template<typename T, int Threads>
-bool SkipList<T, Threads>::find(T value, Node** preds, Node** succs){
-    int key = hash(value);
-
+bool SkipList<T, Threads>::find(int key, Node** preds, Node** succs){
     Node* pred = nullptr;
     Node* curr = nullptr;
     Node* succ = nullptr;
@@ -237,6 +244,10 @@ retry:
     hazard.publish(pred, 0);
 
     for(int level = MAX_LEVEL; level >= 0; --level){
+        /* Evequoz hack  if(IsMarked(pred)){
+            std::cout << "Find error" << std::endl;
+        }*/
+
         curr = pred->next[level];
         hazard.publish(curr, 1);
 

@@ -12,6 +12,8 @@ int random(int max){
 }
 
 int random(double p, int maxLevel){
+    srand(time(NULL));
+
     int level = 0;
 
     while (((double) rand() / (double) RAND_MAX) < p){
