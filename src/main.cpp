@@ -6,8 +6,6 @@
 #include <random>
 #include <chrono>
 
-#include <sys/time.h> //TODO It's not portable...
-
 #include <omp.h>
 
 #include "Constants.hpp"
@@ -168,7 +166,8 @@ void test(){
     std::cout << "Tests the different versions" << std::endl;
 
 //    TEST(skiplist::SkipList, "SkipList")
-    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+//    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    TEST(avltree::AVLTree, "Optimistic AVL Tree")
 
     //TODO Test the other too
 }
@@ -224,7 +223,8 @@ void bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
 //    BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+//    BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+    BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
 
     //TODO Bench the other too
 }

@@ -57,7 +57,7 @@ enum Result {
     RETRY
 };
 
-template<typename T>
+template<typename T, int Threads>
 class AVLTree {
     public:
         AVLTree();
@@ -82,8 +82,8 @@ class AVLTree {
         void rotateRight(Node* node);
 };
 
-template<typename T>
-AVLTree<T>::AVLTree(){
+template<typename T, int Threads>
+AVLTree<T, Threads>::AVLTree(){
     rootHolder = new Node(INT_MIN);
     rootHolder->height = 1;
     rootHolder->version = 0;
@@ -95,13 +95,13 @@ AVLTree<T>::AVLTree(){
     rootHolder->right->parent = rootHolder;*/
 }
         
-template<typename T>        
-bool AVLTree<T>::contains(T value){
+template<typename T, int Threads>
+bool AVLTree<T, Threads>::contains(T value){
     return attemptGet(hash(value), rootHolder, 1, 0) == FOUND;
 }
 
-template<typename T>
-Result AVLTree<T>::attemptGet(int key, Node* node, int dir, long nodeV){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptGet(int key, Node* node, int dir, long nodeV){
     while(true){
         Node* child = node->child(dir);
 
@@ -136,13 +136,13 @@ Result AVLTree<T>::attemptGet(int key, Node* node, int dir, long nodeV){
     }
 }
 
-template<typename T>
-bool AVLTree<T>::add(T value){
+template<typename T, int Threads>
+bool AVLTree<T, Threads>::add(T value){
     return attemptPut(hash(value), rootHolder, 1, 0) == NOT_FOUND;//Check the return value
 }
 
-template<typename T>
-Result AVLTree<T>::attemptPut(int key, Node* node, int dir, long nodeV){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptPut(int key, Node* node, int dir, long nodeV){
     Result p = RETRY;
 
     do {
@@ -180,8 +180,8 @@ Result AVLTree<T>::attemptPut(int key, Node* node, int dir, long nodeV){
     return p;
 }
 
-template<typename T>
-Result AVLTree<T>::attemptUpdate(Node* node){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptUpdate(Node* node){
    //synchronized(node){
      
      if(node->version == Unlinked){
@@ -196,8 +196,8 @@ Result AVLTree<T>::attemptUpdate(Node* node){
    //}
 }
 
-template<typename T>
-Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptInsert(int key, Node* node, int dir, long nodeV){
     //synchronized(node){
 
         if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir)){
@@ -214,13 +214,13 @@ Result AVLTree<T>::attemptInsert(int key, Node* node, int dir, long nodeV){
     return NOT_FOUND;
 }
 
-template<typename T>
-bool AVLTree<T>::remove(T value){
+template<typename T, int Threads>
+bool AVLTree<T, Threads>::remove(T value){
     return attemptRemove(hash(value), rootHolder, 1, 0) == FOUND;
 }
 
-template<typename T>
-Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptRemove(int key, Node* node, int dir, long nodeV){
     //std::cout << "attempt remove " << std::endl;
 
     Result p = RETRY;
@@ -258,8 +258,8 @@ Result AVLTree<T>::attemptRemove(int key, Node* node, int dir, long nodeV){
     return p;
 }
 
-template<typename T>
-Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
+template<typename T, int Threads>
+Result AVLTree<T, Threads>::attemptRmNode(Node* parent, Node * node){
     //std::cout << "attempt rm node" << std::endl;
 
     if(!node->value){
@@ -318,13 +318,13 @@ Result AVLTree<T>::attemptRmNode(Node* parent, Node * node){
     //return prev ? FOUND : NOT_FOUND;
 }
 
-template<typename T>
-bool AVLTree<T>::canUnlink(Node* n){
+template<typename T, int Threads>
+bool AVLTree<T, Threads>::canUnlink(Node* n){
     return !n->left || !n->right;
 }
 
-template<typename T>
-void AVLTree<T>::waitUntilNotChanging(Node* node){
+template<typename T, int Threads>
+void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
     long version = node->version;
 
     if((version & (Growing | Shrinking)) != 0){
@@ -340,8 +340,8 @@ void AVLTree<T>::waitUntilNotChanging(Node* node){
     }
 }
 
-template<typename T>
-void AVLTree<T>::fixHeightAndRebalance(Node* /* node*/){
+template<typename T, int Threads>
+void AVLTree<T, Threads>::fixHeightAndRebalance(Node* /* node*/){
     //No rebalancing yet
 }
 
@@ -349,8 +349,8 @@ int height(Node* node){
     return !node ? 0 : node->height;
 }
 
-template<typename T>
-void AVLTree<T>::rotateRight(Node* node){
+template<typename T, int Threads>
+void AVLTree<T, Threads>::rotateRight(Node* node){
     Node* nP = node->parent;
     Node* nL = node->left;
     Node* nLR = nL->right;
