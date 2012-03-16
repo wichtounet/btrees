@@ -43,45 +43,43 @@ inline Update Mark(Update info, UpdateState state){
 struct Node {
     bool internal;
     int key;
-
-    Node(bool internal) : internal(internal) {};
-    Node(bool internal, int key) : internal(internal), key(key) {};
-};
-
-struct Internal : public Node {
+    
     Update update;
     Node* left;
     Node* right;
 
-    Internal() : Node(true) {}
-    Internal(int key) : Node(true, key) {}
+    Node(bool internal, int key = 0) : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
 };
 
-struct Leaf : public Node {
-    Leaf(int key) : Node(false, key) {}
-};
+Node* newInternal(int key = 0){
+    return new Node(true, key); 
+}
+
+Node* newLeaf(int key){
+    return new Node(false, key);
+}
 
 struct IInfo : public Info {
-    Internal* p;
-    Internal* newInternal;
-    Leaf* l;
+    Node* p;                //Internal
+    Node* newInternal;      //Internal
+    Node* l;                //Leaf
 
-    IInfo(Internal* p, Internal* newInternal, Leaf* l) : p(p), newInternal(newInternal), l(l) {}
+    IInfo(Node* p, Node* newInternal, Node* l) : p(p), newInternal(newInternal), l(l) {}
 };
 
 struct DInfo : public Info {
-    Internal* gp;
-    Internal* p;
-    Leaf* l;
+    Node* gp;       //Internal
+    Node* p;        //Internal
+    Node* l;        //Leaf
     Update pupdate;
 
-    DInfo(Internal* gp, Internal* p, Leaf* l, Update pupdate) : gp(gp), p(p), l(l), pupdate(pupdate) {}
+    DInfo(Node* gp, Node* p, Node* l, Update pupdate) : gp(gp), p(p), l(l), pupdate(pupdate) {}
 };
 
 struct SearchResult {
-    Internal* gp;
-    Internal* p;
-    Leaf* l;
+    Node* gp;       //Internal
+    Node* p;        //Internal
+    Node* l;        //Leaf
     Update pupdate;
     Update gpupdate;
 
@@ -103,19 +101,18 @@ class NBBST {
         bool HelpDelete(DInfo* op);
         void HelpMarked(DInfo* op);
         void Help(Update u);
-        void CASChild(Internal* parent, Node* old, Node* newNode);
+        void CASChild(Node* parent, Node* old, Node* newNode);
 
-        Internal* root;
+        Node* root;
 };
 
 template<typename T, int Threads>
 NBBST<T, Threads>::NBBST(){
-    root = new Internal();
-    root->key = INT_MAX;//TODO Check int_max
+    root = newInternal(INT_MAX);//TODO Check int_max
     root->update = Mark(nullptr, CLEAN);
 
-    root->left = new Leaf(INT_MIN);
-    root->right = new Leaf(INT_MAX);
+    root->left = newLeaf(INT_MIN);
+    root->right = newLeaf(INT_MAX);
 }
 
 template<typename T, int Threads>
@@ -124,7 +121,7 @@ void NBBST<T, Threads>::Search(int key, SearchResult* result){
 
     while(l->internal){
         result->gp = result->p;
-        result->p = static_cast<Internal*>(l);
+        result->p = l;
         result->gpupdate = result->pupdate;
         result->pupdate = result->p->update;
 
@@ -135,7 +132,7 @@ void NBBST<T, Threads>::Search(int key, SearchResult* result){
         }
     }
 
-    result->l = static_cast<Leaf*>(l);
+    result->l = l;
 }
 
 template<typename T, int Threads>
@@ -152,7 +149,7 @@ template<typename T, int Threads>
 bool NBBST<T, Threads>::add(T value){
     int key = hash(value);
 
-    Leaf* newLeaf = new Leaf(key);
+    Node* newNode = newLeaf(key);
 
     SearchResult search;
 
@@ -160,7 +157,7 @@ bool NBBST<T, Threads>::add(T value){
         Search(key, &search);
 
         if(search.l->key == key){
-            delete newLeaf;
+            delete newNode;
 
             return false; //Key already in the set
         }
@@ -168,20 +165,20 @@ bool NBBST<T, Threads>::add(T value){
         if(getState(search.pupdate) != CLEAN){
             Help(search.pupdate);
         } else {
-            Leaf* newSibling = new Leaf(search.l->key);
-            Internal* newInternal = new Internal(std::max(key, search.l->key));
-            newInternal->update = Mark(nullptr, CLEAN);
+            Node* newSibling = newLeaf(search.l->key);
+            Node* newInt = newInternal(std::max(key, search.l->key));
+            newInt->update = Mark(nullptr, CLEAN);
             
             //Put the smaller child on the left
-            if(newLeaf->key <= newSibling->key){
-                newInternal->left = newLeaf;
-                newInternal->right = newSibling;
+            if(newNode->key <= newSibling->key){
+                newInt->left = newNode;
+                newInt->right = newSibling;
             } else {
-                newInternal->left = newSibling;
-                newInternal->right = newLeaf;
+                newInt->left = newSibling;
+                newInt->right = newNode;
             }
 
-            IInfo* op = new IInfo(search.p, newInternal, search.l);
+            IInfo* op = new IInfo(search.p, newInt, search.l);
 
             Update result = search.p->update;
             if(CASPTR(&search.p->update, search.pupdate, Mark(op, IFLAG))){
@@ -189,7 +186,7 @@ bool NBBST<T, Threads>::add(T value){
                 return true;
             } else {
                 delete newSibling;
-                delete newInternal;
+                delete newInt;
                 delete op;
 
                 Help(result);
@@ -278,7 +275,7 @@ void NBBST<T, Threads>::Help(Update u){
 }
         
 template<typename T, int Threads>
-void NBBST<T, Threads>::CASChild(Internal* parent, Node* old, Node* newNode){
+void NBBST<T, Threads>::CASChild(Node* parent, Node* old, Node* newNode){
     if(newNode->key < parent->key){
         CASPTR(&parent->left, old, newNode);
     } else {
