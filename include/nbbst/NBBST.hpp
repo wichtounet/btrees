@@ -88,7 +88,7 @@ struct SearchResult {
     SearchResult() : gp(nullptr), p(nullptr), l(nullptr), pupdate(nullptr), gpupdate(nullptr) {}
 };
 
-template<typename T>
+template<typename T, int Threads>
 class NBBST {
     public:
         NBBST();
@@ -108,8 +108,8 @@ class NBBST {
         Internal* root;
 };
 
-template<typename T>
-NBBST<T>::NBBST(){
+template<typename T, int Threads>
+NBBST<T, Threads>::NBBST(){
     root = new Internal();
     root->key = INT_MAX;//TODO Check int_max
     root->update = Mark(nullptr, CLEAN);
@@ -118,8 +118,8 @@ NBBST<T>::NBBST(){
     root->right = new Leaf(INT_MAX);
 }
 
-template<typename T>
-void NBBST<T>::Search(int key, SearchResult* result){
+template<typename T, int Threads>
+void NBBST<T, Threads>::Search(int key, SearchResult* result){
     Node* l = root;
 
     while(l->internal){
@@ -138,8 +138,8 @@ void NBBST<T>::Search(int key, SearchResult* result){
     result->l = static_cast<Leaf*>(l);
 }
 
-template<typename T>
-bool NBBST<T>::contains(T value){
+template<typename T, int Threads>
+bool NBBST<T, Threads>::contains(T value){
     int key = hash(value);
 
     SearchResult result;
@@ -148,8 +148,8 @@ bool NBBST<T>::contains(T value){
     return result.l->key == key;
 }
 
-template<typename T>
-bool NBBST<T>::add(T value){
+template<typename T, int Threads>
+bool NBBST<T, Threads>::add(T value){
     int key = hash(value);
 
     Leaf* newLeaf = new Leaf(key);
@@ -198,14 +198,14 @@ bool NBBST<T>::add(T value){
     }
 }
 
-template<typename T>
-void NBBST<T>::HelpInsert(IInfo* op){
+template<typename T, int Threads>
+void NBBST<T, Threads>::HelpInsert(IInfo* op){
     CASChild(op->p, op->l, op->newInternal);
     CASPTR(&op->p->update, Mark(op, IFLAG), Mark(op, CLEAN));
 }
 
-template<typename T>
-bool NBBST<T>::remove(T value){
+template<typename T, int Threads>
+bool NBBST<T, Threads>::remove(T value){
     int key = hash(value);
 
     SearchResult search;
@@ -236,8 +236,8 @@ bool NBBST<T>::remove(T value){
     }
 }
 
-template<typename T>
-bool NBBST<T>::HelpDelete(DInfo* op){
+template<typename T, int Threads>
+bool NBBST<T, Threads>::HelpDelete(DInfo* op){
     Update result = op->p->update;
 
     //If we succeed or if another has succeeded for us
@@ -251,8 +251,8 @@ bool NBBST<T>::HelpDelete(DInfo* op){
     }
 }
 
-template<typename T>
-void NBBST<T>::HelpMarked(DInfo* op){
+template<typename T, int Threads>
+void NBBST<T, Threads>::HelpMarked(DInfo* op){
     Node* other;
 
     if(op->p->right == op->l){
@@ -266,8 +266,8 @@ void NBBST<T>::HelpMarked(DInfo* op){
     CASPTR(&op->gp->update, Mark(op, DFLAG), Mark(op, CLEAN));
 }
 
-template<typename T>
-void NBBST<T>::Help(Update u){
+template<typename T, int Threads>
+void NBBST<T, Threads>::Help(Update u){
     if(getState(u) == IFLAG){
         HelpInsert(static_cast<IInfo*>(Unmark(u)));
     } else if(getState(u) == MARK){
@@ -277,8 +277,8 @@ void NBBST<T>::Help(Update u){
     }
 }
         
-template<typename T>
-void NBBST<T>::CASChild(Internal* parent, Node* old, Node* newNode){
+template<typename T, int Threads>
+void NBBST<T, Threads>::CASChild(Internal* parent, Node* old, Node* newNode){
     if(newNode->key < parent->key){
         CASPTR(&parent->left, old, newNode);
     } else {
