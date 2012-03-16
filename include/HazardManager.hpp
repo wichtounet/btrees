@@ -3,6 +3,8 @@
 
 #include <omp.h>
 
+static int count = 0;
+
 template<typename Node, int Threads, int Size = 2>
 class HazardManager {
     public:
@@ -38,21 +40,37 @@ HazardManager<Node, Threads, Size>::HazardManager(){
 
 template<typename Node, int Threads, int Size>
 HazardManager<Node, Threads, Size>::~HazardManager(){
+    static int deleted = 0;
+
     for(int tid = 0; tid < Threads; ++tid){
-        for(int j = 0; j < Size; ++j){
-            if(Pointers[tid][j]){
-                delete Pointers[tid][j];
-            }
-        }
+        //No need to delete Hazard Pointers because each thread need to release its published references
 
         if(LocalQueues[tid][0]){
-            delete LocalQueues[tid][0];
-        }
+            //There are only a single element in the local queue
+            if(LocalQueues[tid][0] == LocalQueues[tid][1]){
+                delete LocalQueues[tid][0];
+                deleted++;
+            }
+            //Delete all the elements of the queue            
+            else {
+                Node* node; 
+                Node* pred = LocalQueues[tid][0];
 
-        if(LocalQueues[tid][1]){
-            delete LocalQueues[tid][1];
+                while((node = pred->nextNode)){
+                    delete pred;
+                    deleted++;
+
+                    pred = node;
+                }
+
+                /*delete LocalQueues[tid][1];
+                deleted++;*/
+            }
         }
     }
+    
+    std::cout << "Allocated " << count << std::endl;
+    std::cout << "Deleted " << deleted << std::endl;
 }
 
 template<typename Node, int Threads, int Size>
@@ -76,11 +94,10 @@ Node* HazardManager<Node, Threads, Size>::getFreeNode(){
     Node* node; 
     Node* pred = LocalQueues[tid][0];
 
+    //If there are nodes on the local queue, try to get a non reference node
     if(pred){
         if(!isReferenced(pred)){
             LocalQueues[tid][0] = pred->nextNode;
-
-            std::cout << "Get node from local queue of " << tid << std::endl;
 
             return pred;
         }
@@ -91,8 +108,6 @@ Node* HazardManager<Node, Threads, Size>::getFreeNode(){
                     LocalQueues[tid][1] = pred;
                 }
 
-                std::cout << "Get node from local queue of " << tid << std::endl;
-
                 return node;
             } else {
                 pred = node;
@@ -100,7 +115,7 @@ Node* HazardManager<Node, Threads, Size>::getFreeNode(){
         }
     }
 
-    //std::cout << "Alloc new node" << std::endl;
+    count++;
 
     //The queue is empty or every node is still referenced by other threads
     return new Node();

@@ -65,6 +65,8 @@ SkipList<T, Threads>::SkipList(){
     head = newNode(INT_MIN);
     tail = newNode(INT_MAX);
 
+    head->topLevel = MAX_LEVEL;
+
     for(int i = 0; i < MAX_LEVEL + 1; ++i){
         head->next[i] = tail;
     }
@@ -99,7 +101,7 @@ bool SkipList<T, Threads>::add(T value){
             hazard.release(1);
             hazard.release(2);
             
-            delete newElement;
+            hazard.releaseNode(newElement);
 
             return false;
         } else {
@@ -174,6 +176,9 @@ bool SkipList<T, Threads>::remove(T value){
                     hazard.release(0);
                     
                     find(key, preds, succs);
+                    
+                    hazard.releaseNode(nodeToRemove);
+
                     return true;
                 }
             }
@@ -244,25 +249,11 @@ retry:
     hazard.publish(pred, 0);
 
     for(int level = MAX_LEVEL; level >= 0; --level){
-        /* Evequoz hack  if(IsMarked(pred)){
-            std::cout << "Find error" << std::endl;
-        }*/
-
         curr = pred->next[level];
         hazard.publish(curr, 1);
 
         while(true){
             if(IsMarked(curr)){
-                goto retry;
-            }
-            
-            if(!curr){
-                std::cout << "hack fix 1" << std::endl;
-                goto retry;
-            }
-            
-            if(!curr->next){
-                std::cout << "hack fix 2" << std::endl;
                 goto retry;
             }
 
@@ -278,16 +269,6 @@ retry:
                 hazard.publish(curr, 1);
 
                 if(IsMarked(curr)){
-                    goto retry;
-                }
-
-                if(!curr){
-                    std::cout << "hack fix 3" << std::endl;
-                    goto retry;
-                }
-                
-                if(!curr->next){
-                    std::cout << "hack fix 4" << std::endl;
                     goto retry;
                 }
 
