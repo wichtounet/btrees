@@ -1,8 +1,6 @@
 #ifndef HAZARD_MANAGER
 #define HAZARD_MANAGER
 
-#include <omp.h>
-
 template<typename Node, int Threads, int Size = 2>
 class HazardManager {
     public:
@@ -65,7 +63,7 @@ HazardManager<Node, Threads, Size>::~HazardManager(){
 
 template<typename Node, int Threads, int Size>
 void HazardManager<Node, Threads, Size>::releaseNode(Node* node){
-    int tid = omp_get_thread_num();
+    int tid = thread_num;
 
     node->nextNode = nullptr;
 
@@ -79,7 +77,7 @@ void HazardManager<Node, Threads, Size>::releaseNode(Node* node){
 
 template<typename Node, int Threads, int Size>
 Node* HazardManager<Node, Threads, Size>::getFreeNode(){
-    int tid = omp_get_thread_num();
+    int tid = thread_num;
 
     Node* node; 
     Node* pred = LocalQueues[tid][0];
@@ -125,16 +123,12 @@ bool HazardManager<Node, Threads, Size>::isReferenced(Node* node){
 
 template<typename Node, int Threads, int Size>
 void HazardManager<Node, Threads, Size>::publish(Node* node, int i){
-    int tid = omp_get_thread_num();
-   
-    Pointers[tid][i] = node;
+    Pointers[thread_num][i] = node;
 }
 
 template<typename Node, int Threads, int Size>
 void HazardManager<Node, Threads, Size>::release(int i){
-    int tid = omp_get_thread_num();
-   
-    Pointers[tid][i] = nullptr;
+    Pointers[thread_num][i] = nullptr;
 }
 
 #endif
