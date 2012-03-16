@@ -6,14 +6,10 @@
 #include <climits>
 
 int random(int max){
-    srand(time(NULL));
-
     return rand() % max;
 }
 
 int random(double p, int maxLevel){
-    srand(time(NULL));
-
     int level = 0;
 
     while (((double) rand() / (double) RAND_MAX) < p){

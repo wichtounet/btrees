@@ -5,4 +5,4 @@
 #define P 0.5
 
 //For benchmark
-#define OPERATIONS 100000 //TODO 1 million 
+#define OPERATIONS 1000000 //TODO 1 million 

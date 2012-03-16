@@ -3,6 +3,9 @@
 #include <vector>
 #include <algorithm>
 
+#include <random>
+#include <chrono>
+
 #include <sys/time.h> //TODO It's not portable...
 
 #include <omp.h>
@@ -20,6 +23,10 @@
 //typedef nbbst::NBBST<int> NBBST;
 //typedef avltree::AVLTree<int> AVLTree;
 //typedef lfmst::MultiwaySearchTree<int> MultiwaySearchTree;
+
+//Chrono typedefs
+typedef std::chrono::high_resolution_clock Clock;
+typedef std::chrono::milliseconds milliseconds;
 
 void test();
 void perfTest();
@@ -51,8 +58,6 @@ template<typename T>
 void testST(const std::string& name){
     std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
     
-    srand(time(NULL));
-    
     T tree;
 
     //Insert sequential numbers
@@ -74,11 +79,15 @@ void testST(const std::string& name){
         assert(!tree.contains(i));
     }
 
+    std::mt19937_64 engine(time(NULL));
+    std::uniform_int_distribution<int> distribution(0, INT_MAX);
+    auto generator = std::bind(distribution, engine);
+
     std::vector<int> rand;
 
     //Insert N random numbers in the tree
     for(unsigned int i = 0; i < N; ++i){
-        int number = random();
+        int number = generator();
 
         if(tree.contains(number)){
             assert(!tree.add(number));     
@@ -93,7 +102,7 @@ void testST(const std::string& name){
     
     //Try remove when the number is not in the tree
     for(unsigned int i = 0; i < N; ++i){
-        int number = random();
+        int number = generator();
 
         if(!tree.contains(number)){
             assert(!tree.remove(number));
@@ -171,21 +180,25 @@ void test(){
 
 template<typename Tree, unsigned int Threads>
 void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
-    timespec ts1 = {0,0};
-    timespec ts2 = {0,0};
-
     Tree tree;
 
     omp_set_num_threads(Threads);
 
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
+    Clock::time_point t0 = Clock::now();
 
     #pragma omp parallel shared(tree)
     {
-        for(int i = 0; i < OPERATIONS; ++i){
-            unsigned int value = random(range);
+        std::mt19937_64 engine(time(0) + omp_get_thread_num());
+        
+        std::uniform_int_distribution<int> valueDistribution(0, range);
+        auto valueGenerator = std::bind(valueDistribution, engine);
+        
+        std::uniform_int_distribution<int> operationDistribution(0, 99);
+        auto operationGenerator = std::bind(operationDistribution, engine);
 
-            unsigned int op = random(100);
+        for(int i = 0; i < OPERATIONS; ++i){
+            unsigned int value = valueGenerator();
+            unsigned int op = operationGenerator();
 
             if(op < add){
                 tree.add(value);
@@ -196,14 +209,12 @@ void bench(const std::string& name, unsigned int range, unsigned int add, unsign
             }
         }
     }
-    
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
 
-    unsigned long duration = (ts2.tv_sec - ts1.tv_sec) * 1000000000l + (ts2.tv_nsec - ts1.tv_nsec);
-    unsigned long operations = Threads * OPERATIONS;
-    unsigned long throughput = duration / operations;
+    Clock::time_point t1 = Clock::now();
 
-    //std::cout << (Threads * OPERATIONS) << " operations on " << name << " took " << duration << "ns" << std::endl;
+    milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+    unsigned long throughput = (Threads * OPERATIONS) / ms.count();
+
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
 }
 
@@ -231,6 +242,6 @@ void bench(unsigned int range){
 void perfTest(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
-    bench(2000);            //Key in {0, 2000}
-    //bench(200000);        //Key in {0, 200000}
+    //bench(2000);            //Key in {0, 2000}
+    bench(200000);        //Key in {0, 200000}
 }
