@@ -19,7 +19,7 @@ inline bool IsMarked(Node* node){
     return reinterpret_cast<unsigned long>(node) & 0x1;
 }
 
-template<typename T>
+template<typename T, int Threads>
 class SkipList {
     public:
         SkipList();
@@ -38,11 +38,11 @@ class SkipList {
         Node* head;
         Node* tail;
 
-        HazardManager<Node, 3> hazard;
+        HazardManager<Node, Threads, 3> hazard;
 };
 
-template<typename T>
-Node* SkipList<T>::newNode(int key){
+template<typename T, int Threads>
+Node* SkipList<T, Threads>::newNode(int key){
     Node* node = hazard.getFreeNode();
 
     node->key = key;
@@ -50,8 +50,8 @@ Node* SkipList<T>::newNode(int key){
     return node;
 }
 
-template<typename T>
-Node* SkipList<T>::newNode(int key, int height){
+template<typename T, int Threads>
+Node* SkipList<T, Threads>::newNode(int key, int height){
     Node* node = hazard.getFreeNode();
 
     node->key = key;
@@ -60,8 +60,8 @@ Node* SkipList<T>::newNode(int key, int height){
     return node;
 }
 
-template<typename T>
-SkipList<T>::SkipList(){
+template<typename T, int Threads>
+SkipList<T, Threads>::SkipList(){
     head = newNode(INT_MIN);
     tail = newNode(INT_MAX);
 
@@ -72,14 +72,14 @@ SkipList<T>::SkipList(){
     tail->topLevel = 0;
 }
 
-template<typename T>
-SkipList<T>::~SkipList(){
+template<typename T, int Threads>
+SkipList<T, Threads>::~SkipList(){
     delete head;
     delete tail;
 }
 
-template<typename T>
-bool SkipList<T>::add(T value){
+template<typename T, int Threads>
+bool SkipList<T, Threads>::add(T value){
     int topLevel = random(P, MAX_LEVEL);
 
     Node* preds[MAX_LEVEL + 1];
@@ -129,8 +129,8 @@ bool SkipList<T>::add(T value){
     }
 }
 
-template<typename T>
-bool SkipList<T>::remove(T value){
+template<typename T, int Threads>
+bool SkipList<T, Threads>::remove(T value){
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
 
@@ -174,8 +174,8 @@ bool SkipList<T>::remove(T value){
     }
 }
 
-template<typename T>
-bool SkipList<T>::contains(T value){
+template<typename T, int Threads>
+bool SkipList<T, Threads>::contains(T value){
     int key = hash(value);
 
     Node* pred = head;
@@ -219,8 +219,8 @@ bool SkipList<T>::contains(T value){
     return curr->key == key;
 }
 
-template<typename T>
-bool SkipList<T>::find(T value, Node** preds, Node** succs){
+template<typename T, int Threads>
+bool SkipList<T, Threads>::find(T value, Node** preds, Node** succs){
     int key = hash(value);
 
     Node* pred = nullptr;

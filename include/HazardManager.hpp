@@ -3,9 +3,7 @@
 
 #include <omp.h>
 
-#define NUM_THREADS 4 //TODO Use a template parameter for the max number of threads
-
-template<typename Node, int Size = 2>
+template<typename Node, int Threads, int Size = 2>
 class HazardManager {
     public:
         HazardManager();
@@ -20,24 +18,27 @@ class HazardManager {
         void release(int i);
 
     private:
-        Node* Pointers[NUM_THREADS][Size];
-        Node* LocalQueues[NUM_THREADS][2]; 
+        Node* Pointers[Threads][Size];
+        Node* LocalQueues[Threads][2]; 
         
         bool isReferenced(Node* node);
 };
 
-template<typename Node, int Size>
-HazardManager<Node, Size>::HazardManager(){
-    for(int tid = 0; tid < NUM_THREADS; ++tid){
+template<typename Node, int Threads, int Size>
+HazardManager<Node, Threads, Size>::HazardManager(){
+    for(int tid = 0; tid < Threads; ++tid){
         for(int j = 0; j < Size; ++j){
-            Pointers[tid][j] = LocalQueues[tid][j] = nullptr;
+            Pointers[tid][j] = nullptr;
         }
+
+        LocalQueues[tid][0] = nullptr;
+        LocalQueues[tid][1] = nullptr;
     }
 }
 
-template<typename Node, int Size>
-HazardManager<Node, Size>::~HazardManager(){
-    for(int tid = 0; tid < NUM_THREADS; ++tid){
+template<typename Node, int Threads, int Size>
+HazardManager<Node, Threads, Size>::~HazardManager(){
+    for(int tid = 0; tid < Threads; ++tid){
         for(int j = 0; j < Size; ++j){
             if(Pointers[tid][j]){
                 delete Pointers[tid][j];
@@ -54,8 +55,8 @@ HazardManager<Node, Size>::~HazardManager(){
     }
 }
 
-template<typename Node, int Size>
-void HazardManager<Node, Size>::releaseNode(Node* node){
+template<typename Node, int Threads, int Size>
+void HazardManager<Node, Threads, Size>::releaseNode(Node* node){
     int tid = omp_get_thread_num();
 
     node->nextNode = nullptr;
@@ -68,8 +69,8 @@ void HazardManager<Node, Size>::releaseNode(Node* node){
     }
 }
 
-template<typename Node, int Size>
-Node* HazardManager<Node, Size>::getFreeNode(){
+template<typename Node, int Threads, int Size>
+Node* HazardManager<Node, Threads, Size>::getFreeNode(){
     int tid = omp_get_thread_num();
 
     Node* node; 
@@ -78,6 +79,9 @@ Node* HazardManager<Node, Size>::getFreeNode(){
     if(pred){
         if(!isReferenced(pred)){
             LocalQueues[tid][0] = pred->nextNode;
+
+            std::cout << "Get node from local queue of " << tid << std::endl;
+
             return pred;
         }
 
@@ -86,6 +90,8 @@ Node* HazardManager<Node, Size>::getFreeNode(){
                 if(!(pred->nextNode = node->nextNode)){
                     LocalQueues[tid][1] = pred;
                 }
+
+                std::cout << "Get node from local queue of " << tid << std::endl;
 
                 return node;
             } else {
@@ -100,9 +106,9 @@ Node* HazardManager<Node, Size>::getFreeNode(){
     return new Node();
 }
 
-template<typename Node, int Size>
-bool HazardManager<Node, Size>::isReferenced(Node* node){
-    for(int tid = 0; tid < NUM_THREADS; ++tid){
+template<typename Node, int Threads, int Size>
+bool HazardManager<Node, Threads, Size>::isReferenced(Node* node){
+    for(int tid = 0; tid < Threads; ++tid){
         for(int i = 0; i < Size; ++i){
             if(Pointers[tid][i] == node){
                 return true;
@@ -114,15 +120,15 @@ bool HazardManager<Node, Size>::isReferenced(Node* node){
 }
         
 
-template<typename Node, int Size>
-void HazardManager<Node, Size>::publish(Node* node, int i){
+template<typename Node, int Threads, int Size>
+void HazardManager<Node, Threads, Size>::publish(Node* node, int i){
     int tid = omp_get_thread_num();
    
     Pointers[tid][i] = node;
 }
 
-template<typename Node, int Size>
-void HazardManager<Node, Size>::release(int i){
+template<typename Node, int Threads, int Size>
+void HazardManager<Node, Threads, Size>::release(int i){
     int tid = omp_get_thread_num();
    
     Pointers[tid][i] = nullptr;

@@ -16,9 +16,9 @@
 //#include "lfmst/MultiwaySearchTree.hpp"
 
 //Typedefs for the different versions
-typedef skiplist::SkipList<int> SkipList;
-typedef nbbst::NBBST<int> NBBST;
-typedef avltree::AVLTree<int> AVLTree;
+//typedef skiplist::SkipList<int> SkipList;
+//typedef nbbst::NBBST<int> NBBST;
+//typedef avltree::AVLTree<int> AVLTree;
 //typedef lfmst::MultiwaySearchTree<int> MultiwaySearchTree;
 
 void test();
@@ -149,33 +149,24 @@ void testMT(){
     std::cout << "Test with " << Threads << " threads passed succesfully" << std::endl;
 }
 
-template<typename T>
-void testMT(const std::string& name){
-    std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;
-    
-    testMT<T, 2>();
-    testMT<T, 3>();
-    testMT<T, 4>();
-    testMT<T, 6>();
-    testMT<T, 8>();
-    testMT<T, 12>();
-    testMT<T, 16>();
-    testMT<T, 32>();
-}
-
-template<typename T>
-void testVersion(const std::string& name){
-    testST<T>(name);
-    testMT<T>(name);
-}
+#define TEST(type, name) \
+    testST<type<int, 1>>(name);\
+    std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
+    testMT<type<int, 32>, 2>();\
+    testMT<type<int, 32>, 3>();\
+    testMT<type<int, 32>, 4>();\
+    testMT<type<int, 32>, 6>();\
+    testMT<type<int, 32>, 8>();\
+    testMT<type<int, 32>, 12>();\
+    testMT<type<int, 32>, 16>();\
+    testMT<type<int, 32>, 32>();
 
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    testVersion<SkipList>("SkipList");
-    //testVersion<NBBST>("Non-Blocking Binary Search Tree");
-    //testVersion<AVLTree>("Optimistic AVL Tree");
-    //testVersion<MultiwaySearchTree>("Multiway Search Tree");
+    TEST(skiplist::SkipList, "SkipList")
+
+    //TODO Test the other too
 }
 
 template<typename Tree, unsigned int Threads>
@@ -216,20 +207,19 @@ void bench(const std::string& name, unsigned int range, unsigned int add, unsign
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
 }
 
-template<typename Tree>
-void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
-    bench<Tree, 1>(name, range, add, remove);
-    bench<Tree, 2>(name, range, add, remove);
-    bench<Tree, 4>(name, range, add, remove);
-    bench<Tree, 8>(name, range, add, remove);
-}
+#define BENCH(type, name, range, add, remove)\
+    bench<type<int, 1>, 1>(name, range, add, remove);\
+    bench<type<int, 2>, 2>(name, range, add, remove);\
+    bench<type<int, 3>, 3>(name, range, add, remove);\
+    bench<type<int, 4>, 4>(name, range, add, remove);\
+    bench<type<int, 8>, 8>(name, range, add, remove);
 
 void bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //bench<SkipList>("SkipList", range, add, remove);
-    //bench<NBBST>("Non-blocking Binary Search Tree", range, add, remove);
-    bench<AVLTree>("Optimistic AVL Tree", range, add, remove);
+    BENCH(skiplist::SkipList, "SkipList", range, add, remove);
+
+    //TODO Bench the other too
 }
 
 void bench(unsigned int range){
