@@ -94,6 +94,8 @@ Node* HazardManager<Node, Size>::getFreeNode(){
         }
     }
 
+    //std::cout << "Alloc new node" << std::endl;
+
     //The queue is empty or every node is still referenced by other threads
     return new Node();
 }

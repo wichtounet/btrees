@@ -86,9 +86,14 @@ bool SkipList<T>::add(T value){
     Node* succs[MAX_LEVEL + 1];
             
     Node* newElement = newNode(hash(value), topLevel);
+    hazard.publish(newElement, 0);
 
     while(true){
         if(find(value, preds, succs)){
+            hazard.release(0);
+            hazard.release(1);
+            hazard.release(2);
+            
             delete newElement;
 
             return false;
@@ -97,9 +102,15 @@ bool SkipList<T>::add(T value){
                 newElement->next[level] = succs[level];
             }
 
+            hazard.publish(preds[0]->next[0], 1);
+            hazard.publish(succs[0], 2);
+            
             if(CASPTR(&preds[0]->next[0], succs[0], newElement)){
                 for(int level = 1; level <= topLevel; ++level){
                     while(true){
+                        hazard.publish(preds[level]->next[level], 1);
+                        hazard.publish(succs[level], 2);
+
                         if(CASPTR(&preds[level]->next[level], succs[level], newElement)){ 
                             break;
                         } else {
@@ -107,6 +118,10 @@ bool SkipList<T>::add(T value){
                         }
                     }
                 }
+            
+                hazard.release(0);
+                hazard.release(1);
+                hazard.release(2);
 
                 return true;
             }
@@ -121,14 +136,19 @@ bool SkipList<T>::remove(T value){
 
     while(true){
         if(!find(value, preds, succs)){
+            hazard.release(1);
+            hazard.release(0);
+
             return false;
         } else {
             Node* nodeToRemove = succs[0];
+            hazard.publish(nodeToRemove, 0);
 
             for(int level = nodeToRemove->topLevel; level > 0; --level){
                 Node* succ = nullptr;
                 do {
                     succ = nodeToRemove->next[level];
+                    hazard.publish(succ, 1);
 
                     if(IsMarked(succ)){
                         break;
@@ -138,10 +158,14 @@ bool SkipList<T>::remove(T value){
 
             while(true){
                 Node* succ = nodeToRemove->next[0];
+                hazard.publish(succ, 1);
 
                 if(IsMarked(succ)){
                     break;
                 } else if(CASPTR(&nodeToRemove->next[0], succ, Mark(succ))){
+                    hazard.release(1);
+                    hazard.release(0);
+                    
                     find(value, preds, succs);
                     return true;
                 }
