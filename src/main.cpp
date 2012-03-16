@@ -8,10 +8,9 @@
 #include <chrono>
 #include <thread>
 
-#include <omp.h>
-
 #include "Constants.hpp" //TODO Review management of this header
-#include "ThreadPool.hpp"
+
+__thread unsigned int thread_num;
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
@@ -117,38 +116,50 @@ void testST(const std::string& name){
     std::cout << "Test passed successfully" << std::endl;
 }
 
+//This test could be improved with some randomness
 template<typename T, unsigned int Threads>
 void testMT(){
     std::cout << "Test with " << Threads << " threads" << std::endl;
 
     T tree;
 
-    omp_set_num_threads(Threads);
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, i](){
+            thread_num = i;
 
-    #pragma omp parallel shared(tree)
-    {
-        unsigned int tid = omp_get_thread_num();
+            unsigned int tid = thread_num;
 
-        //Insert sequential numbers
-        for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
-            assert(tree.add(i));
-            assert(tree.contains(i));
-        }
+            //Insert sequential numbers
+            for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
+                assert(tree.add(i));
+                assert(tree.contains(i));
+            }
 
-        //Remove all the sequential numbers
-        for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
-            assert(tree.contains(i));
-            assert(tree.remove(i));   
-        }
+            //Remove all the sequential numbers
+            for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
+                assert(tree.contains(i));
+                assert(tree.remove(i));   
+            }
+        }));
     }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    pool.clear();
     
-    #pragma omp parallel shared(tree)
-    {
-        //Verify that every numbers has been removed correctly
-        for(unsigned int i = 0; i < Threads * N; ++i){
-            assert(!tree.contains(i));
-        }
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, i](){
+            thread_num = i;
+
+            //Verify that every numbers has been removed correctly
+            for(unsigned int i = 0; i < Threads * N; ++i){
+                assert(!tree.contains(i));
+            }
+        }));
     }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
     
     std::cout << "Test with " << Threads << " threads passed succesfully" << std::endl;
 }
@@ -179,33 +190,39 @@ template<typename Tree, unsigned int Threads>
 void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
     Tree tree;
 
-    omp_set_num_threads(Threads);
-
     Clock::time_point t0 = Clock::now();
+    
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, range, add, remove, i](){
+            thread_num = i;
 
-    #pragma omp parallel shared(tree)
-    {
-        std::mt19937_64 engine(time(0) + omp_get_thread_num());
-        
-        std::uniform_int_distribution<int> valueDistribution(0, range);
-        auto valueGenerator = std::bind(valueDistribution, engine);
-        
-        std::uniform_int_distribution<int> operationDistribution(0, 99);
-        auto operationGenerator = std::bind(operationDistribution, engine);
+            unsigned int tid = thread_num;
 
-        for(int i = 0; i < OPERATIONS; ++i){
-            unsigned int value = valueGenerator();
-            unsigned int op = operationGenerator();
+            std::mt19937_64 engine(time(0) + tid);
 
-            if(op < add){
-                tree.add(value);
-            } else if(op < (add + remove)){
-                tree.remove(value);
-            } else {
-                tree.contains(i);
+            std::uniform_int_distribution<int> valueDistribution(0, range);
+            auto valueGenerator = std::bind(valueDistribution, engine);
+
+            std::uniform_int_distribution<int> operationDistribution(0, 99);
+            auto operationGenerator = std::bind(operationDistribution, engine);
+
+            for(int i = 0; i < OPERATIONS; ++i){
+                unsigned int value = valueGenerator();
+                unsigned int op = operationGenerator();
+
+                if(op < add){
+                    tree.add(value);
+                } else if(op < (add + remove)){
+                    tree.remove(value);
+                } else {
+                    tree.contains(i);
+                }
             }
-        }
+        }));
     }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
 
     Clock::time_point t1 = Clock::now();
 
