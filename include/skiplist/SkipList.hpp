@@ -38,7 +38,7 @@ class SkipList {
         Node* head;
         Node* tail;
 
-        HazardManager<Node, 2> hazard;
+        HazardManager<Node, 3> hazard;
 };
 
 template<typename T>
@@ -155,28 +155,42 @@ bool SkipList<T>::contains(T value){
     int key = hash(value);
 
     Node* pred = head;
+    hazard.publish(pred, 0);
+    
     Node* curr = nullptr;
     Node* succ = nullptr;
 
     for(int level = MAX_LEVEL; level >= 0; --level){
         curr = Unmark(pred->next[level]);
+        hazard.publish(curr, 1);
 
         while(true){
             succ = curr->next[level];
+            hazard.publish(succ, 2);
 
             while(IsMarked(succ)){
-               curr = Unmark(curr->next[level]);
-               succ = curr->next[level]; 
+                curr = Unmark(curr->next[level]);
+                hazard.publish(curr, 1);
+                
+                succ = curr->next[level]; 
+                hazard.publish(succ, 2);
             }
 
             if(curr->key < key){
                 pred = curr;
+                hazard.publish(pred, 0);
+                
                 curr = succ;
+                hazard.publish(curr, 1);
             } else {
                 break;
             }
         }
     }
+
+    hazard.release(0);
+    hazard.release(1);
+    hazard.release(2);
 
     return curr->key == key;
 }
@@ -190,10 +204,17 @@ bool SkipList<T>::find(T value, Node** preds, Node** succs){
     Node* succ = nullptr;
         
 retry:
+    //We must do to release after the goto
+    hazard.release(0);
+    hazard.release(1);
+    hazard.release(2);
+    
     pred = head;
+    hazard.publish(pred, 0);
 
     for(int level = MAX_LEVEL; level >= 0; --level){
         curr = pred->next[level];
+        hazard.publish(curr, 1);
 
         while(true){
             if(IsMarked(curr)){
@@ -201,6 +222,7 @@ retry:
             }
 
             succ = curr->next[level];
+            hazard.publish(succ, 2);
 
             while(IsMarked(succ)){
                 if(!CASPTR(&pred->next[level], curr, Unmark(succ))){
@@ -208,17 +230,22 @@ retry:
                 }
 
                 curr = pred->next[level];
+                hazard.publish(curr, 1);
 
                 if(IsMarked(curr)){
                     goto retry;
                 }
 
                 succ = curr->next[level];
+                hazard.publish(succ, 2);
             }
 
             if(curr->key < key){
                 pred = curr;
+                hazard.publish(pred, 0);
+                
                 curr = succ;
+                hazard.publish(curr, 1);
             } else {
                 break;
             }
@@ -228,7 +255,13 @@ retry:
         succs[level] = curr;
     }
 
-    return curr->key == key;
+    bool found = curr->key == key;
+    
+    hazard.release(0);
+    hazard.release(1);
+    hazard.release(2);
+
+    return found;
 }
 
 }

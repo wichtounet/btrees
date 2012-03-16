@@ -11,6 +11,7 @@ class HazardManager {
         HazardManager();
         ~HazardManager();
 
+        /* Manage nodes */
         void releaseNode(Node* node);
         Node* getFreeNode();
 
