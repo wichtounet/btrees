@@ -90,6 +90,7 @@ template<typename T, int Threads>
 class NBBST {
     public:
         NBBST();
+        ~NBBST();
 
         bool contains(T value);
         bool add(T value);
@@ -113,6 +114,19 @@ NBBST<T, Threads>::NBBST(){
 
     root->left = newLeaf(INT_MIN);
     root->right = newLeaf(INT_MAX);
+}
+
+template<typename T, int Threads>
+NBBST<T, Threads>::~NBBST(){
+    if(root->left){
+        delete root->left;
+    }
+    
+    if(root->right){
+        delete root->right;
+    }
+
+    delete root;
 }
 
 template<typename T, int Threads>
