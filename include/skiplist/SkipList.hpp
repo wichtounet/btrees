@@ -255,6 +255,16 @@ retry:
             if(IsMarked(curr)){
                 goto retry;
             }
+            
+            if(!curr){
+                std::cout << "hack fix 1" << std::endl;
+                goto retry;
+            }
+            
+            if(!curr->next){
+                std::cout << "hack fix 2" << std::endl;
+                goto retry;
+            }
 
             succ = curr->next[level];
             hazard.publish(succ, 2);
@@ -268,6 +278,16 @@ retry:
                 hazard.publish(curr, 1);
 
                 if(IsMarked(curr)){
+                    goto retry;
+                }
+
+                if(!curr){
+                    std::cout << "hack fix 3" << std::endl;
+                    goto retry;
+                }
+                
+                if(!curr->next){
+                    std::cout << "hack fix 4" << std::endl;
                     goto retry;
                 }
 

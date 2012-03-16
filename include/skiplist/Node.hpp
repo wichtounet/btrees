@@ -1,5 +1,7 @@
 #include "hash.hpp"
 
+#include <cstring>
+
 namespace skiplist {
 
 struct Node {
@@ -7,13 +9,14 @@ struct Node {
 
     int key;
     int topLevel;
-    Node* next[MAX_LEVEL + 1];
+    Node** next;
 
     Node* nextNode; //For the hazard manager
 };
 
 Node::Node() : nextNode(nullptr) {
-    //Nothing to do here
+    //Fill the array with null pointers
+    next = (Node**) calloc(MAX_LEVEL + 1, sizeof(Node *));
 }
 
 }
