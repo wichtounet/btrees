@@ -48,16 +48,10 @@ struct Node {
     Node* left;
     Node* right;
 
-    Node(bool internal, int key = 0) : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
+    Node* nextNode; //For hazard pointer chaining
+
+    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
 };
-
-Node* newInternal(int key = 0){
-    return new Node(true, key); 
-}
-
-Node* newLeaf(int key){
-    return new Node(false, key);
-}
 
 struct IInfo : public Info {
     Node* p;                //Internal
@@ -104,7 +98,12 @@ class NBBST {
         void Help(Update u);
         void CASChild(Node* parent, Node* old, Node* newNode);
 
+        Node* newInternal(int key);
+        Node* newLeaf(int key);
+
         Node* root;
+
+        HazardManager<Node, Threads, 3> hazard;
 };
 
 template<typename T, int Threads>
@@ -127,6 +126,26 @@ NBBST<T, Threads>::~NBBST(){
     }
 
     delete root;
+}
+
+template<typename T, int Threads>
+Node* NBBST<T, Threads>::newInternal(int key){
+    Node* node = hazard.getFreeNode();
+
+    node->internal = true;
+    node->key = key;
+
+    return node;
+}
+
+template<typename T, int Threads>
+Node* NBBST<T, Threads>::newLeaf(int key){
+    Node* node = hazard.getFreeNode();
+
+    node->internal = false;
+    node->key = key;
+
+    return node;
 }
 
 template<typename T, int Threads>
