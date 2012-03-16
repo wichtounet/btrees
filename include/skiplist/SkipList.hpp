@@ -30,6 +30,7 @@ class SkipList {
         bool contains(T value);
 
     private:
+        int randomLevel();
         bool find(int key, Node** preds, Node** succs);
 
         Node* newNode(int key);
@@ -39,6 +40,9 @@ class SkipList {
         Node* tail;
 
         HazardManager<Node, Threads, 3> hazard;
+
+        std::mt19937_64 engine;
+        std::geometric_distribution<int> distribution;
 };
 
 template<typename T, int Threads>
@@ -61,7 +65,7 @@ Node* SkipList<T, Threads>::newNode(int key, int height){
 }
 
 template<typename T, int Threads>
-SkipList<T, Threads>::SkipList(){
+SkipList<T, Threads>::SkipList() : engine(time(NULL)), distribution(P) {
     head = newNode(INT_MIN);
     tail = newNode(INT_MAX);
 
@@ -81,9 +85,16 @@ SkipList<T, Threads>::~SkipList(){
 }
 
 template<typename T, int Threads>
+int SkipList<T, Threads>::randomLevel(){
+    int level = distribution(engine); 
+    
+    return (level >= MAX_LEVEL) ? MAX_LEVEL : level;
+}
+
+template<typename T, int Threads>
 bool SkipList<T, Threads>::add(T value){
     int key = hash(value);
-    int topLevel = random(P, MAX_LEVEL);
+    int topLevel = randomLevel();
 
     Node* preds[MAX_LEVEL + 1];
     Node* succs[MAX_LEVEL + 1];
