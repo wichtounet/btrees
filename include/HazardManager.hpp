@@ -3,8 +3,6 @@
 
 #include <omp.h>
 
-static int count = 0;
-
 template<typename Node, int Threads, int Size = 2>
 class HazardManager {
     public:
@@ -40,16 +38,14 @@ HazardManager<Node, Threads, Size>::HazardManager(){
 
 template<typename Node, int Threads, int Size>
 HazardManager<Node, Threads, Size>::~HazardManager(){
-    static int deleted = 0;
-
     for(int tid = 0; tid < Threads; ++tid){
         //No need to delete Hazard Pointers because each thread need to release its published references
 
+        //Delete all the elements of the local queue
         if(LocalQueues[tid][0]){
             //There are only a single element in the local queue
             if(LocalQueues[tid][0] == LocalQueues[tid][1]){
                 delete LocalQueues[tid][0];
-                deleted++;
             }
             //Delete all the elements of the queue            
             else {
@@ -58,19 +54,13 @@ HazardManager<Node, Threads, Size>::~HazardManager(){
 
                 while((node = pred->nextNode)){
                     delete pred;
-                    deleted++;
-
                     pred = node;
                 }
 
-                /*delete LocalQueues[tid][1];
-                deleted++;*/
+                delete LocalQueues[tid][1];
             }
         }
     }
-    
-    std::cout << "Allocated " << count << std::endl;
-    std::cout << "Deleted " << deleted << std::endl;
 }
 
 template<typename Node, int Threads, int Size>
@@ -114,8 +104,6 @@ Node* HazardManager<Node, Threads, Size>::getFreeNode(){
             }
         }
     }
-
-    count++;
 
     //The queue is empty or every node is still referenced by other threads
     return new Node();

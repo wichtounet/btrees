@@ -191,33 +191,23 @@ bool SkipList<T, Threads>::contains(T value){
     int key = hash(value);
 
     Node* pred = head;
-    hazard.publish(pred, 0);
-    
     Node* curr = nullptr;
     Node* succ = nullptr;
 
     for(int level = MAX_LEVEL; level >= 0; --level){
         curr = Unmark(pred->next[level]);
-        hazard.publish(curr, 1);
 
         while(true){
             succ = curr->next[level];
-            hazard.publish(succ, 2);
 
             while(IsMarked(succ)){
                 curr = Unmark(curr->next[level]);
-                hazard.publish(curr, 1);
-                
                 succ = curr->next[level]; 
-                hazard.publish(succ, 2);
             }
 
             if(curr->key < key){
                 pred = curr;
-                hazard.publish(pred, 0);
-                
                 curr = succ;
-                hazard.publish(curr, 1);
             } else {
                 break;
             }
@@ -225,10 +215,6 @@ bool SkipList<T, Threads>::contains(T value){
     }
 
     bool found = curr->key == key;
-
-    hazard.release(0);
-    hazard.release(1);
-    hazard.release(2);
 
     return found;
 }
