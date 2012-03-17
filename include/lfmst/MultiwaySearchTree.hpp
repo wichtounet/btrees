@@ -108,9 +108,12 @@ class MultiwaySearchTree {
     private:
         HeadNode* root;
 
+        Search* traverseLeaf(Key key, bool cleanup);
+        void traverseNonLeaf(Key key, int height, Search** results);
+        Search* goodSamaritanCleanNeighbor(Key key, Search* results);
+
         int search(Keys* items, Key key);
         int randomLevel();
-        void traverseAndTrack(T value, int h, Search** srchs);
         Search* traverseAndCleanup(T value);
         bool insertList(T value, Search** srchs, Node* child, int h);
         Node* splitList(T value, Search** srch);
@@ -179,60 +182,113 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
     }
 }
 
+bool insertLeafLevel(Key key, Search* results);
+bool beginInsertOneLevel(Key key, Search** results);
+Node* splitOneLevel(Key key, Search* result);
+void insertOneLevel(Key, Search** results, Node* right, int index);
+
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::add(T value){
+    Key key = special_hash(value);
+
     int height = randomLevel();
-    Search** srchs = (Search**) calloc(height + 1, sizeof(Search*));
-    traverseAndTrack(value, height, srchs);
-    bool success = insertList(value, srchs, nullptr, 0);
-    if(!success){
-        return false;
-    }
+    if(height == 0){
+        Search* results = traverseLeaf(key, false);
+        return insertLeafLevel(key, results);
+    } else {
+        Search** results = (Search**) calloc(height + 1, sizeof(Search*));
+        traverseNonLeaf(key, height, results);
 
-    for(int i = 0; i < height; ++i){
-        Node* right = splitList(value, &srchs[i]);
-        insertList(value, srchs, right, i + 1);
-    }
+        bool old = beginInsertOneLevel(key, results);
+        if(old){
+            return true;
+        }
 
-    return true;
+        for(int i = 0; i < height; ++i){
+            Node* right = splitOneLevel(key, results[i]);
+            insertOneLevel(key, results, right, i + 1);
+        }
+
+        return true;
+    }
 }
         
 template<typename T, int Threads>
-void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** srchs){
-    Key key = special_hash(value);
+Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
+    Node* node = root->node;
+    Contents* contents = node->contents;
+    int index = search(contents->items, key);
+    Key leftBarrier = {KeyFlag::EMPTY, 0};
 
+    while(contents->children){
+        if(-index - 1 == contents->items->length){
+            if(contents->items->length > 0){
+                leftBarrier = (*contents->items)[contents->items->length - 1];
+            }
+            
+            node = cleanLink(node, contents);
+        } else {
+            if(index < 0){
+                index = -index - 1;
+            }
+
+            if(cleanup){
+                cleanNode(key, node, contents, index, leftBarrier);
+            }
+            
+            node = (*contents->children)[index];
+            leftBarrier = {KeyFlag::EMPTY, 0};
+        }
+        
+        contents = node->contents;
+        index = search(contents->items, key);
+    }
+
+    while(true){
+        if(index >  -contents->items->length -1){
+            return new Search(node, contents, index);
+        } else {
+            node = cleanLink(node, contents);
+        }
+
+        contents = node->contents;
+        index = search(contents->items, key);
+    }
+}
+
+template<typename T, int Threads>
+void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search** storeResults){
     HeadNode* root = this->root;
 
-    if(root->height < h){
-        root = increaseRootHeight(h);
+    if(root->height < target){
+        root = increaseRootHeight(target);
     }
 
     int height = root->height;
     Node* node = root->node;
-    Search* res = nullptr;
+
     while(true){
-        Contents* cts = node->contents;
-        int i = search(cts->items, key);
+        Contents* contents = node->contents;
+        int index = search(contents->items, key);
 
-        if(-i -1 == cts->items->length){
-            node = cts->link;
+        if(-index - 1 == contents->items->length){
+            node = contents->link;
+        } else if(height == 0){
+            storeResults[0] = new Search(node, contents, index);
+            return;
         } else {
-            res = new Search(node, cts, i);
+            Search* results = new Search(node, contents, index);
+            results = goodSamaritanCleanNeighbor(key, results);
 
-            if(height <= h){
-                srchs[height] = res;
+            if(height <= target){
+                storeResults[height] = results;
+            }
+            if(index < 0){
+                index = -index - 1;
             }
 
-            if(height == 0){
-                return;
-            }
-
-            if(i < 0){
-                i = -i -1;
-            }
-
-            node = (*cts->children)[i];
-            --height;
+            node = (*contents->children)[index];
+            height = height - 1;
         }
     }
 }
