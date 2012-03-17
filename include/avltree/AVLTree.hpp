@@ -2,9 +2,12 @@
 #define AVL_TREE_TREE
 
 #include "hash.hpp"
-#include "Utils.hpp"
+
+#include <mutex>
 
 namespace avltree {
+
+typedef std::lock_guard<std::mutex> scoped_lock;
 
 static long Unlinked = 0x1L;
 static long Growing = 0x2L;
@@ -24,6 +27,8 @@ struct Node {
     Node* parent;
     Node* left;
     Node* right;
+
+    std::mutex lock;
 
     Node(int key) : key(key), parent(nullptr), left(nullptr), right(nullptr) {};
     Node(int height, int key, long version, Node* parent, Node* left, Node* right) : height(height), key(key), version(version), parent(parent), left(left), right(right) {} 
@@ -182,32 +187,32 @@ Result AVLTree<T, Threads>::attemptPut(int key, Node* node, int dir, long nodeV)
 
 template<typename T, int Threads>
 Result AVLTree<T, Threads>::attemptUpdate(Node* node){
-   //synchronized(node){
-     
-     if(node->version == Unlinked){
-        return RETRY;
-     }
+    scoped_lock lock(node->lock);
 
-     //bool old = node->value;
-     node->value = true;
-     return NOT_FOUND;
-     //return old ? FOUND : NOT_FOUND;
-       
-   //}
+    if(node->version == Unlinked){
+        return RETRY;
+    }
+
+    node->value = true;
+
+    return NOT_FOUND;
 }
 
 template<typename T, int Threads>
 Result AVLTree<T, Threads>::attemptInsert(int key, Node* node, int dir, long nodeV){
-    //synchronized(node){
+    node->lock.lock();
 
-        if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir)){
-            return RETRY;
-        }
+    if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir)){
+        node->lock.unlock();
 
-        Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
-        newNode->value = true;
-        node->setChild(dir, newNode);
-    //}
+        return RETRY;
+    }
+
+    Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
+    newNode->value = true;
+    node->setChild(dir, newNode);
+
+    node->lock.unlock();
 
     fixHeightAndRebalance(node);
 
@@ -268,7 +273,7 @@ Result AVLTree<T, Threads>::attemptRmNode(Node* parent, Node * node){
 
     //bool prev;
     if(!canUnlink(node)){
-        //synchronized(node){
+        scoped_lock lock(node->lock); 
 
         if(node->version == Unlinked || canUnlink(node)){
             return RETRY;
@@ -276,41 +281,39 @@ Result AVLTree<T, Threads>::attemptRmNode(Node* parent, Node * node){
 
         //prev = node->value;
         node->value = false;
-
-        //}
     } else {
-        //synchronized(parent){
-            if(parent->version == Unlinked || node->parent != parent || node->version == Unlinked){
-                //std::cout << "parent->version " << parent->version << std::endl;
-                //std::cout << "node->version   " << node->version << std::endl;
-                //std::cout << "node->parent    " << node->parent << std::endl;
-                //std::cout << "parent          " << parent << std::endl;
+        parent->lock.lock();
 
+        if(parent->version == Unlinked || node->parent != parent || node->version == Unlinked){
+            parent->lock.unlock();
 
-                return RETRY;
+            return RETRY;
+        }
+
+        node->lock.lock();
+
+        //prev = node->value;
+        node->value = false;
+
+        if(canUnlink(node)){
+            Node* c = !node->left ? node->right : node->left;
+
+            if(parent->left == node){
+                parent->left = c;
+            } else {
+                parent->right = c;
             }
 
-            //synchronized(node){
-      //          prev = node->value;
-                node->value = false;
+            if(c){
+                c->parent = parent;
+            }
 
-                if(canUnlink(node)){
-                    Node* c = !node->left ? node->right : node->left;
-                    
-                    if(parent->left == node){
-                        parent->left = c;
-                    } else {
-                        parent->right = c;
-                    }
+            node->version = Unlinked;
+        }
 
-                    if(c){
-                        c->parent = parent;
-                    }
+        node->lock.unlock();
+        parent->lock.unlock();
 
-                    node->version = Unlinked;
-                }
-            //}
-        //}
         fixHeightAndRebalance(parent);
     }
 
@@ -334,8 +337,8 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
         }
 
         if(i == SpinCount){
-            //acquire lock on node
-            //release lock on node
+            node->lock.lock();
+            node->lock.unlock();
         }
     }
 }

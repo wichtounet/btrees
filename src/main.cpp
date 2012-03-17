@@ -186,7 +186,7 @@ void test(){
 
     TEST(skiplist::SkipList, "SkipList")
     TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-//    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    TEST(avltree::AVLTree, "Optimistic AVL Tree")
 
     //TODO Test the other too
 }

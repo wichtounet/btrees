@@ -1,3 +1,6 @@
+#ifndef SKIP_LIST
+#define SKIP_LIST
+
 #include <climits>
 
 #include "Utils.hpp"
@@ -301,3 +304,5 @@ retry:
 }
 
 }
+
+#endif
