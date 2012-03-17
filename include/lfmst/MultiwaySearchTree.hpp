@@ -113,7 +113,6 @@ class MultiwaySearchTree {
         Search* goodSamaritanCleanNeighbor(Key key, Search* results);
         bool removeFromNode(Key key, Search* results);
 
-//        int search(Keys* items, Key key);
         int randomLevel();
         Search* moveForward(Node* node, Key key);
         HeadNode* increaseRootHeight(int height);
@@ -122,6 +121,7 @@ class MultiwaySearchTree {
 };
 
 /* Some internal utilities */ 
+int search(Keys* items, Key key);
 bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
 bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
 bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
@@ -132,7 +132,12 @@ bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
 bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
 bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child);
 Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
-int search(Keys* items, Key key);
+bool insertLeafLevel(Key key, Search* results);
+bool beginInsertOneLevel(Key key, Search** results);
+Node* splitOneLevel(Key key, Search* result);
+void insertOneLevel(Key, Search** results, Node* right, int index);
+Keys* generateNewItems(Key key, Keys* keys, int index);
+Children* generateNewChildren(Node* child, Children* children, int index);
 
 template<typename T>
 Key special_hash(T value){
@@ -178,11 +183,6 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
         index = search(contents->items, key);
     }
 }
-
-bool insertLeafLevel(Key key, Search* results);
-bool beginInsertOneLevel(Key key, Search** results);
-Node* splitOneLevel(Key key, Search* result);
-void insertOneLevel(Key, Search** results, Node* right, int index);
 
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::add(T value){
@@ -664,9 +664,6 @@ bool attemptSlideKey(Node* node, Contents* contents){
 
     return false;
 }
-
-Keys* generateNewItems(Key key, Keys* keys, int index);
-Children* generateNewChildren(Node* child, Children* children, int index);
 
 bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child){
     int index = search(sibContents->items, key);
