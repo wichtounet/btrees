@@ -34,12 +34,12 @@ struct Key {
     }
 };
 
-struct array {
+//Hold a set of key include the length of the set
+struct Keys {
     Key* elements;
     const int length;
 
-    array(int length) : length(length){
-        //elements = (key**) calloc(length, sizeof(int*));
+    Keys(int length) : length(length){
         elements = new Key[length];
     }
 
@@ -48,12 +48,26 @@ struct array {
     }
 };
 
+//Hold a set of key including the lenght of the set
+struct Children {
+    Node** elements;
+    const int length;
+
+    Children(int length) : length(length){
+        elements = (Node**) calloc(length, sizeof(Node*));
+    }
+
+    Node* operator[](int index){
+        return elements[index];
+    }
+};
+
 struct Contents {
-    array* items;
+    Keys* items;
     Node** children;
     Node* link;
 
-    Contents(array* items, Node** children, Node* link) : items(items), children(children), link(link)  {};
+    Contents(Keys* items, Node** children, Node* link) : items(items), children(children), link(link)  {};
 };
 
 struct Node {
@@ -94,7 +108,7 @@ class MultiwaySearchTree {
     private:
         HeadNode* root;
 
-        int search(array* items, Key key);
+        int search(Keys* items, Key key);
         int randomLevel();
         void traverseAndTrack(T value, int h, Search** srchs);
         Search* traverseAndCleanup(T value);
@@ -114,6 +128,7 @@ Node* pushRight(Node* node, Key leftBarrier);
 bool attemptSlideKey(Node* node, Contents* contents);
 bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
 bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
+bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
 
 template<typename T>
 Key special_hash(T value){
@@ -220,8 +235,8 @@ void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** s
     }
 }
 
-array* difference(array* a, Key key){
-    array* newArray = new array(a->length - 1);
+Keys* difference(Keys* a, Key key){
+    Keys* newArray = new Keys(a->length - 1);
     
     int i = 0;
     Key* src = a->elements;
@@ -253,7 +268,7 @@ bool MultiwaySearchTree<T, Threads>::remove(T value){
             return false;
         }
 
-        array* items = difference(cts->items, key);
+        Keys* items = difference(cts->items, key);
         Contents* update = new Contents(items, nullptr, cts->link);
 
         if(node->casContents(cts, update)){
@@ -271,7 +286,7 @@ Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
     Node* node = root->node;
 
     Contents* cts = node->contents;
-    array* items = cts->items;
+    Keys* items = cts->items;
     int i = search(items, key);
     Key max = {KeyFlag::EMPTY, 0};
 
@@ -420,6 +435,37 @@ bool cleanNode2(Node* node, Contents* contents, Key leftBarrier){
     return shiftChildren(node, contents, adjustedChild1, adjustedChild2);
 }
 
+bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier){
+    Key key0 = (*contents->items)[0];
+
+    if(index > 0){
+        leftBarrier = (*contents->items)[index - 1];
+    } else if(leftBarrier.flag != KeyFlag::EMPTY && compare(key0, leftBarrier) <= 0){
+        leftBarrier = {KeyFlag::EMPTY, 0};
+    }
+
+    Node* childNode = contents->children[index];
+    Node* adjustedChild = pushRight(childNode, leftBarrier);
+
+    if(index == 0 || index == contents->children->length - 1){
+        if(adjustedChild == childNode){
+            return true;
+        }
+
+        return shiftChild(node, contents, index, adjustedChild);
+    }
+
+    Node* adjustedNeighbor = pushRight(contents->children[index + 1], (*contents->items)[index]);
+
+    if(adjustedNeighbor == adjustedChild){
+        return dropChild(node, contents, index, adjustedChild);
+    } else if(adjustedChild != childNode){
+        return shiftChild(node, contents, index, adjustedChild);
+    } else {
+        return true;
+    }
+}
+
 Node* pushRight(Node* node, Key leftBarrier){
     while(true){
         Contents* contents = node->contents;
@@ -454,7 +500,7 @@ int MultiwaySearchTree<T, Threads>::randomLevel(){
 }
 
 template<typename T, int Threads>
-int MultiwaySearchTree<T, Threads>::search(array* items, Key key){
+int MultiwaySearchTree<T, Threads>::search(Keys* items, Key key){
     int low = 0;
     int high = items->length - 1;
 
@@ -489,7 +535,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     int height = root->height;
 
     while(height < target){
-        array* keys = new array(1);
+        Keys* keys = new Keys(1);
         Node** children = (Node**) calloc(1, sizeof(Node*));
         (*keys)[0].flag = KeyFlag::INF;
         children[0] = root->node;
