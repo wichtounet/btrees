@@ -57,17 +57,17 @@ struct Children {
         elements = (Node**) calloc(length, sizeof(Node*));
     }
 
-    Node* operator[](int index){
+    Node*& operator[](int index){
         return elements[index];
     }
 };
 
 struct Contents {
     Keys* items;
-    Node** children;
+    Children* children;
     Node* link;
 
-    Contents(Keys* items, Node** children, Node* link) : items(items), children(children), link(link)  {};
+    Contents(Keys* items, Children* children, Node* link) : items(items), children(children), link(link)  {};
 };
 
 struct Node {
@@ -154,9 +154,9 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
         if(-i -1 == cts->items->length){
             node = cts->link;
         } else if(i < 0){
-            node = cts->children[-i -1];
+            node = (*cts->children)[-i -1];
         } else {
-            node = cts->children[i];
+            node = (*cts->children)[i];
         }
 
         cts = node->contents;
@@ -229,7 +229,7 @@ void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** s
                 i = -i -1;
             }
 
-            node = cts->children[i];
+            node = (*cts->children)[i];
             --height;
         }
     }
@@ -303,7 +303,7 @@ Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
             }
 
             cleanNode(key, node, cts, i, max);
-            node = cts->children[i];
+            node = (*cts->children)[i];
             max = {KeyFlag::EMPTY, 0};
         }
 
@@ -399,7 +399,7 @@ bool cleanNode1(Node* node, Contents* contents, Key leftBarrier){
         leftBarrier = {KeyFlag::EMPTY, 0};
     }
 
-    Node* childNode = contents->children[0];
+    Node* childNode = (*contents->children)[0];
     Node* adjustedChild = pushRight(childNode, leftBarrier);
 
     if(adjustedChild == childNode){
@@ -422,10 +422,10 @@ bool cleanNode2(Node* node, Contents* contents, Key leftBarrier){
         leftBarrier = {KeyFlag::EMPTY, 0};
     }
 
-    Node* childNode1 = contents->children[0];
+    Node* childNode1 = (*contents->children)[0];
     Node* adjustedChild1 = pushRight(childNode1, leftBarrier);
     leftBarrier = (*contents->items)[0];
-    Node* childNode2 = contents->children[1];
+    Node* childNode2 = (*contents->children)[1];
     Node* adjustedChild2 = pushRight(childNode2, leftBarrier);
 
     if((adjustedChild1 == childNode1) && (adjustedChild2 == childNode2)){
@@ -444,7 +444,7 @@ bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier){
         leftBarrier = {KeyFlag::EMPTY, 0};
     }
 
-    Node* childNode = contents->children[index];
+    Node* childNode = (*contents->children)[index];
     Node* adjustedChild = pushRight(childNode, leftBarrier);
 
     if(index == 0 || index == contents->children->length - 1){
@@ -455,7 +455,7 @@ bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier){
         return shiftChild(node, contents, index, adjustedChild);
     }
 
-    Node* adjustedNeighbor = pushRight(contents->children[index + 1], (*contents->items)[index]);
+    Node* adjustedNeighbor = pushRight((*contents->children)[index + 1], (*contents->items)[index]);
 
     if(adjustedNeighbor == adjustedChild){
         return dropChild(node, contents, index, adjustedChild);
@@ -536,9 +536,9 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
 
     while(height < target){
         Keys* keys = new Keys(1);
-        Node** children = (Node**) calloc(1, sizeof(Node*));
         (*keys)[0].flag = KeyFlag::INF;
-        children[0] = root->node;
+        Children* children = new Children(1); 
+        (*children)[0] = root->node;
         Contents* contents = new Contents(keys, children, nullptr);
         Node* newNode = new Node(contents);
         HeadNode* update = new HeadNode(newNode, height + 1);
@@ -563,6 +563,24 @@ Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key){
             node = contents->link;
         }
     }
+}
+
+Children* copyChildren(Children* rhs){
+    Children* copy = new Children(rhs->length);
+
+    for(int i = 0; i < rhs->length; ++i){
+        (*copy)[i] = (*rhs)[i];
+    }
+
+    return copy;
+}
+
+bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild){
+    Children* newChildren = copyChildren(contents->children);
+    (*newChildren)[index] = adjustedChild;
+
+    Contents* update = new Contents(contents->items, newChildren, contents->link);
+    return node->casContents(contents, update);
 }
 
 } //end of lfmst
