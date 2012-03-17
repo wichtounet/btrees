@@ -583,6 +583,15 @@ bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     return node->casContents(contents, update);
 }
 
+bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2){
+    Children* newChildren = new Children(2);
+    (*newChildren)[0] = child1;
+    (*newChildren)[0] = child2;
+
+    Contents* update = new Contents(contents->items, newChildren, contents->link);
+    return node->casContents(contents, update);
+}
+
 } //end of lfmst
 
 #endif
