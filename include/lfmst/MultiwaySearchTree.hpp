@@ -11,15 +11,39 @@ namespace lfmst {
 
 struct Node;
 
+//In this data structure keys can be null or POSITIVE_INFINITY
+enum class KeyFlag : unsigned char {
+    NORMAL,
+    EMPTY,
+    INF //POSITIVE_INFINITY
+};
+
+struct Key {
+    KeyFlag flag;
+    int key;
+
+    Key() : flag(KeyFlag::EMPTY), key(0) {}
+    Key(KeyFlag flag, int key) : flag(flag), key(key) {}
+
+    bool operator==(const Key& rhs){
+        return flag == rhs.flag && key == rhs.key;
+    }
+    
+    bool operator!=(const Key& rhs){
+        return !(*this == rhs);
+    }
+};
+
 struct array {
-    int* elements;
+    Key* elements;
     const int length;
 
     array(int length) : length(length){
-        elements = (int*) calloc(length, sizeof(int*));
+        //elements = (key**) calloc(length, sizeof(int*));
+        elements = new Key[length];
     }
 
-    int& operator[](int index){
+    Key& operator[](int index){
         return elements[index];
     }
 };
@@ -70,18 +94,25 @@ class MultiwaySearchTree {
     private:
         HeadNode* root;
 
-        int search(array* items, int key); //Performs a binary search
+        int search(array* items, Key key);
         int randomLevel();
         void traverseAndTrack(T value, int h, Search** srchs);
         Search* traverseAndCleanup(T value);
         bool insertList(T value, Search** srchs, Node* child, int h);
         Node* splitList(T value, Search** srch);
-        Search* moveForward(Node* node, int key);
+        Search* moveForward(Node* node, Key key);
         HeadNode* increaseRootHeight(int height);
         Node* cleanLink(Node* node, Contents* cts);
-        void cleanNode(Node* node, Contents* cts, int i, int max);
-        Node* pushRight(Node* node, bool noBarrier, int leftBarrier);
+        void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
+        Node* pushRight(Node* node, Key leftBarrier);
 };
+
+template<typename T>
+Key special_hash(T value){
+    int key = hash(value);
+
+    return {KeyFlag::NORMAL, key};
+}
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
@@ -90,7 +121,7 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
 
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::contains(T value){
-    int key = hash(value);
+    Key key = special_hash(value);
 
     Node* node = root->node;
     Contents* cts = node->contents;
@@ -143,7 +174,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         
 template<typename T, int Threads>
 void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** srchs){
-    int key = hash(value);
+    Key key = special_hash(value);
 
     HeadNode* root = this->root;
 
@@ -181,12 +212,12 @@ void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** s
     }
 }
 
-array* difference(array* a, int key){
+array* difference(array* a, Key key){
     array* newArray = new array(a->length - 1);
     
     int i = 0;
-    int* src = a->elements;
-    int* dest = newArray->elements;
+    Key* src = a->elements;
+    Key* dest = newArray->elements;
 
     while(i < a->length){
         if(*src != key){
@@ -205,7 +236,7 @@ template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::remove(T value){
     Search* srch = traverseAndCleanup(value);
 
-    int key = hash(value);
+    Key key = special_hash(value);
 
     while(true){
         Node* node = srch->node;
@@ -227,14 +258,14 @@ bool MultiwaySearchTree<T, Threads>::remove(T value){
 
 template<typename T, int Threads>
 Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
-    int key = hash(value);
+    Key key = special_hash(value);
 
     Node* node = root->node;
 
     Contents* cts = node->contents;
     array* items = cts->items;
     int i = search(items, key);
-    int max = -1; //TODO Change that
+    Key max = {KeyFlag::EMPTY, 0};
 
     while(cts->children){
         if(-i -1 == items->length){
@@ -248,9 +279,9 @@ Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
                 i = -i -1;
             }
 
-            cleanNode(node, cts, i, max);
+            cleanNode(key, node, cts, i, max);
             node = cts->children[i];
-            max = -1; //TODO change that
+            max = {KeyFlag::EMPTY, 0};
         }
 
         cts = node->contents;
@@ -272,7 +303,7 @@ Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
 template<typename T, int Threads>
 Node* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* contents){
     while(true){
-        Node* newLink = pushRight(contents->link, false, 0);
+        Node* newLink = pushRight(contents->link, {KeyFlag::EMPTY, 0});
 
         if(newLink == contents->link){
             return contents->link;
@@ -288,8 +319,58 @@ Node* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* contents){
     }
 }
 
+bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
+bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
+bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
+
+int compare(Key k1, Key k2){
+    if(k1.flag == KeyFlag::INF){
+        return 1;
+    }
+    
+    if(k2.flag == KeyFlag::INF){
+        return -1;
+    }
+
+    return k1.key - k2.key; //TODO Check if 1 - 2 or 2 - 1
+}
+
 template<typename T, int Threads>
-Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, bool noBarrier, int leftBarrier){
+void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* contents, int index, Key leftBarrier){
+    while(true){
+        int length = contents->items->length;
+
+        if(length == 0){
+            return;
+        } else if(length == 1){
+            if(cleanNode1(node, contents, leftBarrier)){
+                return;
+            }
+        } else if(length == 2){
+            if(cleanNode2(node, contents, leftBarrier)){
+                return;
+            }
+        } else {
+            if(cleanNodeN(node, contents, index, leftBarrier)){
+                return;
+            }
+        }
+
+        contents = node->contents;
+        index = search(contents->items, key);
+
+        if(-index - 1 == contents->items->length){
+            return;
+        } else if(index < 0){
+            index = -index -1;
+        }
+    }
+}
+
+bool attemptSlideKey(Node* node, Contents* contents);
+
+template<typename T, int Threads>
+Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
     while(true){
         Contents* contents = node->contents;
 
@@ -297,7 +378,7 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, bool noBarrier, int 
 
         if(length == 0){
             node = contents->link;
-        } else if(noBarrier || (*contents->items)[length - 1] > leftBarrier){
+        } else if(leftBarrier.flag == KeyFlag::EMPTY || compare((*contents->items)[length - 1], leftBarrier) > 0){
             return node;
         } else {
             node = contents->link;
@@ -322,25 +403,34 @@ int MultiwaySearchTree<T, Threads>::randomLevel(){
     return x;
 }
 
-inline int binary_search(int a[], int low, int high, int target) {
-    while (low <= high) {
-        int middle = low + (high - low)/2;
+template<typename T, int Threads>
+int MultiwaySearchTree<T, Threads>::search(array* items, Key key){
+    int low = 0;
+    int high = items->length - 1;
 
-        if (target < a[middle]){
-            high = middle - 1;
-        } else if (target > a[middle]){
-            low = middle + 1;
-        } else {
-            return middle;
-        }
+    if(low > high){
+        return -1;
     }
 
-    return -1;
-}
+    if((*items)[high].flag == KeyFlag::INF){
+        high--;
+    }
 
-template<typename T, int Threads>
-int MultiwaySearchTree<T, Threads>::search(array* items, int key){
-    return binary_search(items->elements, 0, items->length, key);
+    while(low <= high){
+        int mid = (low + high) >> 1; //TODO check
+        Key midVal = (*items)[mid];
+        int cmp = compare(key, midVal);
+
+        if(cmp > 0){
+            low = mid + 1;
+        } else if(cmp < 0){
+            high = mid - 1;
+        } else {
+            return mid;
+        }
+    }
+    
+    return -(low + 1); //not found
 }
 
 template<typename T, int Threads>
@@ -351,7 +441,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     while(height < target){
         array* keys = new array(1);
         Node** children = (Node**) calloc(1, sizeof(Node*));
-        (*keys)[0] = INT_MAX;//TODO Check that            
+        (*keys)[0].flag = KeyFlag::INF;
         children[0] = root->node;
         Contents* contents = new Contents(keys, children, nullptr);
         Node* newNode = new Node(contents);
@@ -365,7 +455,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
 }
 
 template<typename T, int Threads>
-Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, int key){
+Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key){
     while(true){
         Contents* contents = node->contents;
 
