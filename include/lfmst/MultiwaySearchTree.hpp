@@ -617,6 +617,45 @@ bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     return node->casContents(contents, update);
 }
 
+bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child);
+Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
+
+bool attemptSlideKey(Node* node, Contents* contents){
+    if(!contents->link){
+        return false;
+    }
+
+    int length = contents->items->length;
+    Key kkey = (*contents->items)[length - 1];
+    Node* child = (*contents->children)[length - 1];
+    Node* sibling = pushRight(contents->link, {KeyFlag::EMPTY, 0});
+    Contents* siblingContents = sibling->contents;
+    Node* nephew = nullptr;
+
+    if(siblingContents->children->length == 0){
+        return false;
+    } else {
+        nephew = (*siblingContents->children)[0];
+    }
+
+    if(compare((*siblingContents->items)[0], kkey) > 0){
+        nephew = pushRight(nephew, kkey);
+    } else {
+        nephew = pushRight(nephew, {KeyFlag::EMPTY, 0});
+    }
+
+    if(nephew != child){
+        return false;
+    }
+
+    bool success = slideToNeighbor(sibling, siblingContents, kkey, child);
+    if(success){
+        deleteSlidedKey(node, contents, kkey);
+    }
+
+    return false;
+}
+
 } //end of lfmst
 
 #endif
