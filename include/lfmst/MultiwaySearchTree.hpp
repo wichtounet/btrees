@@ -58,7 +58,7 @@ struct HeadNode {
     HeadNode(Node* node, int height) : node(node), height(height) {}
 };
 
-template<typename T>
+template<typename T, int Threads>
 class MultiwaySearchTree {
     public:
         MultiwaySearchTree();
@@ -82,13 +82,13 @@ class MultiwaySearchTree {
         void cleanNode(Node* node, Contents* cts, int i, int max);
 };
 
-template<typename T>
-MultiwaySearchTree<T>::MultiwaySearchTree(){
+template<typename T, int Threads>
+MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     //init
 }
 
-template<typename T>
-bool MultiwaySearchTree<T>::contains(T value){
+template<typename T, int Threads>
+bool MultiwaySearchTree<T, Threads>::contains(T value){
     int key = hash(value);
 
     Node* node = root->node;
@@ -122,8 +122,8 @@ bool MultiwaySearchTree<T>::contains(T value){
     }
 }
 
-template<typename T>
-bool MultiwaySearchTree<T>::add(T value){
+template<typename T, int Threads>
+bool MultiwaySearchTree<T, Threads>::add(T value){
     int height = randomLevel();
     Search** srchs = (Search**) calloc(height + 1, sizeof(Search*));
     traverseAndTrack(value, height, srchs);
@@ -140,8 +140,8 @@ bool MultiwaySearchTree<T>::add(T value){
     return true;
 }
         
-template<typename T>        
-void MultiwaySearchTree<T>::traverseAndTrack(T value, int h, Search** srchs){
+template<typename T, int Threads>
+void MultiwaySearchTree<T, Threads>::traverseAndTrack(T value, int h, Search** srchs){
     int key = hash(value);
 
     HeadNode* root = this->root;
@@ -200,8 +200,8 @@ array* difference(array* a, int key){
     return newArray;
 }
 
-template<typename T>
-bool MultiwaySearchTree<T>::remove(T value){
+template<typename T, int Threads>
+bool MultiwaySearchTree<T, Threads>::remove(T value){
     Search* srch = traverseAndCleanup(value);
 
     int key = hash(value);
@@ -224,8 +224,8 @@ bool MultiwaySearchTree<T>::remove(T value){
     }
 }
 
-template<typename T>
-Search* MultiwaySearchTree<T>::traverseAndCleanup(T value){
+template<typename T, int Threads>
+Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
     int key = hash(value);
 
     Node* node = root->node;
@@ -268,7 +268,24 @@ Search* MultiwaySearchTree<T>::traverseAndCleanup(T value){
     }
 }
 
-int binary_search(int a[], int low, int high, int target) {
+#define MAX_HEIGHT 10
+
+//TODO Put the generator at the class level
+template<typename T, int Threads>
+int MultiwaySearchTree<T, Threads>::randomLevel(){
+    static std::mt19937 gen;
+    std::geometric_distribution<int> dist(1.0 - 1.0 / 32.0);
+    
+    //TODO If rand > MAX_HEIGHT return MAX_LEVEL
+    int x;
+    do{
+        x = dist(gen);
+    } while (x > MAX_HEIGHT);
+
+    return x;
+}
+
+inline int binary_search(int a[], int low, int high, int target) {
     while (low <= high) {
         int middle = low + (high - low)/2;
 
@@ -284,28 +301,13 @@ int binary_search(int a[], int low, int high, int target) {
     return -1;
 }
 
-#define MAX_HEIGHT 10
-
-template<typename T>
-int MultiwaySearchTree<T>::randomLevel(){
-    static std::mt19937 gen;
-    std::geometric_distribution<int> dist(1.0 - 1.0 / 32.0);
-    
-    int x;
-    do{
-        x = dist(gen);
-    } while (x > MAX_HEIGHT);
-
-    return x;
-}
-
-template<typename T>
-int MultiwaySearchTree<T>::search(array* items, int key){
+template<typename T, int Threads>
+int MultiwaySearchTree<T, Threads>::search(array* items, int key){
     return binary_search(items->elements, 0, items->length, key);
 }
 
-template<typename T>
-HeadNode* MultiwaySearchTree<T>::increaseRootHeight(int target){
+template<typename T, int Threads>
+HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     HeadNode* root = this->root;
     int height = root->height;
 
@@ -324,7 +326,6 @@ HeadNode* MultiwaySearchTree<T>::increaseRootHeight(int target){
 
     return root;
 }
-
 
 } //end of lfmst
 
