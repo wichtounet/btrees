@@ -104,8 +104,16 @@ class MultiwaySearchTree {
         HeadNode* increaseRootHeight(int height);
         Node* cleanLink(Node* node, Contents* cts);
         void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
-        Node* pushRight(Node* node, Key leftBarrier);
 };
+
+/* Some internal utilities */ 
+bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
+bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
+bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
+Node* pushRight(Node* node, Key leftBarrier);
+bool attemptSlideKey(Node* node, Contents* contents);
+bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
+bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
 
 template<typename T>
 Key special_hash(T value){
@@ -319,10 +327,6 @@ Node* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* contents){
     }
 }
 
-bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
-bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
-bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
-
 int compare(Key k1, Key k2){
     if(k1.flag == KeyFlag::INF){
         return 1;
@@ -367,10 +371,56 @@ void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* co
     }
 }
 
-bool attemptSlideKey(Node* node, Contents* contents);
+bool cleanNode1(Node* node, Contents* contents, Key leftBarrier){
+    bool success = attemptSlideKey(node, contents);
 
-template<typename T, int Threads>
-Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
+    if(success){
+        return true;
+    }
+
+    Key key = (*contents->items)[0];
+
+    if(leftBarrier.flag != KeyFlag::EMPTY && compare(key, leftBarrier) <= 0){
+        leftBarrier = {KeyFlag::EMPTY, 0};
+    }
+
+    Node* childNode = contents->children[0];
+    Node* adjustedChild = pushRight(childNode, leftBarrier);
+
+    if(adjustedChild == childNode){
+        return true;
+    }
+
+    return shiftChild(node, contents, 0, adjustedChild);
+}
+
+bool cleanNode2(Node* node, Contents* contents, Key leftBarrier){
+    bool success = attemptSlideKey(node, contents);
+
+    if(success){
+        return true;
+    }
+
+    Key key = (*contents->items)[0];
+
+    if(leftBarrier.flag != KeyFlag::EMPTY && compare(key, leftBarrier) <= 0){
+        leftBarrier = {KeyFlag::EMPTY, 0};
+    }
+
+    Node* childNode1 = contents->children[0];
+    Node* adjustedChild1 = pushRight(childNode1, leftBarrier);
+    leftBarrier = (*contents->items)[0];
+    Node* childNode2 = contents->children[1];
+    Node* adjustedChild2 = pushRight(childNode2, leftBarrier);
+
+    if((adjustedChild1 == childNode1) && (adjustedChild2 == childNode2)){
+        return true;
+    }
+
+    return shiftChildren(node, contents, adjustedChild1, adjustedChild2);
+}
+
+Node* pushRight(Node* node, Key leftBarrier){
     while(true){
         Contents* contents = node->contents;
 
