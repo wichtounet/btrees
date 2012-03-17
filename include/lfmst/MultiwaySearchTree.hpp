@@ -115,9 +115,6 @@ class MultiwaySearchTree {
 
         int search(Keys* items, Key key);
         int randomLevel();
-        Search* traverseAndCleanup(T value);
-        bool insertList(T value, Search** srchs, Node* child, int h);
-        Node* splitList(T value, Search** srch);
         Search* moveForward(Node* node, Key key);
         HeadNode* increaseRootHeight(int height);
         Node* cleanLink(Node* node, Contents* cts);
@@ -334,50 +331,6 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
                 results = moveForward(node, key);
             }
         }
-    }
-}
-
-template<typename T, int Threads>
-Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
-    Key key = special_hash(value);
-
-    Node* node = root->node;
-
-    Contents* cts = node->contents;
-    Keys* items = cts->items;
-    int i = search(items, key);
-    Key max = {KeyFlag::EMPTY, 0};
-
-    while(cts->children){
-        if(-i -1 == items->length){
-            if(items->length > 0){
-                max = (*items)[items->length - 1];
-            }
-
-            node = cleanLink(node, cts);
-        } else {
-            if (i < 0){
-                i = -i -1;
-            }
-
-            cleanNode(key, node, cts, i, max);
-            node = (*cts->children)[i];
-            max = {KeyFlag::EMPTY, 0};
-        }
-
-        cts = node->contents;
-        items = cts->items;
-        i = search(items, key);
-    }
-
-    while(true){
-        if(i > -cts->items->length - 1){
-            return new Search(node, cts, i);
-        }
-
-        node = cleanLink(node, cts);
-        cts = node->contents;
-        i = search(cts->items, key);
     }
 }
 
