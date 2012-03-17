@@ -111,6 +111,7 @@ class MultiwaySearchTree {
         Search* traverseLeaf(Key key, bool cleanup);
         void traverseNonLeaf(Key key, int height, Search** results);
         Search* goodSamaritanCleanNeighbor(Key key, Search* results);
+        bool removeFromNode(Key key, Search* results);
 
         int search(Keys* items, Key key);
         int randomLevel();
@@ -201,7 +202,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
 
         bool old = beginInsertOneLevel(key, results);
         if(old){
-            return true;
+            return false;
         }
 
         for(int i = 0; i < height; ++i){
@@ -313,27 +314,48 @@ Keys* difference(Keys* a, Key key){
     return newArray;
 }
 
+Keys* removeSingleItem(Keys* a, int index){
+    Keys* newArray = new Keys(a->length - 1);
+
+    for(int i = 0; i < index; ++i){
+        (*newArray)[i] = (*a)[i];
+    }
+
+    for(int i = index + 1; i < a->length; ++i){
+        (*newArray)[i - 1] = (*a)[i];
+    }
+
+    return newArray;
+}
+
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::remove(T value){
-    Search* srch = traverseAndCleanup(value);
-
     Key key = special_hash(value);
+    Search* results = traverseLeaf(key, true);
 
+    return removeFromNode(key, results);
+}
+
+template<typename T, int Threads>
+bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
     while(true){
-        Node* node = srch->node;
-        Contents* cts = srch->contents;
-        if(srch->index < 0){
+        Node* node = results->node;
+        Contents* contents = results->contents;
+        int index = results->index;
+
+        if(index < 0){
             return false;
+        } else {
+            Keys* newKeys = removeSingleItem(contents->items, index);
+
+            Contents* update = new Contents(newKeys, nullptr, contents->link);
+
+            if(node->casContents(contents, update)){
+                return true;
+            } else {
+                results = moveForward(node, key);
+            }
         }
-
-        Keys* items = difference(cts->items, key);
-        Contents* update = new Contents(items, nullptr, cts->link);
-
-        if(node->casContents(cts, update)){
-            return true;
-        }
-
-        srch = moveForward(node, key);
     }
 }
 
