@@ -3,13 +3,12 @@
 #include <vector>
 #include <algorithm>
 
-//c++11
+//C++11
 #include <random>
 #include <chrono>
 #include <thread>
 
-#include "Constants.hpp" //TODO Review management of this header
-
+//Thread local id
 __thread unsigned int thread_num;
 
 //Include all the trees implementations
@@ -17,6 +16,12 @@ __thread unsigned int thread_num;
 #include "nbbst/NBBST.hpp"
 #include "avltree/AVLTree.hpp"
 //#include "lfmst/MultiwaySearchTree.hpp"
+
+//Number of nodes for the tests (for up to 32 threads)
+#define N 1000//00         //A too big number can put nodes in swap
+
+//For benchmark
+#define OPERATIONS 1000000
 
 //Chrono typedefs
 typedef std::chrono::high_resolution_clock Clock;
