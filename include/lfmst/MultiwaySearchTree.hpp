@@ -129,6 +129,8 @@ bool attemptSlideKey(Node* node, Contents* contents);
 bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
 bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
 bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
+bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child);
+Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
 
 template<typename T>
 Key special_hash(T value){
@@ -616,9 +618,6 @@ bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     Contents* update = new Contents(newKeys, newChildren, contents->link);
     return node->casContents(contents, update);
 }
-
-bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child);
-Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
 
 bool attemptSlideKey(Node* node, Contents* contents){
     if(!contents->link){
