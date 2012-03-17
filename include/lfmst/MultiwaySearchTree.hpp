@@ -152,34 +152,32 @@ template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::contains(T value){
     Key key = special_hash(value);
 
-    Node* node = root->node;
-    Contents* cts = node->contents;
-
-    int i = search(cts->items, key);
-    while(cts->children){
-        if(-i -1 == cts->items->length){
-            node = cts->link;
-        } else if(i < 0){
-            node = (*cts->children)[-i -1];
+    Node* node = this->root->node;
+    Contents* contents = node->contents;
+    
+    int index = search(contents->items, key);
+    while(contents->children){
+        if(-index -1 == contents->items->length){
+            node = contents->link;
+        } else if(index < 0){
+            node = (*contents->children)[-index -1];
         } else {
-            node = (*cts->children)[i];
+            node = (*contents->children)[index];
         }
 
-        cts = node->contents;
-        i = search(cts->items, key);
+        contents = node->contents;
+        index = search(contents->items, key);
     }
 
     while(true){
-        if(-i -1 == cts->items->length){
-            node = cts->link;
-        } else if(i < 0){
-            return false;
+        if(-index - 1 == contents->items->length){
+            node = contents->link;
         } else {
-            return true;
+            return index >= 0;
         }
-
-        cts = node->contents;
-        i = search(cts->items, key);
+        
+        contents = node->contents;
+        index = search(contents->items, key);
     }
 }
 
@@ -292,26 +290,6 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
             height = height - 1;
         }
     }
-}
-
-Keys* difference(Keys* a, Key key){
-    Keys* newArray = new Keys(a->length - 1);
-    
-    int i = 0;
-    Key* src = a->elements;
-    Key* dest = newArray->elements;
-
-    while(i < a->length){
-        if(*src != key){
-            *dest = *src;
-            ++dest;
-        }
-        
-        ++i;
-        ++src;
-    }
-
-    return newArray;
 }
 
 Keys* removeSingleItem(Keys* a, int index){
