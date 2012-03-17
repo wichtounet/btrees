@@ -76,7 +76,7 @@ class MultiwaySearchTree {
         Search* traverseAndCleanup(T value);
         bool insertList(T value, Search** srchs, Node* child, int h);
         Node* splitList(T value, Search** srch);
-        Search* moveForward(Node* node, T value);
+        Search* moveForward(Node* node, int key);
         HeadNode* increaseRootHeight(int height);
         Node* cleanLink(Node* node, Contents* cts);
         void cleanNode(Node* node, Contents* cts, int i, int max);
@@ -221,7 +221,7 @@ bool MultiwaySearchTree<T, Threads>::remove(T value){
             return true;
         }
 
-        srch = moveForward(node, value);
+        srch = moveForward(node, key);
     }
 }
 
@@ -362,6 +362,21 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     }
 
     return root;
+}
+
+template<typename T, int Threads>
+Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, int key){
+    while(true){
+        Contents* contents = node->contents;
+
+        int index = search(contents->items, key);
+
+        if(index > -contents->items->length - 1){
+            return new Search(node, contents, index);
+        } else {
+            node = contents->link;
+        }
+    }
 }
 
 } //end of lfmst
