@@ -113,7 +113,7 @@ class MultiwaySearchTree {
         Search* goodSamaritanCleanNeighbor(Key key, Search* results);
         bool removeFromNode(Key key, Search* results);
 
-        int search(Keys* items, Key key);
+//        int search(Keys* items, Key key);
         int randomLevel();
         Search* moveForward(Node* node, Key key);
         HeadNode* increaseRootHeight(int height);
@@ -132,6 +132,7 @@ bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
 bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
 bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child);
 Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
+int search(Keys* items, Key key);
 
 template<typename T>
 Key special_hash(T value){
@@ -289,8 +290,9 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
     }
 }
 
-Keys* removeSingleItem(Keys* a, int index){
-    Keys* newArray = new Keys(a->length - 1);
+template<typename T>
+T* removeSingleItem(T* a, int index){
+    T* newArray = new T(a->length - 1);
 
     for(int i = 0; i < index; ++i){
         (*newArray)[i] = (*a)[i];
@@ -510,8 +512,7 @@ int MultiwaySearchTree<T, Threads>::randomLevel(){
     return x;
 }
 
-template<typename T, int Threads>
-int MultiwaySearchTree<T, Threads>::search(Keys* items, Key key){
+int search(Keys* items, Key key){
     int low = 0;
     int high = items->length - 1;
 
@@ -662,6 +663,47 @@ bool attemptSlideKey(Node* node, Contents* contents){
     }
 
     return false;
+}
+
+Keys* generateNewItems(Key key, Keys* keys, int index);
+Children* generateNewChildren(Node* child, Children* children, int index);
+
+bool slideToNeighbor(Node* sibling, Contents* sibContents, Key key, Node* child){
+    int index = search(sibContents->items, key);
+
+    if(index >= 0){
+        return true;
+    } else if(index < -1){
+        return false;
+    }
+
+    Keys* keys = generateNewItems(key, sibContents->items, 0);
+    Children* children = generateNewChildren(child, sibContents->children, 0);
+
+    Contents* update = new Contents(keys, children, sibContents->link);
+    if(sibling->casContents(sibContents, update)){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+Contents* deleteSlidedKey(Node* node, Contents* contents, Key key){
+    int index = search(contents->items, key);
+
+    if(index < 0){
+        return contents;
+    }
+
+    Keys* keys = removeSingleItem(contents->items, index);
+    Children* children = removeSingleItem(contents->children, index);
+
+    Contents* update = new Contents(keys, children, contents->link);
+    if(node->casContents(contents, update)){
+        return update;
+    } else {
+        return contents;
+    }
 }
 
 } //end of lfmst
