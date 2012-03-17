@@ -592,6 +592,31 @@ bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2){
     return node->casContents(contents, update);
 }
 
+bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
+    int length = contents->items->length;
+
+    Keys* newKeys = new Keys(length - 1);
+    Children* newChildren = new Children(length - 1);
+
+    for(int i = 0; i < index; ++i){
+        (*newKeys)[i] = (*contents->items)[i];
+        (*newChildren)[i] = (*contents->children)[i];
+    }
+    
+    (*newChildren)[index] = adjustedChild;
+    
+    for(int i = index + 1; i < length; ++i){
+        (*newKeys)[i - 1] = (*contents->items)[i];
+    }
+
+    for(int i = index + 2; i < length; ++i){
+        (*newChildren)[i - 1] = (*contents->children)[i];
+    }
+
+    Contents* update = new Contents(newKeys, newChildren, contents->link);
+    return node->casContents(contents, update);
+}
+
 } //end of lfmst
 
 #endif
