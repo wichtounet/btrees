@@ -80,6 +80,7 @@ class MultiwaySearchTree {
         HeadNode* increaseRootHeight(int height);
         Node* cleanLink(Node* node, Contents* cts);
         void cleanNode(Node* node, Contents* cts, int i, int max);
+        Node* pushRight(Node* node, int leftBarrier);
 };
 
 template<typename T, int Threads>
@@ -265,6 +266,25 @@ Search* MultiwaySearchTree<T, Threads>::traverseAndCleanup(T value){
         node = cleanLink(node, cts);
         cts = node->contents;
         i = search(cts->items, key);
+    }
+}
+
+template<typename T, int Threads>
+Node* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* contents){
+    while(true){
+        Node* newLink = pushRight(contents->link, 0);//TODO Check the 0 (null in the Java reference)
+
+        if(newLink == contents->link){
+            return contents->link;
+        }
+
+        Contents* update = new Contents(contents->items, contents->children, newLink);
+
+        if(node->casContents(contents, update)){
+            return update->link;
+        }
+
+        contents = node->contents;
     }
 }
 
