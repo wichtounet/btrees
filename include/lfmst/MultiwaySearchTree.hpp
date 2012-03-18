@@ -806,6 +806,66 @@ bool insertLeafLevel(Key key, Search* results){
     }
 }
 
+bool beginInsertOneLevel(Key key, Search** resultsStore){
+    Search* results = resultsStore[0];
+
+    while(true){
+        Node* node = results->node;
+        Contents* contents = results->contents;
+        int index = results->index;
+        Keys* keys = contents->items;
+
+        if(index >= 0){
+            return false;
+        } else {
+            index = -index - 1;
+
+            Keys* newKeys = generateNewItems(key, keys, index);
+            Contents* update = new Contents(newKeys, nullptr, contents->link);
+
+            if(node->casContents(contents, update)){
+                Search* newResults = new Search(node, update, index);
+                resultsStore[0] = newResults;
+                return true;
+            } else {
+                results = moveForward(node, key);
+            }
+        }
+    }
+}
+
+void insertOneLevel(Key key, Search** resultsStore, Node* child, int target){
+    if(!child){
+        return;
+    }
+
+    Search* results = resultsStore[target];
+    while(true){
+        Node* node = results->node;
+        Contents* contents = results->contents;
+        int index = results->index;
+
+        if(index >= 0){
+            return;
+        } else if(index > -contents->items->length - 1){
+            index = -index -1;
+
+            Keys* newKeys = generateNewItems(key, contents->items, index);
+            Children* newChildren = generateNewChildren(child, contents->children, index + 1);
+            Contents* update = new Contents(newKeys, newChildren, contents->link);
+            if(node->casContents(contents, update)){
+                Search* newResults = new Search(node, update, index);
+                resultsStore[target] = newResults;
+                return;
+            } else {
+                results = moveForward(node, key);
+            }
+        } else {
+            results = moveForward(node, key);
+        }
+    }
+}
+
 } //end of lfmst
 
 #endif
