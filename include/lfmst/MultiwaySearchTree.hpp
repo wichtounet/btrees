@@ -2,6 +2,7 @@
 #define MULTIWAY_SEARCH_TREE
 
 #include <vector>
+#include <algorithm>
 
 #include "hash.hpp"
 #include "Utils.hpp"
@@ -305,6 +306,7 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
             if(height <= target){
                 storeResults[height] = results;
             }
+            
             if(index < 0){
                 index = -index - 1;
             }
@@ -320,13 +322,8 @@ T* removeSingleItem(T* a, int index){
     int length = a->length;
     T* newArray = new T(length - 1);
 
-    for(int i = 0; i < index; ++i){
-        (*newArray)[i] = (*a)[i];
-    }
-
-    for(int i = index + 1; i < length; ++i){
-        (*newArray)[i - 1] = (*a)[i];
-    }
+    std::copy(a->elements, a->elements + index, newArray->elements);
+    std::copy(a->elements + index + 1, a->elements + length, newArray->elements + index);
 
     return newArray;
 }
@@ -646,10 +643,8 @@ Search* moveForward(Node* node, Key key, int hint){
 
 Children* copyChildren(Children* rhs){
     Children* copy = new Children(rhs->length);
-
-    for(int i = 0; i < rhs->length; ++i){
-        (*copy)[i] = (*rhs)[i];
-    }
+    
+    std::copy(rhs->elements, rhs->elements + rhs->length, copy->elements);
 
     return copy;
 }
@@ -676,21 +671,14 @@ bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
 
     Keys* newKeys = new Keys(length - 1);
     Children* newChildren = new Children(length - 1);
-
-    for(int i = 0; i < index; ++i){
-        (*newKeys)[i] = (*contents->items)[i];
-        (*newChildren)[i] = (*contents->children)[i];
-    }
+    
+    std::copy(contents->items->elements, contents->items->elements + index, newKeys->elements);
+    std::copy(contents->children->elements, contents->children->elements + index, newChildren->elements);
     
     (*newChildren)[index] = adjustedChild;
     
-    for(int i = index + 1; i < length; ++i){
-        (*newKeys)[i - 1] = (*contents->items)[i];
-    }
-
-    for(int i = index + 2; i < length; ++i){
-        (*newChildren)[i - 1] = (*contents->children)[i];
-    }
+    std::copy(contents->items->elements + index + 1, contents->items->elements + length, newKeys->elements + index);
+    std::copy(contents->children->elements + index + 2, contents->children->elements + length, newChildren->elements + index + 1);
 
     Contents* update = new Contents(newKeys, newChildren, contents->link);
     return node->casContents(contents, update);
@@ -936,13 +924,11 @@ T* generateNew(V x, T* items, int index){
 
     int length = items->length;
     T* newItems = new T(length + 1);
-    for(int i = 0; i < index; i++){
-        (*newItems)[i] = (*items)[i];
-    }
+    
+    std::copy(items->elements, items->elements + index, newItems->elements);
     (*newItems)[index] = x;
-    for(int i = index; i < length; i++){
-        (*newItems)[i + 1] = (*items)[i];
-    }
+    std::copy(items->elements + index, items->elements + length, newItems->elements + index + 1);
+    
     return newItems;
 }
 
@@ -961,11 +947,7 @@ T* generateLeft(T* items, int index){
     }
 
     T* newItems = new T(index + 1);
-    
-    for(int i = 0; i <= index; ++i){
-        (*newItems)[i] = (*items)[i];
-    }
-
+    std::copy(items->elements, items->elements + index + 1, newItems->elements);
     return newItems;
 }
 
@@ -975,13 +957,8 @@ T* generateRight(T* items, int index){
         return nullptr;
     }
 
-    int length = items->length;
-    T* newItems = new T(length - index - 1);
-    
-    for(int i = 0, j = index + 1; j < length; ++i, ++j){
-        (*newItems)[i] = (*items)[j];
-    }
-
+    T* newItems = new T(items->length - index - 1);
+    std::copy(items->elements + index + 1, items->elements + items->length, newItems->elements);
     return newItems;
 }
 
