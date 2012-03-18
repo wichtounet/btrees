@@ -866,6 +866,32 @@ void insertOneLevel(Key key, Search** resultsStore, Node* child, int target){
     }
 }
 
+template<typename T, typename V>
+T* generateNew(V x, T* items, int index){
+    if(!items){
+        return nullptr;
+    }
+
+    int length = items->length;
+    T* newItems = new T(length + 1);
+    for(int i = 0; i < index; i++){
+        (*newItems)[i] = (*items)[i];
+    }
+    (*newItems)[index] = x;
+    for(int i = index; i < length; i++){
+        (*newItems)[i + 1] = (*items)[i];
+    }
+    return newItems;
+}
+
+Keys* generateNewItems(Key key, Keys* items, int index){
+    return generateNew(key, items, index);
+}
+
+Children* generateNewChildren(Node* child, Children* children, int index){
+    return generateNew(child, children, index);
+}
+
 } //end of lfmst
 
 #endif
