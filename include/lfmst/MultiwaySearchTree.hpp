@@ -892,6 +892,53 @@ Children* generateNewChildren(Node* child, Children* children, int index){
     return generateNew(child, children, index);
 }
 
+template<typename T>
+T* generateLeft(T* items, int index){
+    if(!items){
+        return nullptr;
+    }
+
+    T* newItems = new T(index + 1);
+    
+    for(int i = 0; i <= index; ++i){
+        (*newItems)[i] = (*items)[i];
+    }
+
+    return newItems;
+}
+
+template<typename T>
+T* generateRight(T* items, int index){
+    if(!items){
+        return nullptr;
+    }
+
+    int length = items->length;
+    T* newItems = new T(length - index - 1);
+    
+    for(int i = 0, j = index + 1; j < length; ++i, ++j){
+        (*newItems)[i] = (*items)[j];
+    }
+
+    return newItems;
+}
+
+Keys* generateLeftItems(Keys* items, int index){
+    return generateLeft(items, index); 
+}
+
+Children* generateLeftChildren(Children* children, int index){
+    return generateLeft(children, index);
+}
+
+Keys* generateRightItems(Keys* keys, int index){
+    return generateRight(keys, index);
+}
+
+Children* generateRightChildren(Children* children, int index){
+    return generateRight(children, index);
+}
+
 } //end of lfmst
 
 #endif
