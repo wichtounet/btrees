@@ -108,12 +108,14 @@ class MultiwaySearchTree {
     private:
         HeadNode* root;
 
+        int randomSeed;
+
         Search* traverseLeaf(Key key, bool cleanup);
         void traverseNonLeaf(Key key, int height, Search** results);
         Search* goodSamaritanCleanNeighbor(Key key, Search* results);
         bool removeFromNode(Key key, Search* results);
 
-        int randomLevel();
+        unsigned int randomLevel();
         HeadNode* increaseRootHeight(int height);
         Contents* cleanLink(Node* node, Contents* cts);
         void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
@@ -153,7 +155,17 @@ Key special_hash(T value){
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
-    //init
+    Keys* keys = new Keys(1);
+    (*keys)[0] = {KeyFlag::INF, 0};
+
+    Contents* contents = new Contents(keys, nullptr, nullptr);
+    Node* node = new Node(contents);
+
+    root = new HeadNode(node, 0);
+    
+    std::mt19937_64 engine(time(NULL));
+    std::uniform_int_distribution<unsigned int> distribution(0, INT_MAX);
+    randomSeed = distribution(engine) | 0x0100;
 }
 
 template<typename T, int Threads>
@@ -193,7 +205,7 @@ template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::add(T value){
     Key key = special_hash(value);
 
-    int height = randomLevel();
+    unsigned int height = randomLevel();
     if(height == 0){
         Search* results = traverseLeaf(key, false);
         return insertLeafLevel(key, results);
@@ -206,7 +218,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
             return false;
         }
 
-        for(int i = 0; i < height; ++i){
+        for(unsigned int i = 0; i < height; ++i){
             Node* right = splitOneLevel(key, results[i]);
             insertOneLevel(key, results, right, i + 1);
         }
@@ -500,21 +512,31 @@ Node* pushRight(Node* node, Key leftBarrier){
     }
 }
 
-#define MAX_HEIGHT 10
+static const int logAvgLength = 5; // log_2 of the average node length
+static const int avgLength = (1 << logAvgLength);
+static const int avgLengthMinusOne = (avgLength - 1);
 
-//TODO Put the generator at the class level
 template<typename T, int Threads>
-int MultiwaySearchTree<T, Threads>::randomLevel(){
-    static std::mt19937 gen;
-    std::geometric_distribution<int> dist(1.0 - 1.0 / 32.0);
-    
-    //TODO If rand > MAX_HEIGHT return MAX_LEVEL
-    int x;
-    do{
-        x = dist(gen);
-    } while (x > MAX_HEIGHT);
+unsigned int MultiwaySearchTree<T, Threads>::randomLevel(){
+    unsigned int x = randomSeed;
+    x ^= x << 13;
+    x ^= x >> 17;
+    randomSeed = x ^= x << 5;
+    unsigned int level = 1;
+    while ((x & avgLengthMinusOne) == 0) {
+        if ((level % 6) == 0) {
+            x = randomSeed;
+            x ^= x << 13;
+            x ^= x >> 17;
+            randomSeed = x ^= x << 5;
+        } else {
+            x >>= logAvgLength;
+        }
 
-    return x;
+        level++;
+    }
+
+    return (level - 1);
 }
 
 int search(Keys* items, Key key){
