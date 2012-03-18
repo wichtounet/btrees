@@ -117,8 +117,6 @@ class MultiwaySearchTree {
 
         unsigned int randomLevel();
         HeadNode* increaseRootHeight(int height);
-        Contents* cleanLink(Node* node, Contents* cts);
-        void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
 };
 
 /* Some internal utilities */ 
@@ -138,7 +136,8 @@ bool insertLeafLevel(Key key, Search* results);
 bool beginInsertOneLevel(Key key, Search** results);
 Node* splitOneLevel(Key key, Search* result);
 void insertOneLevel(Key, Search** results, Node* right, int index);
-
+Contents* cleanLink(Node* node, Contents* cts);
+void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
 Keys* generateNewItems(Key key, Keys* keys, int index);
 Children* generateNewChildren(Node* child, Children* children, int index);
 Keys* generateLeftItems(Keys* children, int index);
@@ -353,8 +352,7 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
     }
 }
 
-template<typename T, int Threads>
-Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* contents){
+Contents* cleanLink(Node* node, Contents* contents){
     while(true){
         Node* newLink = pushRight(contents->link, {KeyFlag::EMPTY, 0});
 
@@ -384,8 +382,7 @@ int compare(Key k1, Key k2){
     return k1.key - k2.key; //TODO Check if 1 - 2 or 2 - 1
 }
 
-template<typename T, int Threads>
-void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* contents, int index, Key leftBarrier){
+void cleanNode(Key key, Node* node, Contents* contents, int index, Key leftBarrier){
     while(true){
         int length = contents->items->length;
 
