@@ -114,13 +114,13 @@ class MultiwaySearchTree {
         bool removeFromNode(Key key, Search* results);
 
         int randomLevel();
-        Search* moveForward(Node* node, Key key);
         HeadNode* increaseRootHeight(int height);
         Contents* cleanLink(Node* node, Contents* cts);
         void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
 };
 
 /* Some internal utilities */ 
+Search* moveForward(Node* node, Key key);
 int search(Keys* items, Key key);
 bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
 bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
@@ -136,8 +136,13 @@ bool insertLeafLevel(Key key, Search* results);
 bool beginInsertOneLevel(Key key, Search** results);
 Node* splitOneLevel(Key key, Search* result);
 void insertOneLevel(Key, Search** results, Node* right, int index);
+
 Keys* generateNewItems(Key key, Keys* keys, int index);
 Children* generateNewChildren(Node* child, Children* children, int index);
+Keys* generateLeftItems(Keys* children, int index);
+Keys* generateRightItems(Keys* children, int index);
+Children* generateLeftChildren(Children* children, int index);
+Children* generateRightChildren(Children* children, int index);
 
 template<typename T>
 Key special_hash(T value){
@@ -562,8 +567,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     return root;
 }
 
-template<typename T, int Threads>
-Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key){
+Search* moveForward(Node* node, Key key){
     while(true){
         Contents* contents = node->contents;
 
@@ -748,6 +752,58 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
     }
 
     return results;
+}
+
+Node* splitOneLevel(Key key, Search* results){
+    while(true){
+        Node* node = results->node;
+        Contents* contents = results->contents;
+        int index = results->index;
+        int length = contents->items->length;
+
+        if(index < 0){
+            return nullptr;
+        } else if(length < 2 || index == (length - 1)){
+            return nullptr;
+        }
+
+        Keys* leftKeys = generateLeftItems(contents->items, index);
+        Keys* rightKeys = generateRightItems(contents->items, index);
+        Children* leftChildren = generateLeftChildren(contents->children, index);
+        Children* rightChildren = generateRightChildren(contents->children, index);
+
+        Node* right = new Node(new Contents(rightKeys, rightChildren, contents->link));
+        Contents* left = new Contents(leftKeys, leftChildren, right);
+
+        if(node->casContents(contents, left)){
+            return right;
+        } else {
+            results = moveForward(node, key);
+        }
+    }
+}
+
+bool insertLeafLevel(Key key, Search* results){
+    while(true){
+        Node* node = results->node;
+        Contents* contents = results->contents;
+        Keys* keys = contents->items;
+        int index = results->index;
+
+        if(index >= 0){
+            return false; //TODO Check that            
+        } else {
+            index = -index - 1;
+            Keys* newKeys = generateNewItems(key, keys, index);
+            Contents* update = new Contents(newKeys, nullptr, contents->link);
+            
+            if(node->casContents(contents, update)){
+                return true;
+            } else {
+                results = moveForward(node, key);
+            }
+        }
+    }
 }
 
 } //end of lfmst
