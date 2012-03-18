@@ -172,14 +172,14 @@ void testMT(){
 #define TEST(type, name) \
     testST<type<int, 1>>(name);\
     std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
-    testMT<type<int, 32>, 2>();\
+    /*testMT<type<int, 32>, 2>();\
     testMT<type<int, 32>, 3>();\
     testMT<type<int, 32>, 4>();\
     testMT<type<int, 32>, 6>();\
     testMT<type<int, 32>, 8>();\
     testMT<type<int, 32>, 12>();\
     testMT<type<int, 32>, 16>();\
-    testMT<type<int, 32>, 32>();
+    testMT<type<int, 32>, 32>();*/
 
 void test(){
     std::cout << "Tests the different versions" << std::endl;
