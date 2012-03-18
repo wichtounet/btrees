@@ -100,6 +100,7 @@ template<typename T, int Threads>
 class MultiwaySearchTree {
     public:
         MultiwaySearchTree();
+        ~MultiwaySearchTree();
         
         bool contains(T value);
         bool add(T value);
@@ -165,6 +166,11 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     std::mt19937_64 engine(time(NULL));
     std::uniform_int_distribution<unsigned int> distribution(0, INT_MAX);
     randomSeed = distribution(engine) | 0x0100;
+}
+
+template<typename T, int Threads>
+MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
+    delete root;
 }
 
 template<typename T, int Threads>
