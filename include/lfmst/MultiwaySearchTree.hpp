@@ -121,8 +121,11 @@ class MultiwaySearchTree {
 };
 
 /* Some internal utilities */ 
-Search* moveForward(Node* node, Key key);
+Search* moveForward(Node* node, Key key, int hint);
+
 int search(Keys* items, Key key);
+int searchWithHint(Keys* items, Key key, int hint);
+
 bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
 bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
 bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
@@ -189,10 +192,6 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
         } else {
             node = (*contents->children)[index];
         }
-
-        /*if(!node){
-            return contains(value);
-        }*/
 
         contents = node->contents;
         index = search(contents->items, key);
@@ -357,7 +356,7 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
             if(node->casContents(contents, update)){
                 return true;
             } else {
-                results = moveForward(node, key);
+                results = moveForward(node, key, index);
             }
         }
     }
@@ -382,8 +381,6 @@ Contents* cleanLink(Node* node, Contents* contents){
 }
 
 int compare(Key k1, Key k2){
-    //assert(k1.flag != KeyFlag::INF || k2.flag != KeyFlag::INF);
-    
     if(k1.flag == KeyFlag::INF){
         return 1;
     }
@@ -522,9 +519,9 @@ Node* pushRight(Node* node, Key leftBarrier){
     }
 }
 
+static const int avgLength = 32;
+static const int avgLengthMinusOne = 31;
 static const int logAvgLength = 5; // log_2 of the average node length
-static const int avgLength = (1 << logAvgLength);
-static const int avgLengthMinusOne = (avgLength - 1);
 
 template<typename T, int Threads>
 unsigned int MultiwaySearchTree<T, Threads>::randomLevel(){
@@ -562,10 +559,10 @@ int search(Keys* items, Key key){
     }
 
     while(low <= high){
-        int mid = (low + high) >> 1; //TODO check
+        int mid = (low + high) >> 1;
         Key midVal = (*items)[mid];
-        int cmp = compare(key, midVal);
 
+        int cmp = compare(key, midVal);
         if(cmp > 0){
             low = mid + 1;
         } else if(cmp < 0){
@@ -573,6 +570,41 @@ int search(Keys* items, Key key){
         } else {
             return mid;
         }
+    }
+    
+    return -(low + 1); //not found
+}
+
+int searchWithHint(Keys* items, Key key, int hint){
+    int low = 0;
+    int mid = hint;
+    int high = items->length - 1;
+
+    if(low > high){
+        return -1;
+    }
+
+    if((*items)[high].flag == KeyFlag::INF){
+        high--;
+    }
+
+    if(mid > high){
+        mid = (low + high) >> 1;
+    }
+
+    while(low <= high){
+        Key midVal = (*items)[mid];
+
+        int cmp = compare(key, midVal);
+        if(cmp > 0){
+            low = mid + 1;
+        } else if(cmp < 0){
+            high = mid - 1;
+        } else {
+            return mid;
+        }
+
+        mid = (low + high) >> 1;
     }
     
     return -(low + 1); //not found
@@ -599,11 +631,11 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     return root;
 }
 
-Search* moveForward(Node* node, Key key){
+Search* moveForward(Node* node, Key key, int hint){
     while(true){
         Contents* contents = node->contents;
 
-        int index = search(contents->items, key);
+        int index = searchWithHint(contents->items, key, hint);
         if(index > -contents->items->length - 1){
             return new Search(node, contents, index);
         } else {
@@ -807,7 +839,7 @@ Node* splitOneLevel(Key key, Search* results){
         if(node->casContents(contents, left)){
             return right;
         } else {
-            results = moveForward(node, key);
+            results = moveForward(node, key, index);
         }
     }
 }
@@ -829,7 +861,7 @@ bool insertLeafLevel(Key key, Search* results){
             if(node->casContents(contents, update)){
                 return true;
             } else {
-                results = moveForward(node, key);
+                results = moveForward(node, key, index);
             }
         }
     }
@@ -857,7 +889,7 @@ bool beginInsertOneLevel(Key key, Search** resultsStore){
                 resultsStore[0] = newResults;
                 return true;
             } else {
-                results = moveForward(node, key);
+                results = moveForward(node, key, index);
             }
         }
     }
@@ -888,10 +920,10 @@ void insertOneLevel(Key key, Search** resultsStore, Node* child, int target){
                 resultsStore[target] = newResults;
                 return;
             } else {
-                results = moveForward(node, key);
+                results = moveForward(node, key, index);
             }
         } else {
-            results = moveForward(node, key);
+            results = moveForward(node, key, -index - 1);
         }
     }
 }
