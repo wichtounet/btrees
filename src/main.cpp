@@ -184,9 +184,9 @@ void testMT(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    TEST(skiplist::SkipList, "SkipList")
-    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(skiplist::SkipList, "SkipList")
+    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
 }
 

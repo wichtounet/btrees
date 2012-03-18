@@ -218,8 +218,8 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         Search** results = (Search**) calloc(height + 1, sizeof(Search*));
         traverseNonLeaf(key, height, results);
 
-        bool old = beginInsertOneLevel(key, results);
-        if(old){
+        bool inserted = beginInsertOneLevel(key, results);
+        if(!inserted){
             return false;
         }
 
