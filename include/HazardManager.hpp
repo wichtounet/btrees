@@ -1,7 +1,7 @@
 #ifndef HAZARD_MANAGER
 #define HAZARD_MANAGER
 
-template<typename Node, int Threads, int Size = 2>
+template<typename Node, int Threads, int Size = 2, int Prefill = 25>
 class HazardManager {
     public:
         HazardManager();
@@ -22,8 +22,8 @@ class HazardManager {
         bool isReferenced(Node* node);
 };
 
-template<typename Node, int Threads, int Size>
-HazardManager<Node, Threads, Size>::HazardManager(){
+template<typename Node, int Threads, int Size, int Prefill>
+HazardManager<Node, Threads, Size, Prefill>::HazardManager(){
     for(int tid = 0; tid < Threads; ++tid){
         for(int j = 0; j < Size; ++j){
             Pointers[tid][j] = nullptr;
@@ -34,8 +34,8 @@ HazardManager<Node, Threads, Size>::HazardManager(){
     }
 }
 
-template<typename Node, int Threads, int Size>
-HazardManager<Node, Threads, Size>::~HazardManager(){
+template<typename Node, int Threads, int Size, int Prefill>
+HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     for(int tid = 0; tid < Threads; ++tid){
         //No need to delete Hazard Pointers because each thread need to release its published references
 
@@ -61,8 +61,8 @@ HazardManager<Node, Threads, Size>::~HazardManager(){
     }
 }
 
-template<typename Node, int Threads, int Size>
-void HazardManager<Node, Threads, Size>::releaseNode(Node* node){
+template<typename Node, int Threads, int Size, int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     int tid = thread_num;
 
     node->nextNode = nullptr;
@@ -75,8 +75,8 @@ void HazardManager<Node, Threads, Size>::releaseNode(Node* node){
     }
 }
 
-template<typename Node, int Threads, int Size>
-Node* HazardManager<Node, Threads, Size>::getFreeNode(){
+template<typename Node, int Threads, int Size, int Prefill>
+Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
     int tid = thread_num;
 
     Node* node; 
@@ -107,8 +107,8 @@ Node* HazardManager<Node, Threads, Size>::getFreeNode(){
     return new Node();
 }
 
-template<typename Node, int Threads, int Size>
-bool HazardManager<Node, Threads, Size>::isReferenced(Node* node){
+template<typename Node, int Threads, int Size, int Prefill>
+bool HazardManager<Node, Threads, Size, Prefill>::isReferenced(Node* node){
     for(int tid = 0; tid < Threads; ++tid){
         for(int i = 0; i < Size; ++i){
             if(Pointers[tid][i] == node){
@@ -121,13 +121,13 @@ bool HazardManager<Node, Threads, Size>::isReferenced(Node* node){
 }
         
 
-template<typename Node, int Threads, int Size>
-void HazardManager<Node, Threads, Size>::publish(Node* node, int i){
+template<typename Node, int Threads, int Size, int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::publish(Node* node, int i){
     Pointers[thread_num][i] = node;
 }
 
-template<typename Node, int Threads, int Size>
-void HazardManager<Node, Threads, Size>::release(int i){
+template<typename Node, int Threads, int Size, int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::release(int i){
     Pointers[thread_num][i] = nullptr;
 }
 
