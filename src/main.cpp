@@ -16,6 +16,7 @@ __thread unsigned int thread_num;
 #include "nbbst/NBBST.hpp"
 #include "avltree/AVLTree.hpp"
 #include "lfmst/MultiwaySearchTree.hpp"
+#include "cbtree/CBTree.hpp"
 
 //Number of nodes for the tests (for up to 32 threads)
 #define N 1000//00         //A too big number can put nodes in swap
@@ -189,8 +190,9 @@ void test(){
 
     //TEST(skiplist::SkipList, "SkipList")
     //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
+    TEST(cbtree::CBTree, "Counter Based Tree");
 }
 
 template<typename Tree, unsigned int Threads>
