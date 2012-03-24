@@ -445,6 +445,44 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
     }
 }
 
+template<typename T, int Threads>
+bool CBTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
+    assert(!isUnlinked(parent->changeOVL));
+
+    Node* parentL = parent->left;
+    Node* parentR = parent->right;
+
+    if(parentL != node && parentR != node){
+        return false;
+    }
+
+    assert(!isUnlinked(node->changeOVL));
+    assert(parent == node->parent);
+
+    Node* left = node->left;
+    Node* right = node->right;
+    if(left && right){
+        return false;
+    }
+
+    Node* splice = left ? left : right;
+
+    if(parentL == node){
+        parent->left = splice;
+    } else {
+        parent->right = splice;
+    }
+
+    if(splice){
+        splice->parent = parent;
+    }
+
+    node->changeOVL = UnlinkedOVL;
+    node->value = false;
+
+    return true;
+}
+
 } //end of cbtree
 
 #endif
