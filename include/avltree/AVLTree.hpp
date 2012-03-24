@@ -64,6 +64,7 @@ struct Node {
     }
 };
 
+//TODO Use different specialized enum
 enum Result {
     FOUND,
     NOT_FOUND,

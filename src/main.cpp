@@ -7,6 +7,7 @@
 #include <random>
 #include <chrono>
 #include <thread>
+#include <atomic>
 
 //Thread local id
 __thread unsigned int thread_num;

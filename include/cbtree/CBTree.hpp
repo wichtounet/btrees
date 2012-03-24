@@ -3,6 +3,7 @@
 
 #include <climits>
 #include <mutex>
+#include <atomic>
 
 #include "Utils.hpp"
 #include "HazardManager.hpp"
@@ -153,6 +154,7 @@ class CBTree {
 
     private:
         Node* rootHolder;
+        std::atomic<int> logSize;
 
         Result getImpl(int key);
         Result update(int key);
@@ -162,11 +164,18 @@ class CBTree {
         Result attemptUpdate(int key, Node* parent, Node* node, long nodeOVL, int height);
         Result attemptNodeUpdate(bool newValue, Node* parent, Node* node);
         bool attemptUnlink_nl(Node* parent, Node* node);
+
+        /* Balancing */
+        void SemiSplay(Node* child);
+        void RebalanceAtTarget(Node* parent, Node* node);
+        void RebalanceNew(Node* parent, char dirToC);
 };
 
 template<typename T, int Threads>
 CBTree<T, Threads>::CBTree(){
     rootHolder = new Node(INT_MIN, false, nullptr, 0L, nullptr, nullptr); 
+
+    logSize.store(-1);
 
     //TODO init local sizes if necessary
 }
@@ -249,7 +258,14 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
         } else {
             int childCmp = key - child->key;
             if(childCmp == 0){
-                //TODO Rebalance
+                int log_size = logSize.load();
+
+                if(height >= ((log_size << 2))){
+                    SemiSplay(child);
+                } else {
+                    RebalanceAtTarget(node, child);
+                }
+
                 ++child->ncnt;
                 return child->value ? FOUND : NOT_FOUND;
             }
@@ -328,11 +344,18 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
 
     int cmp = key - node->key;
     if(cmp == 0){
-        //TODO Rebalance stuff
+        int log_size = logSize.load();
+
+        if(height >= ((log_size << 2))){
+            SemiSplay(node);
+        } else {
+            RebalanceAtTarget(parent, node);
+        }
+
         ++node->ncnt;
         Result result = attemptNodeUpdate(true, parent, node);
         if(result != RETRY){
-            //increment height
+            //TODO increment height
         }
         return result;
     }
@@ -366,15 +389,20 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                     } else {
                         ++node->rcnt;
                     }
+                    
+                    //TODO increment height
 
-                    //TODO Balancing stuff
-
-                    return NOT_FOUND;
+                    int log_size = logSize.load();
+                    if(height >= ((log_size << 2 ))){
+                       doSemiSplay = true; 
+                    } else {
+                        return NOT_FOUND;
+                    }
                 }
             }
 
             if(doSemiSplay){
-                //SemiSplay(node->child(dirToC));
+                SemiSplay(node->child(dirToC));
                 return NOT_FOUND;
             }
         } else {
@@ -391,7 +419,15 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                 Result vo = attemptUpdate(key, node, child, childOVL, height + 1);
 
                 if(vo != RETRY){
-                    //TODO Balancing stuff
+                    if(vo == NOT_FOUND){
+                        RebalanceNew(node, dirToC);
+                    } else {
+                        if(dirToC == Left){
+                            ++node->lcnt;
+                        } else {
+                            ++node->rcnt;
+                        }
+                    }
 
                     return vo;
                 }
@@ -491,7 +527,7 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
     if(cmp == 0){
         Result res = attemptNodeUpdate(false, parent, node);
         if(res != RETRY){
-            //INC height
+            //TODO INC height
         }
         return res;
     }
@@ -506,7 +542,7 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
         }
 
         if(!child){
-            //Increment height
+            //TODO Increment height
             return NOT_FOUND;
         } else {
             long childOVL = child->changeOVL;
