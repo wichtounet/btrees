@@ -16,13 +16,19 @@ static const char Left = 'L';
 static const char Right = 'R';
 static const char Middle = 'M';
 
+/* Functions */ 
+static const int UpdateAlways = 0;
+static const int UpdateIfAbsent = 1;
+static const int UpdateIfPresent = 2;
+static const int UpdateIfEq = 3;
+
 /* Version stuff */
-static long UnlinkedOVL = 1L;
-static long OVLGrowLockMask = 2L;
-static long OVLShrinkLockMask = 4L;
-static int OVLGrowCountShift = 3;
-static long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
-static long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
+static const long UnlinkedOVL = 1L;
+static const long OVLGrowLockMask = 2L;
+static const long OVLShrinkLockMask = 4L;
+static const int OVLGrowCountShift = 3;
+static const long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
+static const long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
 
 static bool isChanging( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask)) != 0;
@@ -150,6 +156,7 @@ class CBTree {
         Result getImpl(int key);
         Result update(int key);
         Result attemptRemove(int key, Node* parent, Node* node, long nodeOVL, int height); 
+        Result attemptGet(int key, Node* node, char dirToc, long nodeOVL, int height);
 };
 
 template<typename T, int Threads>
@@ -195,6 +202,96 @@ bool CBTree<T, Threads>::remove(T value){
                 }
             }
         }
+    }
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::getImpl(int key){
+    while(true){
+        Node* right = rootHolder->right;
+        if(!right){
+            return NOT_FOUND;
+        } else {
+            int rightCmp = key - right->key;
+            if(rightCmp == 0){
+                return right->value ? FOUND : NOT_FOUND;
+            }
+
+            long ovl = right->changeOVL;
+            if(isShrinkingOrUnlinked(ovl)){
+                right->waitUntilChangeCompleted(ovl);
+            } else if(right == rootHolder->right){
+                Result vo = attemptGet(key, right, (rightCmp < 0 ? Left : Right), ovl, 1);
+                if(vo != RETRY){
+                    return vo;
+                }
+            }
+        }
+    }
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nodeOVL, int height){
+    while(true){
+        Node* child = node->child(dirToC);
+
+        if(!child){
+            if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                return RETRY;
+            }
+
+            return NOT_FOUND;
+        } else {
+            int childCmp = key - child->key;
+            if(childCmp == 0){
+                //TODO Rebalance
+                ++child->ncnt;
+                return child->value ? FOUND : NOT_FOUND;
+            }
+
+            long childOVL = child->changeOVL;
+            if(isShrinkingOrUnlinked(childOVL)){
+                child->waitUntilChangeCompleted(childOVL);
+
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+            } else if(child != node->child(dirToC)){
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+            } else {
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+
+                Result vo = attemptGet(key, child, (childCmp < 0 ? Left : Right), childOVL, height + 1);
+                if(vo != RETRY){
+                    if(vo != NOT_FOUND){
+                        if(dirToC == Left){
+                            ++node->lcnt;
+                        } else {
+                            ++node->rcnt;
+                        }
+                    }
+
+                    return vo;
+                }
+            }
+        }
+    }
+}
+
+static bool shouldUpdate(int func, bool prev, bool expected) {
+    switch (func) {
+        case UpdateAlways:
+            return true;
+        case UpdateIfAbsent:
+            return !prev;
+        case UpdateIfPresent:
+            return !prev;
+        default:
+            return prev == expected; 
     }
 }
 
