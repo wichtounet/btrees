@@ -353,11 +353,7 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
         }
 
         ++node->ncnt;
-        Result result = attemptNodeUpdate(true, parent, node);
-        if(result != RETRY){
-            //TODO increment height
-        }
-        return result;
+        return attemptNodeUpdate(true, parent, node);
     }
 
     char dirToC = cmp < 0 ? Left : Right;
@@ -389,8 +385,6 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                     } else {
                         ++node->rcnt;
                     }
-                    
-                    //TODO increment height
 
                     int log_size = logSize.load();
                     if(height >= ((log_size << 2 ))){
@@ -525,11 +519,7 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
 
     int cmp = key - node->key;
     if(cmp == 0){
-        Result res = attemptNodeUpdate(false, parent, node);
-        if(res != RETRY){
-            //TODO INC height
-        }
-        return res;
+        return attemptNodeUpdate(false, parent, node);
     }
 
     char dirToC = cmp < 0 ? Left : Right;
@@ -542,7 +532,6 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
         }
 
         if(!child){
-            //TODO Increment height
             return NOT_FOUND;
         } else {
             long childOVL = child->changeOVL;
