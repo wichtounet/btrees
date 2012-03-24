@@ -253,8 +253,9 @@ void bench(unsigned int range, unsigned int add, unsigned int remove){
 
     //BENCH(skiplist::SkipList, "SkipList", range, add, remove);
     //BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
-    BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
+    //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
     //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
+    BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
 }
 
 void bench(unsigned int range){
