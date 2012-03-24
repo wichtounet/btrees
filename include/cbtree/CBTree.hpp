@@ -8,6 +8,8 @@
 #include "HazardManager.hpp"
 
 namespace cbtree {
+
+typedef std::lock_guard<std::mutex> scoped_lock;
     
 static const int SpinCount = 100;
 static const int OVLBitsBeforeOverflow = 8;
@@ -139,7 +141,6 @@ enum Result {
     RETRY
 };
 
-
 template<typename T, int Threads>
 class CBTree {
     public:
@@ -157,6 +158,10 @@ class CBTree {
         Result update(int key);
         Result attemptRemove(int key, Node* parent, Node* node, long nodeOVL, int height); 
         Result attemptGet(int key, Node* node, char dirToc, long nodeOVL, int height);
+        bool attemptInsertIntoEmpty(int key);
+        Result attemptUpdate(int key, Node* parent, Node* node, long nodeOVL, int height);
+        Result attemptNodeUpdate(bool newValue, Node* parent, Node* node);
+        bool attemptUnlink_nl(Node* parent, Node* node);
 };
 
 template<typename T, int Threads>
@@ -292,6 +297,151 @@ static bool shouldUpdate(int func, bool prev, bool expected) {
             return !prev;
         default:
             return prev == expected; 
+    }
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::update(int key){
+    while(true){
+        Node* right = rootHolder->right;
+        if(!right){
+            if(attemptInsertIntoEmpty(key)){
+                return NOT_FOUND;
+            }
+        } else {
+            long ovl = right->changeOVL;
+            if(isShrinkingOrUnlinked(ovl)){
+                right->waitUntilChangeCompleted(ovl);
+            } else if(right == rootHolder->right){
+                Result vo = attemptUpdate(key, rootHolder, right, ovl, 1);
+                if(vo != RETRY){
+                    return vo;
+                }
+            }
+        }
+    }
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long nodeOVL, int height){
+    assert(nodeOVL != UnlinkedOVL);
+
+    int cmp = key - node->key;
+    if(cmp == 0){
+        //TODO Rebalance stuff
+        ++node->ncnt;
+        Result result = attemptNodeUpdate(true, parent, node);
+        if(result != RETRY){
+            //increment height
+        }
+        return result;
+    }
+
+    char dirToC = cmp < 0 ? Left : Right;
+
+    while(true){
+        Node* child = node->child(dirToC);
+
+        if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+            return RETRY;
+        }
+
+        if(!child){
+            bool doSemiSplay = false;
+
+            {
+                scoped_lock lock(node->lock);
+        
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+
+                if(node->child(dirToC)){
+                    //retry
+                } else {
+                    node->setChild(dirToC, new Node(key, true, node, 0L, nullptr, nullptr));
+
+                    if(dirToC == Left){
+                        ++node->lcnt;
+                    } else {
+                        ++node->rcnt;
+                    }
+
+                    //TODO Balancing stuff
+
+                    return NOT_FOUND;
+                }
+            }
+
+            if(doSemiSplay){
+                //SemiSplay(node->child(dirToC));
+                return NOT_FOUND;
+            }
+        } else {
+            long childOVL = child->changeOVL;
+            if(isShrinkingOrUnlinked(childOVL)){
+                child->waitUntilChangeCompleted(childOVL);
+            } else if(child != node->child(dirToC)){
+                //Retry
+            } else {
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+
+                Result vo = attemptUpdate(key, node, child, childOVL, height + 1);
+
+                if(vo != RETRY){
+                    //TODO Balancing stuff
+
+                    return vo;
+                }
+            }
+        }
+    }
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* node){
+    if(!newValue){
+        if(!node->value){
+            return NOT_FOUND;
+        }
+    }
+
+    if(!newValue && (!node->left || !node->right)){
+        bool prev;
+        scoped_lock parentLock(parent->lock);
+
+        if(isUnlinked(parent->changeOVL) || node->parent != parent){
+            return RETRY;
+        }
+
+        scoped_lock lock(node->lock);
+        prev = node->value;
+        if(!prev){
+            return NOT_FOUND;
+        }
+
+        if(!attemptUnlink_nl(parent, node)){
+            return RETRY;
+        }
+
+        return FOUND;
+    } else {
+        scoped_lock lock(node->lock);
+
+        if(isUnlinked(node->changeOVL)){
+            return RETRY;
+        }
+
+        bool prev = node->value;
+
+        if(!newValue && (!node->left || !node->right)){
+            return RETRY;
+        }
+
+        node->value = newValue;
+        return prev ? FOUND : NOT_FOUND;
     }
 }
 
