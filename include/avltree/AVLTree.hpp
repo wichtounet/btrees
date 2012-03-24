@@ -298,13 +298,12 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                         node->setChild(cmp, newNode);
 
                         success = true;
-
                         damaged = fixHeight_nl(node);
                     }
                 }
 
                 if(success){
-                    //fixHeightAndRebalance(damaged);
+                    fixHeightAndRebalance(damaged);
                     return updateResult(func, nullptr);
                 }
             }
@@ -370,7 +369,7 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
             damaged = fixHeight_nl(parent);
         }
 
-        //fixHeightAndRebalance(damaged);
+        fixHeightAndRebalance(damaged);
 
         return updateResult(func, prev);
     } else {
@@ -439,34 +438,27 @@ int nodeCondition(Node* node){
 
 template<typename T, int Threads>
 void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
-    while(node->parent){
+    while(node && node->parent){
         int condition = nodeCondition(node);
         if(condition == NothingRequired || isUnlinked(node->version)){
             //Nothing to do or not point in fixing this node
             return;
         }
 
-        Node* next;
         if(condition != UnlinkRequired && condition != RebalanceRequired){
             scoped_lock lock(node->lock);
 
-            next = attemptFixHeight_nl(node);
+            node = fixHeight_nl(node);
         } else {
             Node* nParent = node->parent;
-
             scoped_lock lock(nParent->lock);
-            if(nParent != node->parent){
-                next = nullptr; //Retry
-            } else {
-                scoped_lock lock(node->lock);
-                next = attemptFixOrRebalance_nl(nParent, node);
+
+            if(!isUnlinked(nParent->version) && node->parent == nParent){
+                scoped_lock nodeLock(node->lock);
+
+                node = attemptFixOrRebalance_nl(nParent, node);
             }
         }
-
-        if(next){
-            node = next;
-        }
-        //else retry
     }
 }
 
