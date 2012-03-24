@@ -59,6 +59,9 @@ void testST(const std::string& name){
     
     T tree;
 
+    //TODO Make some remove when the tree is empty
+    //TODO Make some contains when the tree is empty
+
     //Insert sequential numbers
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
@@ -186,8 +189,8 @@ void test(){
 
     //TEST(skiplist::SkipList, "SkipList")
     //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
-    TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
+    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
 }
 
 template<typename Tree, unsigned int Threads>
