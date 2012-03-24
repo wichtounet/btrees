@@ -50,7 +50,7 @@ struct Node {
 
     Node* nextNode; //For hazard pointer chaining
 
-    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
+    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr), nextNode(nullptr) {};
 };
 
 struct IInfo : public Info {
