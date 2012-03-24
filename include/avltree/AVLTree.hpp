@@ -9,14 +9,6 @@ namespace avltree {
 
 typedef std::lock_guard<std::mutex> scoped_lock;
 
-/*static long Unlinked = 0x1L;
-static long Growing = 0x2L;
-static long GrowCountIncr = 1L << 3;
-static long GrowCountMask = 0xFFL << 3;
-static long Shrinking = 0x4L;
-static long ShrinkCountIncr = 1L << 11;
-static long IgnoreGrow = ~(Growing | GrowCountMask);*/
-
 static int SpinCount = 100;
 
 long beginChange(long ovl) { return ovl | 1; }
@@ -30,6 +22,11 @@ bool isShrinkingOrUnlinked(long ovl) { return (ovl & 3) != 0L; }
 static const int UnlinkRequired = -1;
 static const int RebalanceRequired = -2;
 static const int NothingRequired = -3;
+
+enum Function {
+    UpdateIfPresent, 
+    UpdateIfAbsent
+};
 
 struct Node {
     int height;
@@ -86,25 +83,17 @@ class AVLTree {
     private:
         Node* rootHolder;
 
-        /*Result attemptGet(int key, Node* node, int dir, long nodeV);
-        Result attemptPut(int key, Node* node, int dir, long nodeV);
-        Result attemptInsert(int key, Node* node, int dir, long nodeV);
-        Result attemptRemove(int key, Node* node, int dir, long nodeV);
-        Result attemptRmNode(Node* parent, Node * node);
-        Result attemptUpdate(Node* node);
-        bool canUnlink(Node* n);
-        */
-        
+        //Search
         Result attemptGet(int key, Node* node, int dir, long nodeV);
 
         /* Update stuff  */
-        Result update(int key, int func, bool expected, bool newValue);
-        Result updateUnderRoot(int key, int func, bool expected, bool newValue, Node* holder);
+        Result updateUnderRoot(int key, Function func, bool expected, bool newValue, Node* holder);
         bool attemptInsertIntoEmpty(int key, bool value, Node* holder);
-        Result attemptUpdate(int key, int func, bool expected, bool newValue, Node* parent, Node* node, long nodeOVL);
-        Result attemptNodeUpdate(int func, bool expected, bool newValue, Node* parent, Node* node);
-
+        Result attemptUpdate(int key, Function func, bool expected, bool newValue, Node* parent, Node* node, long nodeOVL);
+        Result attemptNodeUpdate(Function func, bool expected, bool newValue, Node* parent, Node* node);
         bool attemptUnlink_nl(Node* parent, Node* node);
+        
+        /* To wait during shrinking  */
         void waitUntilNotChanging(Node* node);
         
         /* Rebalancing stuff  */
@@ -202,48 +191,30 @@ Result AVLTree<T, Threads>::attemptGet(int key, Node* node, int dir, long nodeV)
     }
 }
 
-static const int UpdateAlways = 0;
-static const int UpdateIfAbsent = 1;
-static const int UpdateIfPresent = 2;
-//static const int UpdateIfEq = 3; //Used for replacement
-
-bool shouldUpdate(int func, bool prev, bool expected){
-    switch(func){
-        case UpdateAlways: return true;
-        case UpdateIfAbsent: return !prev;
-        case UpdateIfPresent: return prev;
-    }
+inline bool shouldUpdate(Function func, bool prev, bool/* expected*/){
+    return func == UpdateIfAbsent ? !prev : prev;
 }
 
-Result updateResult(int func, bool prev){
+inline Result updateResult(Function func, bool/* prev*/){
     return func == UpdateIfAbsent ? NOT_FOUND : FOUND;
 }
 
-Result noUpdateResult(int func, bool prev){
+inline Result noUpdateResult(Function func, bool/* prev*/){
     return func == UpdateIfAbsent ? FOUND : NOT_FOUND;
 }
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::add(T value){
-    //return attemptPut(hash(value), rootHolder, 1, 0) == NOT_FOUND;//Check the return value
-
-    return update(hash(value), UpdateIfAbsent, false, true) == NOT_FOUND;
+    return updateUnderRoot(hash(value), UpdateIfAbsent, false, true, rootHolder) == NOT_FOUND;
 }
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::remove(T value){
-    //return attemptRemove(hash(value), rootHolder, 1, 0) == FOUND;
-
-    return update(hash(value), UpdateIfPresent, true, false) == FOUND;
+    return updateUnderRoot(hash(value), UpdateIfPresent, true, false, rootHolder) == FOUND;
 }
 
 template<typename T, int Threads>
-Result AVLTree<T, Threads>::update(int key, int func, bool expected, bool newValue){
-    return updateUnderRoot(key, func, expected, newValue, rootHolder);
-}
-
-template<typename T, int Threads>
-Result AVLTree<T, Threads>::updateUnderRoot(int key, int func, bool expected, bool newValue, Node* holder){
+Result AVLTree<T, Threads>::updateUnderRoot(int key, Function func, bool expected, bool newValue, Node* holder){
     while(true){
         Node* right = holder->right;
 
@@ -272,8 +243,6 @@ Result AVLTree<T, Threads>::updateUnderRoot(int key, int func, bool expected, bo
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* holder){
-    assert(value);//TODO Remove that later
-
     scoped_lock lock(holder->lock);
 
     if(!holder->right){
@@ -287,7 +256,7 @@ bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* hold
 }
 
 template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptUpdate(int key, int func, bool expected, bool newValue, Node* parent, Node* node, long nodeOVL){
+Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected, bool newValue, Node* parent, Node* node, long nodeOVL){
     assert(nodeOVL != UnlinkedOVL);
 
     int cmp = key - node->key;
@@ -361,7 +330,7 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, int func, bool expected, bool
 }
 
 template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptNodeUpdate(int func, bool expected, bool newValue, Node* parent, Node* node){
+Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool newValue, Node* parent, Node* node){
     if(!newValue){
         if(!node->value){
             //TODO CHECK
@@ -424,180 +393,6 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(int func, bool expected, bool newV
         return updateResult(func, prev);
     }
 }
-
-
-
-
-/*template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptPut(int key, Node* node, int dir, long nodeV){
-    Result p = RETRY;
-
-    do {
-        Node* child = node->child(dir);
-        
-        if(((node->version^nodeV) & IgnoreGrow) != 0){
-            return RETRY;
-        }
-
-        if(!child){
-            p = attemptInsert(key, node, dir, nodeV);
-        } else {
-            assert(child);
-
-            int nextD = key - child->key;
-
-            if(nextD == 0){
-                p = attemptUpdate(child);
-            } else {
-                long chV = child->version;
-
-                if((chV & Shrinking) != 0){
-                    waitUntilNotChanging(child);
-                } else if(chV != Unlinked && child == node->child(dir)){
-                    if(((node->version ^ nodeV) & IgnoreGrow) != 0){
-                        return RETRY;
-                    }
-
-                    p = attemptPut(key, child, nextD, chV);
-                }
-            }
-        }
-    } while(p == RETRY);
-
-    return p;
-}
-
-template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptUpdate(Node* node){
-    scoped_lock lock(node->lock);
-
-    if(node->version == Unlinked){
-        return RETRY;
-    }
-
-    node->value = true;
-
-    return NOT_FOUND;
-}
-
-template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptInsert(int key, Node* node, int dir, long nodeV){
-    node->lock.lock();
-
-    if(((node->version ^ nodeV) & IgnoreGrow) != 0 || node->child(dir)){
-        node->lock.unlock();
-
-        return RETRY;
-    }
-
-    Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
-    newNode->value = true;
-    node->setChild(dir, newNode);
-
-    node->lock.unlock();
-
-    fixHeightAndRebalance(node);
-
-    return NOT_FOUND;
-}*/
-
-/*template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptRemove(int key, Node* node, int dir, long nodeV){
-    Result p = RETRY;
-
-    do {
-        Node* child = node->child(dir);
-        
-        if(((node->version^nodeV) & IgnoreGrow) != 0){
-            return RETRY;
-        }
-
-        if(!child){
-            return NOT_FOUND;
-        } else {
-            int nextD = key - child->key;
-
-            if(nextD == 0){
-                p = attemptRmNode(node, child);
-            } else {
-                long chV = child->version;
-
-                if((chV & Shrinking) != 0){
-                    waitUntilNotChanging(child);
-                } else if(chV != Unlinked && child == node->child(dir)){
-                    if(((node->version ^ nodeV) & IgnoreGrow) != 0){
-                        return RETRY;
-                    }
-
-                    p = attemptRemove(key, child, nextD, chV);
-                }
-            }
-        }
-    } while(p == RETRY);
-
-    return p;
-}
-
-template<typename T, int Threads>
-Result AVLTree<T, Threads>::attemptRmNode(Node* parent, Node * node){
-    if(!node->value){
-        return NOT_FOUND;
-    }
-
-    //bool prev;
-    if(!canUnlink(node)){
-        scoped_lock lock(node->lock); 
-
-        if(node->version == Unlinked || canUnlink(node)){
-            return RETRY;
-        }
-
-        //prev = node->value;
-        node->value = false;
-    } else {
-        parent->lock.lock();
-
-        if(parent->version == Unlinked || node->parent != parent || node->version == Unlinked){
-            parent->lock.unlock();
-
-            return RETRY;
-        }
-
-        node->lock.lock();
-
-        //prev = node->value;
-        node->value = false;
-
-        if(canUnlink(node)){
-            Node* c = !node->left ? node->right : node->left;
-
-            if(parent->left == node){
-                parent->left = c;
-            } else {
-                parent->right = c;
-            }
-
-            if(c){
-                c->parent = parent;
-            }
-
-            node->version = Unlinked;
-        }
-
-        node->lock.unlock();
-        parent->lock.unlock();
-
-        fixHeightAndRebalance(parent);
-    }
-
-    return FOUND;
-    //return prev ? FOUND : NOT_FOUND;
-}*/
-
-/*template<typename T, int Threads>
-bool AVLTree<T, Threads>::canUnlink(Node* n){
-    return !n->left || !n->right;
-}*/
 
 template<typename T, int Threads>
 void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
