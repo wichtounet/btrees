@@ -203,7 +203,7 @@ bool CBTree<T, Threads>::remove(T value){
                 Result vo = attemptRemove(key, rootHolder, right, ovl, 1);
 
                 if(vo != RETRY){
-                    return vo == NOT_FOUND ? true : false;
+                    return vo == FOUND ? true : false;
                 }
             }
         }
@@ -481,6 +481,64 @@ bool CBTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
     node->value = false;
 
     return true;
+}
+
+template<typename T, int Threads>
+Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long nodeOVL, int height){
+    assert(nodeOVL != UnlinkedOVL);
+
+    int cmp = key - node->key;
+    if(cmp == 0){
+        Result res = attemptNodeUpdate(false, parent, node);
+        if(res != RETRY){
+            //INC height
+        }
+        return res;
+    }
+
+    char dirToC = cmp < 0 ? Left : Right;
+
+    while(true){
+        Node* child = node->child(dirToC);
+
+        if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+            return RETRY;
+        }
+
+        if(!child){
+            //Increment height
+            return NOT_FOUND;
+        } else {
+            long childOVL = child->changeOVL;
+
+            if(isShrinkingOrUnlinked(childOVL)){
+                child->waitUntilChangeCompleted(childOVL);
+            } else if(child != node->child(dirToC)){
+                //Retry
+            } else {
+                if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    return RETRY;
+                }
+
+                Result vo = attemptRemove(key, node, child, childOVL, height + 1);
+                if(vo != RETRY){
+                    return vo;
+                }
+            }
+        }
+    }
+}
+
+template<typename T, int Threads>
+bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
+   scoped_lock lock(rootHolder->lock);
+   
+   if(!rootHolder->right){
+        rootHolder->right = new Node(key, true, rootHolder, 0L, nullptr, nullptr);
+        return true;
+   } else {
+        return false;
+   }
 }
 
 } //end of cbtree
