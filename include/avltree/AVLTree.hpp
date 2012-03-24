@@ -97,20 +97,23 @@ class AVLTree {
         void waitUntilNotChanging(Node* node);
         
         /* Rebalancing stuff  */
-        Node* attemptFixHeight_nl(Node* node);
         void fixHeightAndRebalance(Node* node);
-        Node* attemptFixOrRebalance_nl(Node* nParent, Node* n);
-        bool attemptBalanceLeft_nl(Node* nParent, Node* n, Node* nR, int hL0);
-        bool attemptBalanceRight_nl(Node* nParent, Node* n, Node* nL, int hR0);
+        Node* rebalance_nl(Node* nParent, Node* n);
+        Node* rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0);
+        Node* rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0);
 
         /* Rotation stuff */        
-        void rotateRight(Node* nParent, Node* n, Node* nL, int hR, Node* nLR, int hLR);
-        void rotateLeft(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL);
-        void rotateRightOverLeft(Node* nParent, Node* n, Node* nL, int hR, Node* nLR);
-        void rotateLeftOverRight(Node* nParent, Node* n, int hL, Node* nR, Node* nRL);
+        /*void rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, Node* nLR, int hLR);
+        void rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL);
+        void rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, Node* nLR);
+        void rotateLeftOverRight_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL);*/
+        
+        Node* rotateLeftOverRight_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRR, int hRLR);
+        Node* rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLRL);
+        Node* rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL, int hRR);
+        Node* rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLR);
 };
 
-bool fixHeight(Node* n);
 Node* fixHeight_nl(Node* n);
 
 template<typename T, int Threads>
@@ -441,7 +444,6 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
     while(node && node->parent){
         int condition = nodeCondition(node);
         if(condition == NothingRequired || isUnlinked(node->version)){
-            //Nothing to do or not point in fixing this node
             return;
         }
 
@@ -456,38 +458,9 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
             if(!isUnlinked(nParent->version) && node->parent == nParent){
                 scoped_lock nodeLock(node->lock);
 
-                node = attemptFixOrRebalance_nl(nParent, node);
+                node = rebalance_nl(nParent, node);
             }
         }
-    }
-}
-
-template<typename T, int Threads>
-Node* AVLTree<T, Threads>::attemptFixHeight_nl(Node* node){
-    int c = nodeCondition(node);
-
-    switch(c){
-        case RebalanceRequired:
-        case UnlinkRequired:
-            return nullptr;
-        case NothingRequired:
-            return rootHolder;
-        default:
-            node->height = c;
-            return node->parent;
-    }
-}
-
-bool fixHeight(Node* n){
-    int hL = height(n->left);
-    int hR = height(n->right);
-    int hRepl = 1 + std::max(hL, hR);
-
-    if(hRepl != n->height){
-        n->height = hRepl;
-        return true;
-    } else {
-        return false;
     }
 }
 
@@ -507,12 +480,16 @@ Node* fixHeight_nl(Node* node){
 }
         
 template<typename T, int Threads>
-Node* AVLTree<T, Threads>::attemptFixOrRebalance_nl(Node* nParent, Node* n){
+Node* AVLTree<T, Threads>::rebalance_nl(Node* nParent, Node* n){
     Node* nL = n->left;
     Node* nR = n->right;
 
     if((!nL || !nR) && !n->value){
-        return attemptUnlink_nl(nParent, n) ? nParent : nullptr;
+        if(attemptUnlink_nl(nParent, n)){
+            return fixHeight_nl(nParent);
+        } else {
+            return n;
+        }
     }
     
     int hN = n->height;
@@ -522,81 +499,92 @@ Node* AVLTree<T, Threads>::attemptFixOrRebalance_nl(Node* nParent, Node* n){
     int bal = hL0 - hR0;
 
     if(bal > 1){
-        if(!attemptBalanceRight_nl(nParent, n, nL, hR0)){
-            return nullptr;
-        }
+        return rebalanceToRight_nl(nParent, n, nL, hR0);
     } else if(bal < -1){
-        if(!attemptBalanceLeft_nl(nParent, n, nR, hL0)){
-            return nullptr;
-        }
+        return rebalanceToLeft_nl(nParent, n, nR, hL0);
     } else if(hNRepl != hN) {
         n->height = hNRepl;
-    } else {
-        return rootHolder;
-    }
 
-    return fixHeight(nParent) ? nParent : rootHolder;
+        return fixHeight_nl(nParent);
+    } else {
+        return nullptr;
+    }
 }
 
 template<typename T, int Threads>
-bool AVLTree<T, Threads>::attemptBalanceRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
+Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
     scoped_lock lock(nL->lock);
 
     int hL = nL->height;
     if(hL - hR0 <= 1){
-        return false;
+        return n;
     } else {
         Node* nLR = nL->right;
+        int hLL0 = height(nL->left);
         int hLR0 = height(nLR);
 
-        if(height(nL->left) >= hLR0){
-            rotateRight(nParent, n, nL, hR0, nLR, hLR0);
+        if(hLL0 > hLR0){
+            return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR0);
         } else {
-            scoped_lock lock(nLR->lock);
+            {
+                scoped_lock subLock(nLR->lock);
 
-            int hLR = nLR->height;
-            if(height(nL->left) >= hLR){
-                rotateRight(nParent, n, nL, hR0, nLR, hLR);
-            } else {
-                rotateRightOverLeft(nParent, n, nL, hR0, nLR);
+                int hLR = nLR->height;
+                if(hLL0 >= hLR){
+                    return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR);
+                } else {
+                    int hLRL = height(nLR->left);
+                    int b = hLL0 - hLRL;
+                    if(b >= -1 && b <= 1){
+                        return rotateRightOverLeft_nl(nParent, n, nL, hR0, hLL0, nLR, hLRL);
+                    }
+                }
             }
-        }
 
-        return true;
+            return rebalanceToLeft_nl(n, nL, nLR, hLL0);
+        }
     }
 }
 
 template<typename T, int Threads>
-bool AVLTree<T, Threads>::attemptBalanceLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
+Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
     scoped_lock lock(nR->lock);
 
     int hR = nR->height;
     if(hL0 - hR >= -1){
-        return false;
+        return n;
     } else {
         Node* nRL = nR->left;
         int hRL0 = height(nRL);
+        int hRR0 = height(nR->right);
 
-        if(height(nR->right) >= hRL0){
-            rotateLeft(nParent, n, hL0, nR, nRL, hRL0);
+        if(hRR0 >= hRL0){
+            return rotateLeft_nl(nParent, n, hL0, nR, nRL, hRL0, hRR0);
         } else {
-            scoped_lock lock(nRL->lock);
+            {
+                scoped_lock subLock(nRL->lock);
 
-            int hRL = nRL->height;
-            if(height(nR->right) >= hRL){
-                rotateLeft(nParent, n, hL0, nR, nRL, hRL);
-            } else {
-                rotateLeftOverRight(nParent, n, hL0, nR, nRL);
+                int hRL = nRL->height;
+                if(hRR0 >= hRL){
+                    return rotateLeft_nl(nParent, n, hL0, nR, nRL, hRL, hRR0);
+                } else {
+                    int hRLR = height(nRL->right);
+                    int b = hRR0 - hRLR;
+                    if(b >= -1 && b <= 1){
+                        return rotateLeftOverRight_nl(nParent, n, hL0, nR, nRL, hRR0, hRLR);
+                    }
+                }
             }
-        }
 
-        return true;
+            return rebalanceToRight_nl(n, nR, nRL, hRR0);
+        }
     }
 }
         
 template<typename T, int Threads>
-void AVLTree<T, Threads>::rotateRight(Node* nParent, Node* n, Node* nL, int hR, Node* nLR, int hLR){
+Node* AVLTree<T, Threads>::rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLR){
     long nodeOVL = n->version;
+    Node* nPL = nParent->left;
     n->version = beginChange(nodeOVL);
 
     n->left = nLR;
@@ -607,7 +595,7 @@ void AVLTree<T, Threads>::rotateRight(Node* nParent, Node* n, Node* nL, int hR, 
     nL->right = n;
     n->parent = nL;
 
-    if(nParent->left == n){
+    if(nPL == n){
         nParent->left = nL;
     } else {
         nParent->right = nL;
@@ -616,14 +604,27 @@ void AVLTree<T, Threads>::rotateRight(Node* nParent, Node* n, Node* nL, int hR, 
 
     int hNRepl = 1 + std::max(hLR, hR);
     n->height = hNRepl;
-    nL->height = 1 + std::max(height(nL->left), hNRepl);
+    nL->height = 1 + std::max(hLL, hNRepl);
 
     n->version = endChange(nodeOVL);
+
+    int balN = hLR - hR;
+    if(balN < -1 || balN > 1){
+        return n;
+    }
+
+    int balL = hLL - hNRepl;
+    if(balL < -1 || balL > 1){
+        return nL;
+    }
+
+    return fixHeight_nl(nParent);
 }
 
 template<typename T, int Threads>
-void AVLTree<T, Threads>::rotateLeft(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL){
+Node* AVLTree<T, Threads>::rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL, int hRR){
     long nodeOVL = n->version;
+    Node* nPL = nParent->left;
     n->version = beginChange(nodeOVL);
 
     n->right = nRL;
@@ -634,30 +635,44 @@ void AVLTree<T, Threads>::rotateLeft(Node* nParent, Node* n, int hL, Node* nR, N
     nR->left = n;
     n->parent = nR;
 
-    if(nParent->left == n){
+    if(nPL == n){
         nParent->left = nR;
     } else {
         nParent->right = nR;
     }
-
     nR->parent = nParent;
 
     int hNRepl = 1 + std::max(hL, hRL);
     n->height = hNRepl;
-    nR->height = 1 + std::max(hNRepl, height(nR->right));
+    nR->height = 1 + std::max(hNRepl, hRR);
 
     n->version = endChange(nodeOVL);
+
+    int balN = hRL - hL;
+    if(balN < -1 || balN > 1){
+        return n;
+    }
+
+    int balR = hRR - hNRepl;
+    if(balR < -1 || balR > 1){
+        return nR;
+    }
+
+    return fixHeight_nl(nParent);
 }
 
 template<typename T, int Threads>
-void AVLTree<T, Threads>::rotateRightOverLeft(Node* nParent, Node* n, Node* nL, int hR, Node* nLR){
+Node* AVLTree<T, Threads>::rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLRL){
     long nodeOVL = n->version;
     long leftOVL = nL->version;
-    n->version = beginChange(nodeOVL);
-    nL->version = beginChange(leftOVL);
 
+    Node* nPL = nParent->left;
     Node* nLRL = nLR->left;
     Node* nLRR = nLR->right;
+    int hLRR = height(nLRR);
+
+    n->version = beginChange(nodeOVL);
+    nL->version = beginChange(leftOVL);
 
     n->left = nLRR;
     if(nLRR){
@@ -674,35 +689,51 @@ void AVLTree<T, Threads>::rotateRightOverLeft(Node* nParent, Node* n, Node* nL, 
     nLR->right = n;
     n->parent = nLR;
 
-    if(nParent->left == n){
+    if(nPL == n){
         nParent->left = nLR;
     } else {
         nParent->right = nLR;
     }
     nLR->parent = nParent;
 
-    int hNRepl = 1 + std::max(height(nLRR), hR);
+    int hNRepl = 1 + std::max(hLRR, hR);
     n->height = hNRepl;
 
-    int hLRepl = 1 + std::max(height(nL->left), height(nLRL));
+    int hLRepl = 1 + std::max(hLL, hLRL);
     nL->height = hLRepl;
 
     nLR->height = 1 + std::max(hLRepl, hNRepl);
 
     n->version = endChange(nodeOVL);
     nL->version = endChange(leftOVL);
+
+    assert(std::abs(hLL - hLRL) <= 1);
+
+    int balN = hLRR - hR;
+    if(balN < -1 || balN > 1){
+        return n;
+    }
+
+    int balLR = hLRepl - hNRepl;
+    if(balLR < -1 || balLR > 1){
+        return nLR;
+    }
+    
+    return fixHeight_nl(nParent);
 }
 
 template<typename T, int Threads>
-void AVLTree<T, Threads>::rotateLeftOverRight(Node* nParent, Node* n, int hL, Node* nR, Node* nRL){
+Node* AVLTree<T, Threads>::rotateLeftOverRight_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRR, int hRLR){
     long nodeOVL = n->version;
     long rightOVL = nR->version;
 
     n->version = beginChange(nodeOVL);
     nR->version = beginChange(rightOVL);
 
+    Node* nPL = nParent->left;
     Node* nRLL = nRL->left;
     Node* nRLR = nRL->right;
+    int hRLL = height(nRLL);
 
     n->right = nRLL;
     if(nRLL){
@@ -719,21 +750,35 @@ void AVLTree<T, Threads>::rotateLeftOverRight(Node* nParent, Node* n, int hL, No
     nRL->left = n;
     n->parent = nRL;
 
-    if(nParent->left == n){
+    if(nPL == n){
         nParent->left = nRL;
     } else {
         nParent->right = nRL;
     }
     nRL->parent = nParent;
 
-    int hNRepl = 1 + std::max(hL, height(nRLL));
+    int hNRepl = 1 + std::max(hL, hRLL);
     n->height = hNRepl;
-    int hRRepl = 1 + std::max(height(nRLR), height(nR->right));
+    int hRRepl = 1 + std::max(hRLR, hRR);
     nR->height = hRRepl;
     nRL->height = 1 + std::max(hNRepl, hRRepl);
 
     n->version = endChange(nodeOVL);
     nR->version = endChange(rightOVL);
+    
+    assert(std::abs(hRR - hRLR) <= 1);
+
+    int balN = hRLL - hL;
+    if(balN < -1 || balN > 1){
+        return n;
+    }
+
+    int balRL = hRRepl - hNRepl;
+    if(balRL < -1 || balRL > 1){
+        return nRL;
+    }
+    
+    return fixHeight_nl(nParent);
 }
 
 template<typename T, int Threads>
