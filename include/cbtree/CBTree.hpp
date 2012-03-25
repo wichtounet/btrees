@@ -146,6 +146,7 @@ class CBTree {
 
         std::atomic<int> size;
         std::atomic<int> logSize;
+        int local_size[Threads];
 
         Result getImpl(int key);
         Result update(int key);
@@ -171,11 +172,14 @@ class CBTree {
 template<typename T, int Threads>
 CBTree<T, Threads>::CBTree(){
     rootHolder = new Node(INT_MIN, false, nullptr, 0L, nullptr, nullptr); 
+    rootHolder->ncnt = INT_MAX;
 
     size.store(0);
     logSize.store(-1);
 
-    //TODO init local sizes if necessary
+    for(int i = 0; i < Threads; ++i){
+        local_size[i] = 0;
+    }
 }
 
 template<typename T, int Threads>
@@ -188,10 +192,31 @@ bool CBTree<T, Threads>::contains(T value){
     return getImpl(hash(value)) == FOUND;
 }
 
+#define NEW_LOG_CALCULATION_THRESHOLD 10 //TODO
+
 template<typename T, int Threads>
 bool CBTree<T, Threads>::add(T value){
     if(update(hash(value)) == NOT_FOUND){
-        //TODO Size and logSize calculations
+        int log_size = logSize.load();
+
+        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
+            int new_size = ++size;
+            int next_log_size = log_size + 1;
+            if(new_size >= (1 << next_log_size)){
+                logSize.compare_exchange_weak(log_size, next_log_size);
+            }
+        } else {
+            ++local_size[thread_num];
+
+            if(local_size[thread_num] >= Threads){
+                int new_size = (size += local_size[thread_num]);
+                local_size[thread_num] = 0;
+                int next_log_size = log_size + 1;
+                if(new_size >= (1 << next_log_size)){
+                    logSize.compare_exchange_weak(log_size, next_log_size);
+                }
+            }
+        }
     
         return true;
     } else {
@@ -216,7 +241,28 @@ bool CBTree<T, Threads>::remove(T value){
                 Result vo = attemptRemove(key, rootHolder, right, ovl, 1);
 
                 if(vo != RETRY){
-                    return vo == FOUND ? true : false;
+                    if(vo == FOUND){
+                        int log_size = logSize.load();
+                        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
+                            int new_size = --size;
+                            if(new_size < (1 << log_size)){
+                                logSize.compare_exchange_weak(log_size, log_size - 1);
+                            }
+                        } else {
+                            --local_size[thread_num];
+                            if(local_size[thread_num] <= -Threads){
+                                int new_size = (size += local_size[thread_num]);
+                                local_size[thread_num] = 0;
+                                if(new_size < (1 << log_size)){
+                                    logSize.compare_exchange_weak(log_size, log_size - 1);
+                                }
+                            }
+                        }
+
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             }
         }
