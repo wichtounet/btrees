@@ -16,13 +16,13 @@ struct Info;
 typedef Info* Update;
 
 struct Info {
-    Node* gp;       //Internal
+    Node* gp;               //Internal
     Node* p;                //Internal
     Node* newInternal;      //Internal
     Node* l;                //Leaf
     Update pupdate;
     
-    Info* nextNode; //For hazard pointer chaining
+    Info* nextNode;         //For hazard pointer chaining
 
     Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr), nextNode(nullptr) {}
 };
@@ -102,7 +102,7 @@ class NBBST {
 
         Node* root;
 
-        HazardManager<Node, Threads, 3> hazard;
+        HazardManager<Node, Threads, 3> nodes;
         HazardManager<Info, Threads, 3> infos;
 };
 
@@ -130,7 +130,7 @@ NBBST<T, Threads>::~NBBST(){
 
 template<typename T, int Threads>
 Node* NBBST<T, Threads>::newInternal(int key){
-    Node* node = hazard.getFreeNode();
+    Node* node = nodes.getFreeNode();
 
     node->internal = true;
     node->key = key;
@@ -140,7 +140,7 @@ Node* NBBST<T, Threads>::newInternal(int key){
 
 template<typename T, int Threads>
 Node* NBBST<T, Threads>::newLeaf(int key){
-    Node* node = hazard.getFreeNode();
+    Node* node = nodes.getFreeNode();
 
     node->internal = false;
     node->key = key;
