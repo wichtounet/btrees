@@ -114,9 +114,7 @@ bool SkipList<T, Threads>::add(T value){
 
     while(true){
         if(find(key, preds, succs)){
-            hazard.release(0);
-            hazard.release(1);
-            hazard.release(2);
+            hazard.releaseAll();
             
             hazard.releaseNode(newElement);
 
@@ -143,9 +141,7 @@ bool SkipList<T, Threads>::add(T value){
                     }
                 }
             
-                hazard.release(0);
-                hazard.release(1);
-                hazard.release(2);
+                hazard.releaseAll();
 
                 return true;
             }
@@ -244,9 +240,7 @@ bool SkipList<T, Threads>::find(int key, Node** preds, Node** succs){
         
 retry:
     //We must do to release after the goto
-    hazard.release(0);
-    hazard.release(1);
-    hazard.release(2);
+    hazard.releaseAll();
     
     pred = head;
     hazard.publish(pred, 0);
@@ -296,9 +290,7 @@ retry:
 
     bool found = curr->key == key;
     
-    hazard.release(0);
-    hazard.release(1);
-    hazard.release(2);
+    hazard.releaseAll();
 
     return found;
 }

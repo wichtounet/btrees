@@ -10,8 +10,21 @@ enum UpdateState {
     MARK  = 3
 };
 
-struct Info {
+struct Node;
 
+struct Info;
+typedef Info* Update;
+
+struct Info {
+    Node* gp;       //Internal
+    Node* p;                //Internal
+    Node* newInternal;      //Internal
+    Node* l;                //Leaf
+    Update pupdate;
+    
+    Info* nextNode; //For hazard pointer chaining
+
+    Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr), nextNode(nullptr) {}
 };
 
 typedef Info* Update; 
@@ -53,23 +66,6 @@ struct Node {
     Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr), nextNode(nullptr) {};
 };
 
-struct IInfo : public Info {
-    Node* p;                //Internal
-    Node* newInternal;      //Internal
-    Node* l;                //Leaf
-
-    IInfo(Node* p, Node* newInternal, Node* l) : p(p), newInternal(newInternal), l(l) {}
-};
-
-struct DInfo : public Info {
-    Node* gp;       //Internal
-    Node* p;        //Internal
-    Node* l;        //Leaf
-    Update pupdate;
-
-    DInfo(Node* gp, Node* p, Node* l, Update pupdate) : gp(gp), p(p), l(l), pupdate(pupdate) {}
-};
-
 struct SearchResult {
     Node* gp;       //Internal
     Node* p;        //Internal
@@ -92,18 +88,22 @@ class NBBST {
 
     private:
         void Search(int key, SearchResult* result);      
-        void HelpInsert(IInfo* op);
-        bool HelpDelete(DInfo* op);
-        void HelpMarked(DInfo* op);
+        void HelpInsert(Info* op);
+        bool HelpDelete(Info* op);
+        void HelpMarked(Info* op);
         void Help(Update u);
         void CASChild(Node* parent, Node* old, Node* newNode);
 
         Node* newInternal(int key);
         Node* newLeaf(int key);
 
+        Info* newIInfo(Node* p, Node* newInternal, Node* l);
+        Info* newDInfo(Node* gp, Node* p, Node* l, Update pupdate);
+
         Node* root;
 
         HazardManager<Node, Threads, 3> hazard;
+        HazardManager<Info, Threads, 3> infos;
 };
 
 template<typename T, int Threads>
@@ -147,6 +147,29 @@ Node* NBBST<T, Threads>::newLeaf(int key){
 
     return node;
 }
+        
+template<typename T, int Threads>
+Info* NBBST<T, Threads>::newIInfo(Node* p, Node* newInternal, Node* l){
+    Info* info = infos.getFreeNode();
+
+    info->p = p;
+    info->newInternal = newInternal;
+    info->l = l;
+
+    return info;
+}
+
+template<typename T, int Threads>
+Info* NBBST<T, Threads>::newDInfo(Node* gp, Node* p, Node* l, Update pupdate){
+    Info* info = infos.getFreeNode();
+
+    info->gp = gp;
+    info->p = p;
+    info->l = l;
+    info->pupdate = pupdate;
+
+    return info;
+}
 
 template<typename T, int Threads>
 void NBBST<T, Threads>::Search(int key, SearchResult* result){
@@ -189,8 +212,12 @@ bool NBBST<T, Threads>::add(T value){
     while(true){
         Search(key, &search);
 
+        //hazard.publish(search.l, 0);
+
         if(search.l->key == key){
-            delete newNode;
+            //hazard.releaseAll();
+
+            //hazard.releaseNode(newNode);
 
             return false; //Key already in the set
         }
@@ -211,16 +238,20 @@ bool NBBST<T, Threads>::add(T value){
                 newInt->right = newNode;
             }
 
-            IInfo* op = new IInfo(search.p, newInt, search.l);
+            Info* op = newIInfo(search.p, newInt, search.l);
 
             Update result = search.p->update;
             if(CASPTR(&search.p->update, search.pupdate, Mark(op, IFLAG))){
                 HelpInsert(op);
+
+          //      hazard.releaseAll();
+
                 return true;
             } else {
-                delete newSibling;
-                delete newInt;
-                delete op;
+          //      hazard.releaseNode(newInt);
+          //      hazard.releaseNode(newSibling);
+                
+          //      delete op;
 
                 Help(result);
             }
@@ -229,7 +260,7 @@ bool NBBST<T, Threads>::add(T value){
 }
 
 template<typename T, int Threads>
-void NBBST<T, Threads>::HelpInsert(IInfo* op){
+void NBBST<T, Threads>::HelpInsert(Info* op){
     CASChild(op->p, op->l, op->newInternal);
     CASPTR(&op->p->update, Mark(op, IFLAG), Mark(op, CLEAN));
 }
@@ -252,7 +283,7 @@ bool NBBST<T, Threads>::remove(T value){
         } else if(getState(search.pupdate) != CLEAN){
             Help(search.pupdate);
         } else {
-            DInfo* op = new DInfo(search.gp, search.p, search.l, search.pupdate);
+            Info* op = newDInfo(search.gp, search.p, search.l, search.pupdate);
 
             Update result = search.gp->update;
             if(CASPTR(&search.gp->update, search.gpupdate, Mark(op, DFLAG))){
@@ -267,12 +298,12 @@ bool NBBST<T, Threads>::remove(T value){
 }
 
 template<typename T, int Threads>
-bool NBBST<T, Threads>::HelpDelete(DInfo* op){
+bool NBBST<T, Threads>::HelpDelete(Info* op){
     Update result = op->p->update;
 
     //If we succeed or if another has succeeded for us
     if(CASPTR(&op->p->update, op->pupdate, Mark(op, MARK)) || (getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op))){
-        HelpMarked(static_cast<DInfo*>(Unmark(op)));
+        HelpMarked(static_cast<Info*>(Unmark(op)));
         return true;
     } else {
         Help(result);
@@ -282,7 +313,7 @@ bool NBBST<T, Threads>::HelpDelete(DInfo* op){
 }
 
 template<typename T, int Threads>
-void NBBST<T, Threads>::HelpMarked(DInfo* op){
+void NBBST<T, Threads>::HelpMarked(Info* op){
     Node* other;
 
     if(op->p->right == op->l){
@@ -292,18 +323,17 @@ void NBBST<T, Threads>::HelpMarked(DInfo* op){
     }
 
     CASChild(op->gp, op->p, other);
-
     CASPTR(&op->gp->update, Mark(op, DFLAG), Mark(op, CLEAN));
 }
 
 template<typename T, int Threads>
 void NBBST<T, Threads>::Help(Update u){
     if(getState(u) == IFLAG){
-        HelpInsert(static_cast<IInfo*>(Unmark(u)));
+        HelpInsert(static_cast<Info*>(Unmark(u)));
     } else if(getState(u) == MARK){
-        HelpMarked(static_cast<DInfo*>(Unmark(u)));
+        HelpMarked(static_cast<Info*>(Unmark(u)));
     } else if(getState(u) == DFLAG){
-        HelpDelete(static_cast<DInfo*>(Unmark(u)));
+        HelpDelete(static_cast<Info*>(Unmark(u)));
     }
 }
         

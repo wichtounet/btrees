@@ -14,6 +14,7 @@ class HazardManager {
         /* Manage references  */
         void publish(Node* node, int i);
         void release(int i);
+        void releaseAll();
 
     private:
         Node* Pointers[Threads][Size];
@@ -198,6 +199,13 @@ void HazardManager<Node, Threads, Size, Prefill>::publish(Node* node, int i){
 template<typename Node, int Threads, int Size, int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::release(int i){
     Pointers[thread_num][i] = nullptr;
+}
+
+template<typename Node, int Threads, int Size, int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::releaseAll(){
+    for(int i = 0; i < Size; ++i){
+        Pointers[thread_num][i] = nullptr;
+    }
 }
 
 #endif
