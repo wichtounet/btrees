@@ -303,7 +303,7 @@ bool NBBST<T, Threads>::HelpDelete(Info* op){
 
     //If we succeed or if another has succeeded for us
     if(CASPTR(&op->p->update, op->pupdate, Mark(op, MARK)) || (getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op))){
-        HelpMarked(static_cast<Info*>(Unmark(op)));
+        HelpMarked(Unmark(op));
         return true;
     } else {
         Help(result);
@@ -329,11 +329,11 @@ void NBBST<T, Threads>::HelpMarked(Info* op){
 template<typename T, int Threads>
 void NBBST<T, Threads>::Help(Update u){
     if(getState(u) == IFLAG){
-        HelpInsert(static_cast<Info*>(Unmark(u)));
+        HelpInsert(Unmark(u));
     } else if(getState(u) == MARK){
-        HelpMarked(static_cast<Info*>(Unmark(u)));
+        HelpMarked(Unmark(u));
     } else if(getState(u) == DFLAG){
-        HelpDelete(static_cast<Info*>(Unmark(u)));
+        HelpDelete(Unmark(u));
     }
 }
         
