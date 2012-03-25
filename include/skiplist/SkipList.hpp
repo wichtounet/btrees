@@ -108,10 +108,6 @@ bool SkipList<T, Threads>::add(T value){
     Node* newElement = newNode(key, topLevel);
     hazard.publish(newElement, 0);
 
-    if(!newElement){
-        std::cout << "shit" << std::endl;
-    }
-
     while(true){
         if(find(key, preds, succs)){
             hazard.releaseAll();
