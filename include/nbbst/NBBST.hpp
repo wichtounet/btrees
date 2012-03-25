@@ -94,12 +94,14 @@ class NBBST {
         void Help(Update u);
         void CASChild(Node* parent, Node* old, Node* newNode);
 
+        /* Allocate stuff from the hazard manager  */
         Node* newInternal(int key);
         Node* newLeaf(int key);
-        void releaseNode(Node* node);
-
         Info* newIInfo(Node* p, Node* newInternal, Node* l);
         Info* newDInfo(Node* gp, Node* p, Node* l, Update pupdate);
+        
+        /* To remove properly a node  */
+        void releaseNode(Node* node);
 
         Node* root;
 
@@ -109,7 +111,7 @@ class NBBST {
 
 template<typename T, int Threads>
 NBBST<T, Threads>::NBBST(){
-    root = newInternal(INT_MAX);//TODO Check int_max
+    root = newInternal(INT_MAX);
     root->update = Mark(nullptr, CLEAN);
 
     root->left = newLeaf(INT_MIN);
@@ -118,6 +120,7 @@ NBBST<T, Threads>::NBBST(){
 
 template<typename T, int Threads>
 NBBST<T, Threads>::~NBBST(){
+    //Remove the three nodes created in the constructor
     releaseNode(root->left);
     releaseNode(root->right);
     releaseNode(root);
@@ -429,4 +432,4 @@ void NBBST<T, Threads>::CASChild(Node* parent, Node* old, Node* newNode){
     nodes.releaseAll();
 }
 
-}
+} //end of nbbst
