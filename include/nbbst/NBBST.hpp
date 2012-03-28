@@ -29,18 +29,6 @@ struct Info {
 
 typedef Info* Update; 
 
-/* 
-Update is equivalent to the following struct:
-
-struct Update {
-    Info* info;
-    UpdateState state;
-};
-
-but stored inside a single word.
-
-*/
-
 inline UpdateState getState(Update update){
    return static_cast<UpdateState>(reinterpret_cast<unsigned long>(update) & 3l);
 }
