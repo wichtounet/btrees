@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <sstream>
 
 //C++11
 #include <limits>
@@ -34,6 +35,7 @@ typedef std::chrono::milliseconds milliseconds;
 
 void test();
 void perfTest();
+void memoryTest();
 
 int main(int argc, const char* argv[]) {
     std::cout << "Concurrent Binary Trees test" << std::endl;
@@ -48,6 +50,8 @@ int main(int argc, const char* argv[]) {
             perfTest();
         } else if(arg == "-test"){
             test();
+        } else if(arg == "-memory"){
+            memoryTest();
         } else {
             std::cout << "Unrecognized option " << arg << std::endl;
         }
@@ -194,11 +198,11 @@ void testMT(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    //TEST(skiplist::SkipList, "SkipList")
-    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    TEST(skiplist::SkipList, "SkipList")
+    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
     //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
-    TEST(cbtree::CBTree, "Counter Based Tree");
+    //TEST(cbtree::CBTree, "Counter Based Tree");
 }
 
 template<typename Tree, unsigned int Threads>
@@ -257,11 +261,13 @@ void bench(const std::string& name, unsigned int range, unsigned int add, unsign
 void bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    //BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+    //TODO Check why the test are slower than the bench itself
+
+    BENCH(skiplist::SkipList, "SkipList", range, add, remove);
+    BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
     //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
     //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
-    BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
+    //BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
 }
 
 void bench(unsigned int range){
@@ -275,4 +281,49 @@ void perfTest(){
 
     //bench(2000);            //Key in {0, 2000}
     bench(200000);        //Key in {0, 200000}
+}
+
+std::string memory(double size){
+    std::stringstream stream;
+    
+    if(size > (1024.0 * 1024.0)){
+        stream << (size / (1024.0 * 1024.0)) << "GB";
+    } else if(size > 1024){
+        stream << (size / 1024.0) << "MB";
+    } else {
+        stream << size << "KB";
+    }
+
+    return stream.str();
+}
+
+template<typename Tree>
+void memory(const std::string& name, int size){
+    double vm1, rss1;
+    double vm2, rss2;
+    process_mem_usage(vm1, rss1);
+
+    Tree tree;
+
+    for(int i = 0; i < size; ++i){
+        tree.add(i);
+    }
+    
+    process_mem_usage(vm2, rss2);
+    std::cout << name << "-" << size << " is using " << memory((rss2 - rss1) * 2) << std::endl;
+    
+    for(int i = 0; i < size; ++i){
+        tree.remove(i);
+    }
+}
+
+void memoryTest(){
+    std::cout << "Test the memory consumption of each version" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        memory<skiplist::SkipList<int, 32>>("SkipList", size);
+        memory<nbbst::NBBST<int, 32>>("NBBST", size);
+    }
 }
