@@ -26,7 +26,7 @@ static const int OVLGrowCountShift = 3;
 static const long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
 static const long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
 
-#define NEW_LOG_CALCULATION_THRESHOLD 12 //log(2*Threads²)
+#define NEW_LOG_CALCULATION_THRESHOLD 15 //log(2*Threads²)
 
 static bool isChanging( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask)) != 0;
@@ -191,81 +191,6 @@ bool CBTree<T, Threads>::contains(T value){
 }
 
 template<typename T, int Threads>
-bool CBTree<T, Threads>::add(T value){
-    if(update(hash(value)) == NOT_FOUND){
-        int log_size = logSize.load();
-
-        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
-            int new_size = ++size;
-            int next_log_size = log_size + 1;
-            if(new_size >= (1 << next_log_size)){
-                logSize.compare_exchange_weak(log_size, next_log_size);
-            }
-        } else {
-            ++local_size[thread_num];
-
-            if(local_size[thread_num] >= Threads){
-                int new_size = (size += local_size[thread_num]);
-                local_size[thread_num] = 0;
-                int next_log_size = log_size + 1;
-                if(new_size >= (1 << next_log_size)){
-                    logSize.compare_exchange_weak(log_size, next_log_size);
-                }
-            }
-        }
-    
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template<typename T, int Threads>
-bool CBTree<T, Threads>::remove(T value){
-    int key = hash(value);
-
-    while(true){
-        Node* right = rootHolder->right;
-
-        if(!right){
-            return NOT_FOUND;
-        } else {
-            long ovl = right->changeOVL;
-            if(isShrinkingOrUnlinked(ovl)){
-                right->waitUntilChangeCompleted(ovl);
-            } else if (right == rootHolder->right){
-                Result vo = attemptRemove(key, rootHolder, right, ovl, 1);
-
-                if(vo != RETRY){
-                    if(vo == FOUND){
-                        int log_size = logSize.load();
-                        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
-                            int new_size = --size;
-                            if(new_size < (1 << log_size)){
-                                logSize.compare_exchange_weak(log_size, log_size - 1);
-                            }
-                        } else {
-                            --local_size[thread_num];
-                            if(local_size[thread_num] <= -Threads){
-                                int new_size = (size += local_size[thread_num]);
-                                local_size[thread_num] = 0;
-                                if(new_size < (1 << log_size)){
-                                    logSize.compare_exchange_weak(log_size, log_size - 1);
-                                }
-                            }
-                        }
-
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-}
-
-template<typename T, int Threads>
 Result CBTree<T, Threads>::getImpl(int key){
     while(true){
         Node* right = rootHolder->right;
@@ -349,6 +274,81 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
     }
 }
 
+
+template<typename T, int Threads>
+bool CBTree<T, Threads>::add(T value){
+    if(update(hash(value)) == NOT_FOUND){
+        int log_size = logSize.load();
+
+        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
+            int new_size = ++size;
+            int next_log_size = log_size + 1;
+            if(new_size >= (1 << next_log_size)){
+                logSize.compare_exchange_weak(log_size, next_log_size);
+            }
+        } else {
+            ++local_size[thread_num];
+
+            if(local_size[thread_num] >= Threads){
+                int new_size = (size += local_size[thread_num]);
+                local_size[thread_num] = 0;
+                int next_log_size = log_size + 1;
+                if(new_size >= (1 << next_log_size)){
+                    logSize.compare_exchange_weak(log_size, next_log_size);
+                }
+            }
+        }
+    
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template<typename T, int Threads>
+bool CBTree<T, Threads>::remove(T value){
+    int key = hash(value);
+
+    while(true){
+        Node* right = rootHolder->right;
+
+        if(!right){
+            return NOT_FOUND;
+        } else {
+            long ovl = right->changeOVL;
+            if(isShrinkingOrUnlinked(ovl)){
+                right->waitUntilChangeCompleted(ovl);
+            } else if (right == rootHolder->right){
+                Result vo = attemptRemove(key, rootHolder, right, ovl, 1);
+
+                if(vo != RETRY){
+                    if(vo == FOUND){
+                        int log_size = logSize.load();
+                        if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
+                            int new_size = --size;
+                            if(new_size < (1 << log_size)){
+                                logSize.compare_exchange_weak(log_size, log_size - 1);
+                            }
+                        } else {
+                            --local_size[thread_num];
+                            if(local_size[thread_num] <= -Threads){
+                                int new_size = (size += local_size[thread_num]);
+                                local_size[thread_num] = 0;
+                                if(new_size < (1 << log_size)){
+                                    logSize.compare_exchange_weak(log_size, log_size - 1);
+                                }
+                            }
+                        }
+
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+}
 template<typename T, int Threads>
 Result CBTree<T, Threads>::update(int key){
     while(true){
@@ -369,6 +369,18 @@ Result CBTree<T, Threads>::update(int key){
             }
         }
     }
+}
+
+template<typename T, int Threads>
+bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
+   scoped_lock lock(rootHolder->lock);
+   
+   if(!rootHolder->right){
+        rootHolder->right = new Node(key, true, rootHolder, 0L, nullptr, nullptr);
+        return true;
+   } else {
+        return false;
+   }
 }
 
 template<typename T, int Threads>
@@ -499,23 +511,15 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
             return RETRY;
         }
 
-        //TODO Check if we can clean these enforcements
+        bool prev = node->value;;
 
-        if(node->value && !newValue){
-            node->value = false;
-            return FOUND;
-        } else if(!node->value && newValue){
-            node->value = true;
-            return NOT_FOUND;
+        if (!newValue && (!node->left || !node->right)) {
+            return RETRY;
         }
 
-        if(node->value && newValue){
-            return FOUND;
-        } else if(!node->value && !newValue){
-            return NOT_FOUND;
-        }
-        
-        assert(false);
+        node->value = newValue;
+
+        return prev ? FOUND : NOT_FOUND;
     }
 }
 
@@ -596,18 +600,6 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
             }
         }
     }
-}
-
-template<typename T, int Threads>
-bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
-   scoped_lock lock(rootHolder->lock);
-   
-   if(!rootHolder->right){
-        rootHolder->right = new Node(key, true, rootHolder, 0L, nullptr, nullptr);
-        return true;
-   } else {
-        return false;
-   }
 }
         
 template<typename T, int Threads>
@@ -847,7 +839,6 @@ void CBTree<T, Threads>::rotateRight(Node* nParent, Node* n, Node* nL, Node* nLR
 
     n->left = nLR;
     nL->right = n;
-
     if(nPL == n){
         nParent->left = nL;
     } else {
@@ -876,6 +867,7 @@ void CBTree<T, Threads>::rotateLeft(Node* nParent, Node* n, Node* nR, Node* nRL)
 
     n->right = nRL;
     nR->left = n;
+    
     if(nPL == n){
         nParent->left = nR;
     } else {

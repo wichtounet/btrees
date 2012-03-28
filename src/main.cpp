@@ -20,7 +20,7 @@ __thread unsigned int thread_num;
 #include "cbtree/CBTree.hpp"
 
 //Number of nodes for the tests (for up to 32 threads)
-#define N 1000//00         //A too big number can put nodes in swap
+#define N 10000//00         //A too big number can put nodes in swap
 
 //For benchmark
 #define OPERATIONS 1000000
@@ -138,18 +138,20 @@ void testMT(){
         pool.push_back(std::thread([&tree, i](){
             thread_num = i;
 
-            unsigned int tid = thread_num;
+            int tid = thread_num;
 
             //Insert sequential numbers
-            for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
-                assert(tree.add(i));
-                assert(tree.contains(i));
+            for(int j = tid * N; j < (tid + 1) * N; ++j){
+                assert(!tree.contains(j));
+                assert(tree.add(j));
+                assert(tree.contains(j));
             }
 
             //Remove all the sequential numbers
-            for(unsigned int i = tid * N; i < (tid + 1) * N; ++i){
-                assert(tree.contains(i));
-                assert(tree.remove(i));   
+            for(int j = tid * N; j < (tid + 1) * N; ++j){
+                assert(tree.contains(j));
+                assert(tree.remove(j));   
+                assert(!tree.contains(j));
             }
         }));
     }
