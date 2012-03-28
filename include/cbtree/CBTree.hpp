@@ -193,7 +193,7 @@ bool CBTree<T, Threads>::contains(T value){
 template<typename T, int Threads>
 bool CBTree<T, Threads>::add(T value){
     if(update(hash(value)) == NOT_FOUND){
-/*        int log_size = logSize.load();
+        int log_size = logSize.load();
 
         if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
             int new_size = ++size;
@@ -213,7 +213,7 @@ bool CBTree<T, Threads>::add(T value){
                 }
             }
         }
-*/    
+    
         return true;
     } else {
         return false;
@@ -238,7 +238,7 @@ bool CBTree<T, Threads>::remove(T value){
 
                 if(vo != RETRY){
                     if(vo == FOUND){
-/*                        int log_size = logSize.load();
+                        int log_size = logSize.load();
                         if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
                             int new_size = --size;
                             if(new_size < (1 << log_size)){
@@ -254,7 +254,7 @@ bool CBTree<T, Threads>::remove(T value){
                                 }
                             }
                         }
-*/
+
                         return true;
                     } else {
                         return false;
@@ -304,13 +304,13 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
         } else {
             int childCmp = key - child->key;
             if(childCmp == 0){
-                /*int log_size = logSize.load();
+                int log_size = logSize.load();
 
                 if(height >= ((log_size << 2))){
                     SemiSplay(child);
                 } else {
                     RebalanceAtTarget(node, child);
-                }*/
+                }
 
                 ++child->ncnt;
                 return child->value ? FOUND : NOT_FOUND;
@@ -377,13 +377,13 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
 
     int cmp = key - node->key;
     if(cmp == 0){
-        /*int log_size = logSize.load();
+        int log_size = logSize.load();
 
         if(height >= ((log_size << 2))){
             SemiSplay(node);
         } else {
             RebalanceAtTarget(parent, node);
-        }*/
+        }
 
         ++node->ncnt;
         return attemptNodeUpdate(true, parent, node);
@@ -419,13 +419,12 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                         ++node->rcnt;
                     }
 
-                    /*int log_size = logSize.load();
+                    int log_size = logSize.load();
                     if(height >= ((log_size << 2 ))){
                        doSemiSplay = true; 
                     } else {
                         return NOT_FOUND;
-                    }*/
-                    return NOT_FOUND;
+                    }
                 }
             }
 
@@ -447,7 +446,7 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                 Result vo = attemptUpdate(key, node, child, childOVL, height + 1);
 
                 if(vo != RETRY){
-                    /*if(vo == NOT_FOUND){
+                    if(vo == NOT_FOUND){
                         RebalanceNew(node, dirToC);
                     } else {
                         if(dirToC == Left){
@@ -455,7 +454,7 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                         } else {
                             ++node->rcnt;
                         }
-                    }*/
+                    }
 
                     return vo;
                 }
