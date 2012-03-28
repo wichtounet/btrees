@@ -4,6 +4,7 @@
 #include <algorithm>
 
 //C++11
+#include <limits>
 #include <random>
 #include <chrono>
 #include <thread>
@@ -11,6 +12,8 @@
 
 //Thread local id
 __thread unsigned int thread_num;
+
+#include "zipf.hpp"
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
