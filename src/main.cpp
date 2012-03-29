@@ -32,6 +32,7 @@ __thread unsigned int thread_num;
 //Chrono typedefs
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::milliseconds milliseconds;
+typedef std::chrono::microseconds microseconds;
 
 void test();
 void perfTest();
@@ -277,24 +278,130 @@ void random_bench(unsigned int range){
 }
 
 void random_bench(){
-    //random_bench(2000);            //Key in {0, 2000}
+    //random_bench(2000);        //Key in {0, 2000}
     random_bench(200000);        //Key in {0, 200000}
 }
 
-void construction_bench(){
-    std::cout << "Bench the construction time of each data structure" << std::endl;
+template<typename Tree, unsigned int Threads>
+void seq_construction_bench(const std::string& name, unsigned int size){
+    Tree tree;
 
-    //TODO
+    Clock::time_point t0 = Clock::now();
+    
+    unsigned int part = size / Threads;
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, part, size, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
+                tree.add(i);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+
+    microseconds ms = std::chrono::duration_cast<microseconds>(t1 - t0);
+
+    std::cout << "Construction of " << name << " with " << size << " elements took " << ms.count() << "us with " << Threads << " threads" << std::endl;
+
+    //TODO Empty the tree
+}
+
+#define SEQ_CONSTRUCTION(type, name, size)\
+    seq_construction_bench<type<int, 1>, 1>(name, size);\
+    seq_construction_bench<type<int, 2>, 2>(name, size);\
+    seq_construction_bench<type<int, 3>, 3>(name, size);\
+    seq_construction_bench<type<int, 4>, 4>(name, size);\
+    seq_construction_bench<type<int, 8>, 8>(name, size);
+
+void seq_construction_bench(){
+    std::cout << "Bench the seq construction time of each data structure" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        SEQ_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
+        SEQ_CONSTRUCTION(skiplist::SkipList, "NBBST", size);
+    }
+
+    //TODO Continue that
+}
+
+template<typename Tree, unsigned int Threads>
+void random_construction_bench(const std::string& name, unsigned int size){
+    Tree tree;
+
+    Clock::time_point t0 = Clock::now();
+
+    std::vector<int> elements;
+    for(unsigned int i = 0; i < size; ++i){
+        elements.push_back(i);
+    }
+
+    random_shuffle(elements.begin(), elements.end());
+    
+    unsigned int part = size / Threads;
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, &elements, part, size, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
+                tree.add(elements[i]);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+
+    microseconds ms = std::chrono::duration_cast<microseconds>(t1 - t0);
+
+    std::cout << "Construction of " << name << " with " << size << " elements took " << ms.count() << "us with " << Threads << " threads" << std::endl;
+
+    //TODO Empty the tree
+}
+
+#define RANDOM_CONSTRUCTION(type, name, size)\
+    random_construction_bench<type<int, 1>, 1>(name, size);\
+    random_construction_bench<type<int, 2>, 2>(name, size);\
+    random_construction_bench<type<int, 3>, 3>(name, size);\
+    random_construction_bench<type<int, 4>, 4>(name, size);\
+    random_construction_bench<type<int, 8>, 8>(name, size);
+
+void random_construction_bench(){
+    std::cout << "Bench the random construction time of each data structure" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        RANDOM_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
+        RANDOM_CONSTRUCTION(skiplist::SkipList, "NBBST", size);
+    }
+
+    //TODO Continue that
 }
 
 void perfTest(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
+    //random_bench();
 
     //Launch the construction benchmark
-    construction_bench();
+    //seq_construction_bench();
+    random_construction_bench();
 }
 
 std::string memory(double size){
