@@ -206,7 +206,7 @@ void test(){
 }
 
 template<typename Tree, unsigned int Threads>
-void bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
     Tree tree;
 
     Clock::time_point t0 = Clock::now();
@@ -252,13 +252,13 @@ void bench(const std::string& name, unsigned int range, unsigned int add, unsign
 }
 
 #define BENCH(type, name, range, add, remove)\
-    bench<type<int, 1>, 1>(name, range, add, remove);\
-    bench<type<int, 2>, 2>(name, range, add, remove);\
-    bench<type<int, 3>, 3>(name, range, add, remove);\
-    bench<type<int, 4>, 4>(name, range, add, remove);\
-    bench<type<int, 8>, 8>(name, range, add, remove);
+    random_bench<type<int, 1>, 1>(name, range, add, remove);\
+    random_bench<type<int, 2>, 2>(name, range, add, remove);\
+    random_bench<type<int, 3>, 3>(name, range, add, remove);\
+    random_bench<type<int, 4>, 4>(name, range, add, remove);\
+    random_bench<type<int, 8>, 8>(name, range, add, remove);
 
-void bench(unsigned int range, unsigned int add, unsigned int remove){
+void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
     //TODO Check why the test are slower than the bench itself
@@ -270,17 +270,31 @@ void bench(unsigned int range, unsigned int add, unsigned int remove){
     //BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
 }
 
-void bench(unsigned int range){
-    bench(range, 50, 50);   //50% put, 50% remove, 0% contains
-    bench(range, 20, 10);   //20% put, 10% remove, 70% contains
-    bench(range, 9, 1);     //9% put, 1% remove, 90% contains
+void random_bench(unsigned int range){
+    random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
+    random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
+    random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
+}
+
+void random_bench(){
+    //random_bench(2000);            //Key in {0, 2000}
+    random_bench(200000);        //Key in {0, 200000}
+}
+
+void construction_bench(){
+    std::cout << "Bench the construction time of each data structure" << std::endl;
+
+    //TODO
 }
 
 void perfTest(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
-    //bench(2000);            //Key in {0, 2000}
-    bench(200000);        //Key in {0, 200000}
+    //Launch the random benchmark
+    random_bench();
+
+    //Launch the construction benchmark
+    construction_bench();
 }
 
 std::string memory(double size){
