@@ -282,6 +282,18 @@ void random_bench(){
     random_bench(200000);        //Key in {0, 200000}
 }
 
+void duration(Clock::time_point t0, Clock::time_point t1){
+    microseconds us = std::chrono::duration_cast<microseconds>(t1 - t0);
+
+    if(us.count() < 100000){
+        std::cout << us.count() << "us";
+    } else {
+        milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+
+        std::cout << ms.count() << "ms";
+    }
+}
+
 template<typename Tree, unsigned int Threads>
 void seq_construction_bench(const std::string& name, unsigned int size){
     Tree tree;
@@ -307,9 +319,9 @@ void seq_construction_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    microseconds ms = std::chrono::duration_cast<microseconds>(t1 - t0);
-
-    std::cout << "Construction of " << name << " with " << size << " elements took " << ms.count() << "us with " << Threads << " threads" << std::endl;
+    std::cout << "Construction of " << name << " with " << size << " elements took ";
+    duration(t0, t1); 
+    std::cout << " with " << Threads << " threads" << std::endl;
 
     //TODO Empty the tree
 }
@@ -366,9 +378,9 @@ void random_construction_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    microseconds ms = std::chrono::duration_cast<microseconds>(t1 - t0);
-
-    std::cout << "Construction of " << name << " with " << size << " elements took " << ms.count() << "us with " << Threads << " threads" << std::endl;
+    std::cout << "Construction of " << name << " with " << size << " elements took ";
+    duration(t0, t1);
+    std::cout << " with " << Threads << " threads" << std::endl;
 
     //TODO Empty the tree
 }
