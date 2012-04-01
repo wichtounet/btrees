@@ -11,6 +11,10 @@
 #include <thread>
 #include <atomic>
 
+//For reading memory usage
+#include <stdio.h>
+#include <proc/readproc.h>
+
 //Thread local id
 __thread unsigned int thread_num;
 
@@ -337,13 +341,13 @@ void seq_construction_bench(const std::string& name, unsigned int size){
     seq_construction_bench<type<int, 8>, 8>(name, size);
 
 void seq_construction_bench(){
-    std::cout << "Bench the seq construction time of each data structure" << std::endl;
+    std::cout << "Bench the sequential construction time of each data structure" << std::endl;
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
         SEQ_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        SEQ_CONSTRUCTION(skiplist::SkipList, "NBBST", size);
+        SEQ_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
     }
 
     //TODO Continue that
@@ -405,7 +409,7 @@ void random_construction_bench(){
 
     for(auto size : sizes){
         RANDOM_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        RANDOM_CONSTRUCTION(skiplist::SkipList, "NBBST", size);
+        RANDOM_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
     }
 
     //TODO Continue that
@@ -425,12 +429,14 @@ void perfTest(){
 std::string memory(double size){
     std::stringstream stream;
     
-    if(size > (1024.0 * 1024.0)){
-        stream << (size / (1024.0 * 1024.0)) << "GB";
-    } else if(size > 1024){
-        stream << (size / 1024.0) << "MB";
+    if(size > (1024.0 * 1024.0 * 1024.0)){
+        stream << (size / (1024.0 * 1024.0 * 1024.0)) << "GB";
+    } else if(size > (1024.0 * 1024.0)){
+        stream << (size / (1024.0 * 1024.0)) << "MB";
+    } else if(size > 1024.0){
+        stream << (size / 1024.0) << "KB";
     } else {
-        stream << size << "KB";
+        stream << size << "B";
     }
 
     return stream.str();
@@ -438,19 +444,33 @@ std::string memory(double size){
 
 template<typename Tree>
 void memory(const std::string& name, int size){
-    double vm1, rss1;
-    double vm2, rss2;
-    process_mem_usage(vm1, rss1);
+    //Use random insertion in order to support non-balanced version
+    std::vector<int> elements;
+    for(int i = 0; i < size; ++i){
+        elements.push_back(i);
+    }
+
+    random_shuffle(elements.begin(), elements.end());
+
+    struct proc_t usage1;
+    struct proc_t usage2;
+
+    //Lookup for usage
+    look_up_our_self(&usage1);
 
     Tree tree;
 
+    //Fill the tree
     for(int i = 0; i < size; ++i){
-        tree.add(i);
+        tree.add(elements[i]);
     }
     
-    process_mem_usage(vm2, rss2);
-    std::cout << name << "-" << size << " is using " << memory((rss2 - rss1) * 2) << std::endl;
+    //Lookup for usage
+    look_up_our_self(&usage2);
     
+    std::cout << name << "-" << size << " is using " << memory(usage2.vsize - usage1.vsize)  << std::endl;
+    
+    //Empty the tree
     for(int i = 0; i < size; ++i){
         tree.remove(i);
     }
