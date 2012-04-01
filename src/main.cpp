@@ -323,7 +323,10 @@ void seq_construction_bench(const std::string& name, unsigned int size){
     duration(t0, t1); 
     std::cout << " with " << Threads << " threads" << std::endl;
 
-    //TODO Empty the tree
+    //Empty the tree
+    for(unsigned int i = 0; i < size; ++i){
+        tree.remove(i);
+    }
 }
 
 #define SEQ_CONSTRUCTION(type, name, size)\
@@ -382,7 +385,10 @@ void random_construction_bench(const std::string& name, unsigned int size){
     duration(t0, t1);
     std::cout << " with " << Threads << " threads" << std::endl;
 
-    //TODO Empty the tree
+    //Empty the tree
+    for(unsigned int i = 0; i < size; ++i){
+        tree.remove(i);
+    }
 }
 
 #define RANDOM_CONSTRUCTION(type, name, size)\
@@ -409,10 +415,10 @@ void perfTest(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    //random_bench();
+    random_bench();
 
     //Launch the construction benchmark
-    //seq_construction_bench();
+    seq_construction_bench();
     random_construction_bench();
 }
 
