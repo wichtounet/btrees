@@ -1,7 +1,9 @@
 #ifndef AVL_TREE_TREE
 #define AVL_TREE_TREE
 
+#include <cassert>
 #include <cmath>
+#include <limits>
 
 template<int N>
 struct zipf_distribution {
