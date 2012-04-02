@@ -228,13 +228,88 @@ void random_construction_bench(){
     //TODO Continue that
 }
 
+#define SEARCH_BENCH_OPERATIONS 100000
+
+template<typename Tree, unsigned int Threads>
+void search_bench(const std::string& name, unsigned int size){
+    Tree tree;
+
+    //TODO Test if it is more interesting to insert them in the exact range or in the complete range
+    std::vector<int> elements;
+    for(unsigned int i = 0; i < size; ++i){
+        elements.push_back(i);
+    }
+
+    random_shuffle(elements.begin(), elements.end());
+            
+    for(unsigned int i = 0; i < size; ++i){
+        tree.add(elements[i]);
+    }
+    
+    Clock::time_point t0 = Clock::now();
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, size, i](){
+            thread_num = i;
+            
+            std::mt19937_64 engine(time(0) + i);
+
+            std::uniform_int_distribution<int> valueDistribution(0, size);
+            auto valueGenerator = std::bind(valueDistribution, engine);
+
+            for(int s = 0; s < SEARCH_BENCH_OPERATIONS; ++s){
+                tree.contains(valueGenerator());
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+    
+    milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+    unsigned long throughput = (Threads * SEARCH_BENCH_OPERATIONS) / ms.count();
+
+    std::cout << name << "-" << size << " search througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+
+    //Empty the tree
+    for(unsigned int i = 0; i < size; ++i){
+        tree.remove(i);
+    }
+}
+
+
+#define SEARCH(type, name, size)\
+    search_bench<type<int, 1>, 1>(name, size);\
+    search_bench<type<int, 2>, 2>(name, size);\
+    search_bench<type<int, 3>, 3>(name, size);\
+    search_bench<type<int, 4>, 4>(name, size);\
+    search_bench<type<int, 8>, 8>(name, size);
+
+void search_bench(){
+    std::cout << "Bench the search performances of each data structure" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        SEARCH(skiplist::SkipList, "SkipList", size);
+        SEARCH(nbbst::NBBST, "NBBST", size);
+    }
+
+    //TODO Continue that
+}
+
 void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
+    //random_bench();
 
     //Launch the construction benchmark
-    seq_construction_bench();
-    random_construction_bench();
+    //seq_construction_bench();
+    //random_construction_bench();
+
+    //Launch the search benchmark
+    search_bench();
 }
