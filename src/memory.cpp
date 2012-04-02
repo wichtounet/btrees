@@ -70,7 +70,7 @@ void memory(const std::string& name, int size){
 void test_memory_consumption(){
     std::cout << "Test the memory consumption of each version" << std::endl;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+    std::vector<int> sizes = {1000, 10000, 100000, 1000000, 10000000};
 
     for(auto size : sizes){
         memory<skiplist::SkipList<int, 32>>("SkipList", size);

@@ -27,6 +27,8 @@ template<typename Tree, unsigned int Threads>
 void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
     Tree tree;
 
+    //TODO Prefill ?
+
     Clock::time_point t0 = Clock::now();
     
     std::vector<std::thread> pool;
@@ -79,8 +81,6 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
 void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //TODO Check why the test are slower than the bench itself
-
     BENCH(skiplist::SkipList, "SkipList", range, add, remove);
     BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
     //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
@@ -97,6 +97,85 @@ void random_bench(unsigned int range){
 void random_bench(){
     //random_bench(2000);        //Key in {0, 2000}
     random_bench(200000);        //Key in {0, 200000}
+}
+
+template<typename Tree, unsigned int Threads>
+void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+    Tree tree;
+
+    //TODO Prefill ?
+    zipf_distribution first_distribution(range, 0.8);
+    for(int i = 0; i < 10000; ++i){
+        tree.add(first_distribution.next()); 
+    }
+
+    std::cout << "after" << std::endl;
+
+    Clock::time_point t0 = Clock::now();
+    
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, range, add, remove, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            std::mt19937_64 engine(time(0) + tid);
+            
+            zipf_distribution distribution(range, 0.8);
+
+            std::uniform_int_distribution<int> operationDistribution(0, 99);
+            auto operationGenerator = std::bind(operationDistribution, engine);
+
+            for(int i = 0; i < OPERATIONS / 100; ++i){
+                unsigned int value = distribution.next();
+                unsigned int op = operationGenerator();
+
+                if(op < add){
+                    tree.add(value);
+                } else if(op < (add + remove)){
+                    tree.remove(value);
+                } else {
+                    tree.contains(i);
+                }
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+
+    milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+    unsigned long throughput = (Threads * OPERATIONS) / ms.count();
+
+    std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+}
+
+#define SKEWED_BENCH(type, name, range, add, remove)\
+    skewed_bench<type<int, 1>, 1>(name, range, add, remove);\
+    skewed_bench<type<int, 2>, 2>(name, range, add, remove);\
+    skewed_bench<type<int, 3>, 3>(name, range, add, remove);\
+    skewed_bench<type<int, 4>, 4>(name, range, add, remove);\
+    skewed_bench<type<int, 8>, 8>(name, range, add, remove);
+
+void skewed_bench(unsigned int range, unsigned int add, unsigned int remove){
+    std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
+
+    SKEWED_BENCH(skiplist::SkipList, "SkipList", range, add, remove);
+    SKEWED_BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+    //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
+    //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
+    SKEWED_BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
+}
+
+void skewed_bench(unsigned int range){
+    skewed_bench(range, 10, 0);
+}
+
+void skewed_bench(){
+    //TODO Perhaps other
+    skewed_bench(200000);
 }
 
 void duration(Clock::time_point t0, Clock::time_point t1){
@@ -305,6 +384,7 @@ void bench(){
 
     //Launch the random benchmark
     //random_bench();
+    skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
