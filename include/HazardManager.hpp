@@ -1,6 +1,8 @@
 #ifndef HAZARD_MANAGER
 #define HAZARD_MANAGER
 
+#include "tid.hpp"
+
 template<typename Node, int Threads, int Size = 2, int Prefill = 50>
 class HazardManager {
     public:

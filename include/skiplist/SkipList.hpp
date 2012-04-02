@@ -2,16 +2,33 @@
 #define SKIP_LIST
 
 #include <climits>
+#include <cassert>
 
+#include "hash.hpp"
 #include "Utils.hpp"
 #include "HazardManager.hpp"
 
 #define MAX_LEVEL 25 //Should be choosen as log(1/p)(n)
 #define P 0.5        //probability for randomLevel (geometric distribution)
 
-#include "skiplist/Node.hpp"
-
 namespace skiplist {
+
+struct Node {
+    int key;
+    int topLevel;
+    Node** next;
+
+    Node* nextNode; //For the hazard manager
+    
+    Node() : nextNode(nullptr) {
+        //Fill the array with null pointers
+        next = (Node**) calloc(MAX_LEVEL + 1, sizeof(Node *));
+    }
+
+    ~Node(){
+        free(next);    
+    }
+};
 
 inline Node* Unmark(Node* node){
     return reinterpret_cast<Node*>(reinterpret_cast<unsigned long>(node) & (~0l - 1));

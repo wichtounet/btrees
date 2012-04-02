@@ -122,33 +122,35 @@ class MultiwaySearchTree {
 };
 
 /* Some internal utilities */ 
-Search* moveForward(Node* node, Key key, int hint);
+static Search* moveForward(Node* node, Key key, int hint);
 
-int search(Keys* items, Key key);
-int searchWithHint(Keys* items, Key key, int hint);
+static int search(Keys* items, Key key);
+static int searchWithHint(Keys* items, Key key, int hint);
+static int compare(Key k1, Key k2);
 
-bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
-bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
-bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
-Node* pushRight(Node* node, Key leftBarrier);
-bool attemptSlideKey(Node* node, Contents* contents);
-bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
-bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
-bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
-bool slideToNeighbor(Node* sibling, Contents* sibContents, Key kkey, Key key, Node* child);
-Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
-bool insertLeafLevel(Key key, Search* results);
-bool beginInsertOneLevel(Key key, Search** results);
-Node* splitOneLevel(Key key, Search* result);
-void insertOneLevel(Key, Search** results, Node* right, int index);
-Contents* cleanLink(Node* node, Contents* cts);
-void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
-Keys* generateNewItems(Key key, Keys* keys, int index);
-Children* generateNewChildren(Node* child, Children* children, int index);
-Keys* generateLeftItems(Keys* children, int index);
-Keys* generateRightItems(Keys* children, int index);
-Children* generateLeftChildren(Children* children, int index);
-Children* generateRightChildren(Children* children, int index);
+static bool cleanNode1(Node* node, Contents* contents, Key leftBarrier);
+static bool cleanNode2(Node* node, Contents* contents, Key leftBarrier);
+static bool cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier);
+static Node* pushRight(Node* node, Key leftBarrier);
+static bool attemptSlideKey(Node* node, Contents* contents);
+static bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
+static bool shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2);
+static bool dropChild(Node* node, Contents* contents, int index, Node* adjustedChild);
+static bool slideToNeighbor(Node* sibling, Contents* sibContents, Key kkey, Key key, Node* child);
+static Contents* deleteSlidedKey(Node* node, Contents* contents, Key key);
+static bool insertLeafLevel(Key key, Search* results);
+static bool beginInsertOneLevel(Key key, Search** results);
+static Node* splitOneLevel(Key key, Search* result);
+static void insertOneLevel(Key, Search** results, Node* right, int index);
+static Contents* cleanLink(Node* node, Contents* cts);
+static void cleanNode(Key key, Node* node, Contents* cts, int index, Key leftBarrier);
+static Keys* generateNewItems(Key key, Keys* keys, int index);
+static Children* copyChildren(Children* rhs);
+static Children* generateNewChildren(Node* child, Children* children, int index);
+static Keys* generateLeftItems(Keys* children, int index);
+static Keys* generateRightItems(Keys* children, int index);
+static Children* generateLeftChildren(Children* children, int index);
+static Children* generateRightChildren(Children* children, int index);
 
 template<typename T>
 Key special_hash(T value){

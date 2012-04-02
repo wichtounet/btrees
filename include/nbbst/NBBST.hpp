@@ -1,3 +1,8 @@
+#ifndef NBBST_TREE
+#define NBBST_TREE
+
+#include <cassert>
+
 #include "hash.hpp"
 #include "Utils.hpp"
 
@@ -421,3 +426,5 @@ void NBBST<T, Threads>::CASChild(Node* parent, Node* old, Node* newNode){
 }
 
 } //end of nbbst
+
+#endif

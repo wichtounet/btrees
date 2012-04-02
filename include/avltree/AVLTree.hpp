@@ -1,9 +1,10 @@
 #ifndef AVL_TREE_TREE
 #define AVL_TREE_TREE
 
-#include "hash.hpp"
-
 #include <mutex>
+#include <cassert>
+
+#include "hash.hpp"
 
 namespace avltree {
 
