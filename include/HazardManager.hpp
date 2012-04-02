@@ -1,7 +1,11 @@
 #ifndef HAZARD_MANAGER
 #define HAZARD_MANAGER
 
-#include "tid.hpp"
+#include <cassert>
+
+//Thread local id
+//Note: __thread is GCC specific
+extern __thread unsigned int thread_num;
 
 template<typename Node, int Threads, int Size = 2, int Prefill = 50>
 class HazardManager {

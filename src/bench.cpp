@@ -6,6 +6,7 @@
 
 #include "bench.hpp"
 #include "zipf.hpp"
+#include "HazardManager.hpp" //To manipulate thread_num
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
