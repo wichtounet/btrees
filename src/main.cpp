@@ -1,5 +1,3 @@
-#include "test.hpp"
-
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -16,6 +14,7 @@
 #include "memory.hpp"
 #include "zipf.hpp"
 #include "tid.hpp"
+#include "test.hpp"
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
