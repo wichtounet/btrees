@@ -12,14 +12,16 @@ typedef std::lock_guard<std::mutex> scoped_lock;
 
 static int SpinCount = 100;
 
-long beginChange(long ovl) { return ovl | 1; }
-long endChange(long ovl) { return (ovl | 3) + 1; }
-long UnlinkedOVL = 2;
+static inline long beginChange(long ovl) { return ovl | 1; }
+static inline long endChange(long ovl) { return (ovl | 3) + 1; }
 
-bool isShrinking(long ovl) { return (ovl & 1) != 0; }
-bool isUnlinked(long ovl) { return (ovl & 2) != 0; }
-bool isShrinkingOrUnlinked(long ovl) { return (ovl & 3) != 0L; }
+static inline bool isShrinking(long ovl) { return (ovl & 1) != 0; }
+static inline bool isUnlinked(long ovl) { return (ovl & 2) != 0; }
+static inline bool isShrinkingOrUnlinked(long ovl) { return (ovl & 3) != 0L; }
 
+static long UnlinkedOVL = 2;
+
+/* Conditions on nodes */
 static const int UnlinkRequired = -1;
 static const int RebalanceRequired = -2;
 static const int NothingRequired = -3;
@@ -104,18 +106,15 @@ class AVLTree {
         Node* rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0);
 
         /* Rotation stuff */        
-        /*void rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, Node* nLR, int hLR);
-        void rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL);
-        void rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, Node* nLR);
-        void rotateLeftOverRight_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL);*/
-        
         Node* rotateLeftOverRight_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRR, int hRLR);
         Node* rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLRL);
         Node* rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL, int hRR);
         Node* rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLR);
 };
 
-Node* fixHeight_nl(Node* n);
+static Node* fixHeight_nl(Node* n);
+static int height(Node* node);
+static int nodeCondition(Node* node);
 
 template<typename T, int Threads>
 AVLTree<T, Threads>::AVLTree(){
