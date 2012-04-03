@@ -124,7 +124,7 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
             std::uniform_int_distribution<int> operationDistribution(0, 99);
             auto operationGenerator = std::bind(operationDistribution, engine);
 
-            for(int i = 0; i < OPERATIONS / 100; ++i){
+            for(int i = 0; i < OPERATIONS; ++i){
                 unsigned int value = distribution(engine);
                 unsigned int op = operationGenerator();
 
