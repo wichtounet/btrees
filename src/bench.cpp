@@ -100,14 +100,13 @@ void random_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution){
     Tree tree;
 
     std::mt19937_64 base_engine(time(0));
     //TODO Prefill ?
-    zipf_distribution<> distribution((double) range, 0, 0.8);
     for(int i = 0; i < 10000; ++i){
-        tree.add(distribution(base_engine)); 
+        //tree.add(distribution(base_engine)); 
     }
 
     Clock::time_point t0 = Clock::now();
@@ -150,13 +149,13 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 }
 
 #define SKEWED_BENCH(type, name, range, add, remove)\
-    skewed_bench<type<int, 1>, 1>(name, range, add, remove);\
-    skewed_bench<type<int, 2>, 2>(name, range, add, remove);\
-    skewed_bench<type<int, 3>, 3>(name, range, add, remove);\
-    skewed_bench<type<int, 4>, 4>(name, range, add, remove);\
-    skewed_bench<type<int, 8>, 8>(name, range, add, remove);
+    skewed_bench<type<int, 1>, 1>(name, range, add, remove, distribution);\
+    skewed_bench<type<int, 2>, 2>(name, range, add, remove, distribution);\
+    skewed_bench<type<int, 3>, 3>(name, range, add, remove, distribution);\
+    skewed_bench<type<int, 4>, 4>(name, range, add, remove, distribution);\
+    skewed_bench<type<int, 8>, 8>(name, range, add, remove, distribution);
 
-void skewed_bench(unsigned int range, unsigned int add, unsigned int remove){
+void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
     SKEWED_BENCH(skiplist::SkipList, "SkipList", range, add, remove);
@@ -167,7 +166,9 @@ void skewed_bench(unsigned int range, unsigned int add, unsigned int remove){
 }
 
 void skewed_bench(unsigned int range){
-    skewed_bench(range, 10, 0);
+    zipf_distribution<> distribution((double) range, 0, 0.8);
+    
+    skewed_bench(range, 10, 0, distribution);
 }
 
 void skewed_bench(){
