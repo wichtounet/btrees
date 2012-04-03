@@ -25,9 +25,18 @@ void testST(const std::string& name){
     std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
     
     T tree;
+    
+    std::mt19937_64 engine(time(NULL));
+    std::uniform_int_distribution<int> distribution(0, INT_MAX);
+    auto generator = std::bind(distribution, engine);
 
-    //TODO Make some remove when the tree is empty
-    //TODO Make some contains when the tree is empty
+    //Try remove numbers in the empty tree
+    for(unsigned int i = 0; i < 1000; ++i){
+        auto number = generator();
+
+        assert(!tree.contains(number));
+        assert(!tree.remove(number));
+    }
 
     //Insert sequential numbers
     for(unsigned int i = 0; i < N; ++i){
@@ -47,10 +56,6 @@ void testST(const std::string& name){
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
     }
-
-    std::mt19937_64 engine(time(NULL));
-    std::uniform_int_distribution<int> distribution(0, INT_MAX);
-    auto generator = std::bind(distribution, engine);
 
     std::vector<int> rand;
 
