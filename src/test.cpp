@@ -31,7 +31,7 @@ void testST(const std::string& name){
     auto generator = std::bind(distribution, engine);
 
     //Try remove numbers in the empty tree
-    for(unsigned int i = 0; i < 1000; ++i){
+    for(unsigned int i = 0; i < N; ++i){
         auto number = generator();
 
         assert(!tree.contains(number));
@@ -91,6 +91,14 @@ void testST(const std::string& name){
     for(int number : rand){
         assert(tree.contains(number));
         assert(tree.remove(number));
+    }
+    
+    //Try remove numbers in the empty tree
+    for(unsigned int i = 0; i < N; ++i){
+        auto number = generator();
+
+        assert(!tree.contains(number));
+        assert(!tree.remove(number));
     }
 
     std::cout << "Test passed successfully" << std::endl;
