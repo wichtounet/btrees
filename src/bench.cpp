@@ -103,25 +103,23 @@ template<typename Tree, unsigned int Threads>
 void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
     Tree tree;
 
-    std::mt19937_64 engine2(time(0));
+    std::mt19937_64 base_engine(time(0));
     //TODO Prefill ?
-    zipf_distribution<> first_distribution((double) range, 0, 0.8);
+    zipf_distribution<> distribution((double) range, 0, 0.8);
     for(int i = 0; i < 10000; ++i){
-        tree.add(first_distribution(engine2)); 
+        tree.add(distribution(base_engine)); 
     }
 
     Clock::time_point t0 = Clock::now();
     
     std::vector<std::thread> pool;
     for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, range, add, remove, i](){
+        pool.push_back(std::thread([&tree, &distribution, range, add, remove, i](){
             thread_num = i;
 
             unsigned int tid = thread_num;
 
             std::mt19937_64 engine(time(0) + tid);
-            
-            zipf_distribution<> distribution((double) range, 0, 0.8);
 
             std::uniform_int_distribution<int> operationDistribution(0, 99);
             auto operationGenerator = std::bind(operationDistribution, engine);
@@ -380,13 +378,6 @@ void search_bench(){
 
 void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
-    
-    std::mt19937_64 engine2(time(0));
-    //TODO Prefill ?
-    zipf_distribution<> first_distribution(200000, 0, 0.8);
-    for(int i = 0; i < 10000; ++i){
-        std::cout << first_distribution(engine2) << std::endl;
-    }
 
     //Launch the random benchmark
     //random_bench();
