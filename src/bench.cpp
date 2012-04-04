@@ -3,6 +3,8 @@
 #include <chrono>
 #include <thread>
 #include <atomic>
+#include <set>
+#include <vector>
 
 #include "bench.hpp"
 #include "zipf.hpp"
@@ -17,6 +19,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
+#define SEARCH_BENCH_OPERATIONS 100000
 
 //Chrono typedefs
 typedef std::chrono::high_resolution_clock Clock;
@@ -106,7 +109,7 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
     std::mt19937_64 base_engine(time(0));
     //TODO Prefill ?
     for(int i = 0; i < 10000; ++i){
-        //tree.add(distribution(base_engine)); 
+        tree.add(distribution(base_engine)); 
     }
 
     Clock::time_point t0 = Clock::now();
@@ -305,38 +308,20 @@ void random_construction_bench(){
     //TODO Continue that
 }
 
-#define SEARCH_BENCH_OPERATIONS 100000
-
 template<typename Tree, unsigned int Threads>
-void search_bench(const std::string& name, unsigned int size){
-    Tree tree;
-
-    //TODO Test if it is more interesting to insert them in the exact range or in the complete range
-    std::vector<int> elements;
-    for(unsigned int i = 0; i < size; ++i){
-        elements.push_back(i);
-    }
-
-    random_shuffle(elements.begin(), elements.end());
-            
-    for(unsigned int i = 0; i < size; ++i){
-        tree.add(elements[i]);
-    }
-    
+void search_bench(const std::string& name, unsigned int size, Tree& tree){
     Clock::time_point t0 = Clock::now();
 
     std::vector<std::thread> pool;
     for(unsigned int i = 0; i < Threads; ++i){
         pool.push_back(std::thread([&tree, size, i](){
             thread_num = i;
-            
+    
             std::mt19937_64 engine(time(0) + i);
-
-            std::uniform_int_distribution<int> valueDistribution(0, size);
-            auto valueGenerator = std::bind(valueDistribution, engine);
+            std::uniform_int_distribution<int> distribution(0, size);
 
             for(int s = 0; s < SEARCH_BENCH_OPERATIONS; ++s){
-                tree.contains(valueGenerator());
+                tree.contains(distribution(engine));
             }
         }));
     }
@@ -349,6 +334,36 @@ void search_bench(const std::string& name, unsigned int size){
     unsigned long throughput = (Threads * SEARCH_BENCH_OPERATIONS) / ms.count();
 
     std::cout << name << "-" << size << " search througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+}
+
+template<typename Tree>
+void fill_random(Tree& tree, unsigned int size){
+    std::vector<int> values;
+    for(unsigned int i = 0; i < size; ++i){
+        values.push_back(i);
+    }
+
+    random_shuffle(values.begin(), values.end());
+    
+    for(unsigned int i = 0; i < size; ++i){
+        tree.add(values[i]);
+    }
+}
+
+template<typename Tree>
+void fill_sequential(Tree& tree, unsigned int size){
+    for(unsigned int i = 0; i < size; ++i){
+        tree.add(i);
+    }
+}
+
+template<typename Tree, unsigned int Threads>
+void search_random_bench(const std::string& name, unsigned int size){
+    Tree tree;
+    
+    fill_random(tree, size);
+    
+    search_bench<Tree, Threads>(name, size, tree);
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -356,25 +371,58 @@ void search_bench(const std::string& name, unsigned int size){
     }
 }
 
+#define SEARCH_RANDOM(type, name, size)\
+    search_random_bench<type<int, 1>, 1>(name, size);\
+    search_random_bench<type<int, 2>, 2>(name, size);\
+    search_random_bench<type<int, 3>, 3>(name, size);\
+    search_random_bench<type<int, 4>, 4>(name, size);\
+    search_random_bench<type<int, 8>, 8>(name, size);
 
-#define SEARCH(type, name, size)\
-    search_bench<type<int, 1>, 1>(name, size);\
-    search_bench<type<int, 2>, 2>(name, size);\
-    search_bench<type<int, 3>, 3>(name, size);\
-    search_bench<type<int, 4>, 4>(name, size);\
-    search_bench<type<int, 8>, 8>(name, size);
-
-void search_bench(){
-    std::cout << "Bench the search performances of each data structure" << std::endl;
+void search_random_bench(){
+    std::cout << "Bench the search performances of each data structure with random insertion" << std::endl;
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        SEARCH(skiplist::SkipList, "SkipList", size);
-        SEARCH(nbbst::NBBST, "NBBST", size);
+        SEARCH_RANDOM(skiplist::SkipList, "SkipList", size);
+        SEARCH_RANDOM(nbbst::NBBST, "NBBST", size);
+        SEARCH_RANDOM(avltree::AVLTree, "Optimistic AVL Tree", size);
+        //TODO Continue that
     }
+}
 
-    //TODO Continue that
+template<typename Tree, unsigned int Threads>
+void search_sequential_bench(const std::string& name, unsigned int size){
+    Tree tree;
+    
+    fill_sequential(tree, size);
+    
+    search_bench<Tree, Threads>(name, size, tree);
+
+    //Empty the tree
+    for(unsigned int i = 0; i < size; ++i){
+        tree.remove(i);
+    }
+}
+
+#define SEARCH_SEQUENTIAL(type, name, size)\
+    search_sequential_bench<type<int, 1>, 1>(name, size);\
+    search_sequential_bench<type<int, 2>, 2>(name, size);\
+    search_sequential_bench<type<int, 3>, 3>(name, size);\
+    search_sequential_bench<type<int, 4>, 4>(name, size);\
+    search_sequential_bench<type<int, 8>, 8>(name, size);
+
+void search_sequential_bench(){
+    std::cout << "Bench the search performances of each data structure with sequential insertion" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        SEARCH_SEQUENTIAL(skiplist::SkipList, "SkipList", size);
+        //SEARCH_SEQUENTIAL(nbbst::NBBST, "NBBST", size);
+        SEARCH_SEQUENTIAL(avltree::AVLTree, "Optimistic AVL Tree", size);
+        //TODO Continue that
+    }
 }
 
 void bench(){
@@ -382,12 +430,13 @@ void bench(){
 
     //Launch the random benchmark
     //random_bench();
-    skewed_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
     //random_construction_bench();
 
     //Launch the search benchmark
-    //search_bench();
+    search_random_bench();
+    //search_sequential_bench();
 }
