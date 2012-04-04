@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <set>
 
 //For reading memory usage
 #include <stdio.h>
@@ -67,11 +68,52 @@ void memory(const std::string& name, int size){
     }
 }
 
+template<typename Tree>
+void memory_high(const std::string& name, unsigned int size){
+    std::mt19937_64 engine(time(0));
+
+    std::uniform_int_distribution<int> valueDistribution(0, INT_MAX);
+    auto valueGenerator = std::bind(valueDistribution, engine);
+    
+    std::set<int> elements;
+    while(elements.size() < size){
+        elements.insert(valueGenerator());
+    }
+
+    struct proc_t usage1;
+    struct proc_t usage2;
+
+    //Lookup for usage
+    look_up_our_self(&usage1);
+
+    Tree tree;
+
+    //Fill the tree
+    for(auto i : elements){
+        tree.add(i);
+    }
+    
+    //Lookup for usage
+    look_up_our_self(&usage2);
+    
+    std::cout << name << "-" << size << " is using " << memory(usage2.vsize - usage1.vsize)  << std::endl;
+    
+    //Empty the tree
+    for(auto i : elements){
+        tree.remove(i);
+    }
+}
+
 void test_memory_consumption(){
     std::cout << "Test the memory consumption of each version" << std::endl;
 
     std::vector<int> sizes = {1000, 10000, 100000, 1000000, 10000000};
 
+    for(auto size : sizes){
+        memory_high<skiplist::SkipList<int, 32>>("SkipList", size);
+        memory_high<nbbst::NBBST<int, 32>>("NBBST", size);
+    }
+    
     for(auto size : sizes){
         memory<skiplist::SkipList<int, 32>>("SkipList", size);
         memory<nbbst::NBBST<int, 32>>("NBBST", size);
