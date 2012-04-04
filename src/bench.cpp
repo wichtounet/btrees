@@ -309,6 +309,67 @@ void random_construction_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
+void random_removal_bench(const std::string& name, unsigned int size){
+    Tree tree;
+
+    std::vector<int> elements;
+    for(unsigned int i = 0; i < size; ++i){
+        elements.push_back(i);
+    }
+
+    random_shuffle(elements.begin(), elements.end());
+    
+    for(unsigned int i = 0; i < size; ++i){
+        tree.add(elements[i]);
+    }
+    
+    unsigned int part = size / Threads;
+
+    Clock::time_point t0 = Clock::now();
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, &elements, part, size, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
+                tree.remove(elements[i]);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+
+    std::cout << "Removal of " << name << " with " << size << " elements took ";
+    duration(t0, t1);
+    std::cout << " with " << Threads << " threads" << std::endl;
+}
+
+#define RANDOM_REMOVAL(type, name, size)\
+    random_removal_bench<type<int, 1>, 1>(name, size);\
+    random_removal_bench<type<int, 2>, 2>(name, size);\
+    random_removal_bench<type<int, 3>, 3>(name, size);\
+    random_removal_bench<type<int, 4>, 4>(name, size);\
+    random_removal_bench<type<int, 8>, 8>(name, size);
+
+void random_removal_bench(){
+    std::cout << "Bench the random removal time of each data structure" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        RANDOM_REMOVAL(skiplist::SkipList, "SkipList", size);
+        RANDOM_REMOVAL(nbbst::NBBST, "NBBST", size);
+    }
+
+    //TODO Continue that
+}
+
+template<typename Tree, unsigned int Threads>
 void search_bench(const std::string& name, unsigned int size, Tree& tree){
     Clock::time_point t0 = Clock::now();
 
@@ -435,8 +496,12 @@ void bench(){
     //Launch the construction benchmark
     //seq_construction_bench();
     //random_construction_bench();
+    
+    //Launch the removal benchmark
+    random_removal_bench();
+    //TODO seq_removal_bench();
 
     //Launch the search benchmark
-    search_random_bench();
+    //search_random_bench();
     //search_sequential_bench();
 }
