@@ -19,6 +19,10 @@ int main(int argc, const char* argv[]) {
             test();
         } else if(arg == "-memory"){
             test_memory_consumption();
+        } else if(arg == "-all"){
+            test();
+            bench();
+            test_memory_consumption();
         } else {
             std::cout << "Unrecognized option " << arg << std::endl;
         }
