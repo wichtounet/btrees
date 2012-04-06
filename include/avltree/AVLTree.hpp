@@ -118,7 +118,7 @@ static int nodeCondition(Node* node);
 
 template<typename T, int Threads>
 AVLTree<T, Threads>::AVLTree(){
-    rootHolder = new Node(INT_MIN);
+    rootHolder = new Node(std::numeric_limits<int>::min());
     rootHolder->height = 1;
     rootHolder->version = 0;
     rootHolder->value = false;

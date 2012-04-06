@@ -1,7 +1,6 @@
 #ifndef SKIP_LIST
 #define SKIP_LIST
 
-#include <climits>
 #include <cassert>
 
 #include "hash.hpp"
@@ -89,8 +88,8 @@ Node* SkipList<T, Threads>::newNode(int key, int height){
 
 template<typename T, int Threads>
 SkipList<T, Threads>::SkipList() : engine(time(NULL)), distribution(P) {
-    head = newNode(INT_MIN);
-    tail = newNode(INT_MAX);
+    head = newNode(std::numeric_limits<int>::min());
+    tail = newNode(std::numeric_limits<int>::max());
 
     head->topLevel = MAX_LEVEL;
 

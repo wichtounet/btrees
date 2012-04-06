@@ -1,7 +1,6 @@
 #ifndef CB_TREE
 #define CB_TREE
 
-#include <climits>
 #include <mutex>
 #include <atomic>
 
@@ -169,8 +168,8 @@ class CBTree {
 
 template<typename T, int Threads>
 CBTree<T, Threads>::CBTree(){
-    rootHolder = new Node(INT_MIN, false, nullptr, 0L, nullptr, nullptr); 
-    rootHolder->ncnt = INT_MAX;
+    rootHolder = new Node(std::numeric_limits<int>::min(), false, nullptr, 0L, nullptr, nullptr); 
+    rootHolder->ncnt = std::numeric_limits<int>::max();
 
     size.store(0);
     logSize.store(-1);

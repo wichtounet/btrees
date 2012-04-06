@@ -72,7 +72,7 @@ template<typename Tree>
 void memory_high(const std::string& name, unsigned int size){
     std::mt19937_64 engine(time(0));
 
-    std::uniform_int_distribution<int> valueDistribution(0, INT_MAX);
+    std::uniform_int_distribution<int> valueDistribution(0, std::numeric_limits<int>::max());
     auto valueGenerator = std::bind(valueDistribution, engine);
     
     std::set<int> elements;

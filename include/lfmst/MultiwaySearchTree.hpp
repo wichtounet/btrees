@@ -170,7 +170,7 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     root = new HeadNode(node, 0);
     
     std::mt19937_64 engine(time(NULL));
-    std::uniform_int_distribution<unsigned int> distribution(0, INT_MAX);
+    std::uniform_int_distribution<unsigned int> distribution(0, std::numeric_limits<int>::max());
     randomSeed = distribution(engine) | 0x0100;
 }
 

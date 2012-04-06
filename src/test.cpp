@@ -3,7 +3,6 @@
 #include <iostream>
 #include <random>
 #include <functional>
-#include <climits> //TODO Remove that dependency
 #include <thread>
 #include <algorithm>
 
@@ -27,7 +26,7 @@ void testST(const std::string& name){
     T tree;
     
     std::mt19937_64 engine(time(NULL));
-    std::uniform_int_distribution<int> distribution(0, INT_MAX);
+    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max());
     auto generator = std::bind(distribution, engine);
 
     //Try remove numbers in the empty tree

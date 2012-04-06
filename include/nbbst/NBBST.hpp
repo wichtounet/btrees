@@ -104,11 +104,11 @@ class NBBST {
 
 template<typename T, int Threads>
 NBBST<T, Threads>::NBBST(){
-    root = newInternal(INT_MAX);
+    root = newInternal(std::numeric_limits<int>::max());
     root->update = Mark(nullptr, CLEAN);
 
-    root->left = newLeaf(INT_MIN);
-    root->right = newLeaf(INT_MAX);
+    root->left = newLeaf(std::numeric_limits<int>::min());
+    root->right = newLeaf(std::numeric_limits<int>::max());
 }
 
 template<typename T, int Threads>
