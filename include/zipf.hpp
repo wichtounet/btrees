@@ -100,6 +100,10 @@ class discrete_distribution {
             
             return aliases_[x];
         }
+
+        /* Verify that the provided type are correct  */
+        static_assert(std::numeric_limits<IntType>::is_integer, "IntType must be an integer type");
+        static_assert(!std::numeric_limits<RealType>::is_integer, "RealType must be a real type");
 };
 
 template<class IntType = int, class RealType = double>
@@ -133,6 +137,10 @@ class zipf_distribution {
 
         template<class Engine>
         result_type operator()(Engine& eng) { return dist_(eng); }
+
+        /* Verify that the provided type are correct  */
+        static_assert(std::numeric_limits<IntType>::is_integer, "IntType must be an integer type");
+        static_assert(!std::numeric_limits<RealType>::is_integer, "RealType must be a real type");
 };
 
 #endif
