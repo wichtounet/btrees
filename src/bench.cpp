@@ -310,6 +310,61 @@ void random_construction_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
+void seq_removal_bench(const std::string& name, unsigned int size){
+    Tree tree;
+
+    for(unsigned int i = 0; i < size; ++i){
+        tree.add(i);
+    }
+    
+    unsigned int part = size / Threads;
+
+    Clock::time_point t0 = Clock::now();
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, part, size, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
+                tree.remove(i);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    Clock::time_point t1 = Clock::now();
+
+    std::cout << "Removal of " << name << " with " << size << " elements took ";
+    duration(t0, t1);
+    std::cout << " with " << Threads << " threads" << std::endl;
+}
+
+#define SEQUENTIAL_REMOVAL(type, name, size)\
+    seq_removal_bench<type<int, 1>, 1>(name, size);\
+    seq_removal_bench<type<int, 2>, 2>(name, size);\
+    seq_removal_bench<type<int, 3>, 3>(name, size);\
+    seq_removal_bench<type<int, 4>, 4>(name, size);\
+    seq_removal_bench<type<int, 8>, 8>(name, size);
+
+void seq_removal_bench(){
+    std::cout << "Bench the sequential removal time of each data structure" << std::endl;
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+
+    for(auto size : sizes){
+        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
+        SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
+        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+    }
+}
+
+template<typename Tree, unsigned int Threads>
 void random_removal_bench(const std::string& name, unsigned int size){
     Tree tree;
 
@@ -494,18 +549,18 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
-    skewed_bench();
+    //random_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
-    seq_construction_bench();
-    random_construction_bench();
+    //seq_construction_bench();
+    //random_construction_bench();
     
     //Launch the removal benchmark
-    random_removal_bench();
-    //TODO seq_removal_bench();
+    //random_removal_bench();
+    seq_removal_bench();
 
     //Launch the search benchmark
-    search_random_bench();
-    search_sequential_bench();
+    //search_random_bench();
+    //search_sequential_bench();
 }
