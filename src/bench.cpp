@@ -549,18 +549,18 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    //random_bench();
-    //skewed_bench();
+    random_bench();
+    skewed_bench();
 
     //Launch the construction benchmark
-    //seq_construction_bench();
-    //random_construction_bench();
+    seq_construction_bench();
+    random_construction_bench();
     
     //Launch the removal benchmark
-    //random_removal_bench();
+    random_removal_bench();
     seq_removal_bench();
 
     //Launch the search benchmark
-    //search_random_bench();
-    //search_sequential_bench();
+    search_random_bench();
+    search_sequential_bench();
 }
