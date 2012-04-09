@@ -21,15 +21,13 @@ struct Info;
 typedef Info* Update;
 
 struct Info {
-    Node* gp;               //Internal
-    Node* p;                //Internal
-    Node* newInternal;      //Internal
-    Node* l;                //Leaf
-    Update pupdate;
+    Node* gp = nullptr;               //Internal
+    Node* p = nullptr;                //Internal
+    Node* newInternal = nullptr;      //Internal
+    Node* l = nullptr;                //Leaf
+    Update pupdate = nullptr;
     
-    Info* nextNode;         //For hazard pointer chaining
-
-    Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr), nextNode(nullptr) {}
+    Info* nextNode = nullptr;         //For hazard pointer chaining
 };
 
 typedef Info* Update; 

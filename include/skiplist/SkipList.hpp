@@ -17,9 +17,9 @@ struct Node {
     int topLevel;
     Node** next;
 
-    Node* nextNode; //For the hazard manager
+    Node* nextNode = nullptr; //For the hazard manager
     
-    Node() : nextNode(nullptr) {
+    Node(){
         //Fill the array with null pointers
         next = (Node**) calloc(MAX_LEVEL + 1, sizeof(Node *));
     }
