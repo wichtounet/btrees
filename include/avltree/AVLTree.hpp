@@ -12,12 +12,12 @@ typedef std::lock_guard<std::mutex> scoped_lock;
 
 static int SpinCount = 100;
 
-static inline long beginChange(long ovl) { return ovl | 1; }
-static inline long endChange(long ovl) { return (ovl | 3) + 1; }
+static long beginChange(long ovl) { return ovl | 1; }
+static long endChange(long ovl) { return (ovl | 3) + 1; }
 
-static inline bool isShrinking(long ovl) { return (ovl & 1) != 0; }
-static inline bool isUnlinked(long ovl) { return (ovl & 2) != 0; }
-static inline bool isShrinkingOrUnlinked(long ovl) { return (ovl & 3) != 0L; }
+static bool isShrinking(long ovl) { return (ovl & 1) != 0; }
+static bool isUnlinked(long ovl) { return (ovl & 2) != 0; }
+static bool isShrinkingOrUnlinked(long ovl) { return (ovl & 3) != 0L; }
 
 static long UnlinkedOVL = 2;
 
@@ -134,8 +134,8 @@ template<typename T, int Threads>
 Node* AVLTree<T, Threads>::newNode(int height, int key, long version, bool value, Node* parent, Node* left, Node* right){
     Node* node = hazard.getFreeNode();
     
-    node->key = key;
     node->height = height;
+    node->key = key;
     node->version = version;
     node->value = value;
     node->parent = parent;
