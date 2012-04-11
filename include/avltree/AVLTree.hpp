@@ -79,6 +79,7 @@ template<typename T, int Threads>
 class AVLTree {
     public:
         AVLTree();
+        ~AVLTree();
         
         bool contains(T value);
         bool add(T value);
@@ -87,7 +88,7 @@ class AVLTree {
     private:
         Node* rootHolder;
 
-        HazardManager<Node, Threads, 5> hazard;
+        HazardManager<Node, Threads, 6> hazard;
     
         /* Allocate new nodes */
         Node* newNode(int key);
@@ -126,6 +127,11 @@ static int nodeCondition(Node* node);
 template<typename T, int Threads>
 AVLTree<T, Threads>::AVLTree(){
     rootHolder = newNode(std::numeric_limits<int>::min());
+}
+
+template<typename T, int Threads>
+AVLTree<T, Threads>::~AVLTree(){
+    hazard.releaseNode(rootHolder);
 }
     
 template<typename T, int Threads>
@@ -610,7 +616,7 @@ Node* AVLTree<T, Threads>::rebalance_nl(Node* nParent, Node* n){
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
-    hazard.publish(nL, 1);
+    hazard.publish(nL, 2);
     scoped_lock lock(nL->lock);
 
     int hL = nL->height;
@@ -625,7 +631,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
             return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR0);
         } else {
             {
-                hazard.publish(nLR, 2);
+                hazard.publish(nLR, 3);
                 scoped_lock subLock(nLR->lock);
 
                 int hLR = nLR->height;
@@ -647,7 +653,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
-    hazard.publish(nR, 3);
+    hazard.publish(nR, 4);
     scoped_lock lock(nR->lock);
 
     int hR = nR->height;
@@ -662,7 +668,7 @@ Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, 
             return rotateLeft_nl(nParent, n, hL0, nR, nRL, hRL0, hRR0);
         } else {
             {
-                hazard.publish(nRL, 4);
+                hazard.publish(nRL, 5);
                 scoped_lock subLock(nRL->lock);
 
                 int hRL = nRL->height;
