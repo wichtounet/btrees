@@ -22,6 +22,8 @@
 template<typename T>
 void testST(const std::string& name){
     std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
+
+    thread_num = 0;
     
     T tree;
     
