@@ -68,7 +68,6 @@ struct Node {
     }
 };
 
-//TODO Use different specialized enum
 enum Result {
     FOUND,
     NOT_FOUND,
@@ -88,7 +87,7 @@ class AVLTree {
     private:
         Node* rootHolder;
 
-        HazardManager<Node, Threads, 6> hazard;
+        HazardManager<Node, Threads, 3> hazard;
     
         /* Allocate new nodes */
         Node* newNode(int key);
@@ -118,7 +117,26 @@ class AVLTree {
         Node* rotateRightOverLeft_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLRL);
         Node* rotateLeft_nl(Node* nParent, Node* n, int hL, Node* nR, Node* nRL, int hRL, int hRR);
         Node* rotateRight_nl(Node* nParent, Node* n, Node* nL, int hR, int hLL, Node* nLR, int hLR);
+        
+        unsigned int Current[Threads];
+        void publish(Node* ref);
+        void releaseAll();
 };
+
+template<typename T, int Threads>
+void AVLTree<T, Threads>::publish(Node* ref){
+    hazard.publish(ref, Current[thread_num]);
+    ++Current[thread_num];
+}
+
+template<typename T, int Threads>
+void AVLTree<T, Threads>::releaseAll(){
+    for(unsigned int i = 0; i < Current[thread_num]; ++i){
+        hazard.release(i);
+    }
+    
+    Current[thread_num] = 0;
+}
 
 static Node* fixHeight_nl(Node* n);
 static int height(Node* node);
@@ -278,16 +296,16 @@ Result AVLTree<T, Threads>::updateUnderRoot(int key, Function func, bool expecte
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* holder){
-    hazard.publish(holder, 0);
+    publish(holder);
     scoped_lock lock(holder->lock);
 
     if(!holder->right){
         holder->right = newNode(1, key, 0, value, holder, nullptr, nullptr);
         holder->height = 2;
-        hazard.releaseAll();
+        releaseAll();
         return true;
     } else {
-        hazard.releaseAll();
+        releaseAll();
         return false;
     }
 }
@@ -316,11 +334,11 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                 Node* damaged;
 
                 {
-                    hazard.publish(node, 0);
+                    publish(node);
                     scoped_lock lock(node->lock);    
                 
                     if(node->version != nodeOVL){
-                        hazard.releaseAll();
+                        releaseAll();
                         return RETRY;
                     }
 
@@ -329,7 +347,7 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                         damaged = nullptr;
                     } else {
                         if(!shouldUpdate(func, false, expected)){
-                            hazard.releaseAll();
+                            releaseAll();
                             return noUpdateResult(func, false);
                         }
 
@@ -340,7 +358,7 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                         damaged = fixHeight_nl(node);
                     }
                     
-                    hazard.releaseAll();
+                    releaseAll();
                 }
 
                 if(success){
@@ -383,37 +401,37 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
         Node* damaged;
 
         {
-            hazard.publish(parent, 0);
+            publish(parent);
             scoped_lock parentLock(parent->lock);
             
             if(isUnlinked(parent->version) || node->parent != parent){
-                hazard.releaseAll();
+                releaseAll();
                 return RETRY;
             }
 
             {
-                hazard.publish(node, 1);
+                publish(node);
                 scoped_lock lock(node->lock);
                 
                 prev = node->value;
 
                 if(!shouldUpdate(func, prev, expected)){
-                    hazard.releaseAll();
+                    releaseAll();
                     return noUpdateResult(func, prev);
                 }
 
                 if(!prev){
-                    hazard.releaseAll();
+                    releaseAll();
                     return updateResult(func, prev);
                 }
 
                 if(!attemptUnlink_nl(parent, node)){
-                    hazard.releaseAll();
+                    releaseAll();
                     return RETRY;
                 }
             }
             
-            hazard.releaseAll();
+            releaseAll();
 
             damaged = fixHeight_nl(parent);
         }
@@ -422,42 +440,42 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
 
         return updateResult(func, prev);
     } else {
-        hazard.publish(node, 0);
+        publish(node);
         scoped_lock lock(node->lock);
 
         if(isUnlinked(node->version)){
-            hazard.releaseAll();
+            releaseAll();
             return RETRY;
         }
 
         bool prev = node->value;
         if(!shouldUpdate(func, prev, expected)){
-            hazard.releaseAll();
+            releaseAll();
             return noUpdateResult(func, prev);
         }
 
         if(!newValue && (!node->left || !node->right)){
-            hazard.releaseAll();
+            releaseAll();
             return RETRY;
         }
 
         node->value = newValue;
         
-        hazard.releaseAll();
+        releaseAll();
         return updateResult(func, prev);
     }
 }
 
 template<typename T, int Threads>
 void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
-    //hazard.publish(node, 0);
+    //publish(node, 0);
     
     long version = node->version;
 
     if(isShrinking(version)){
         for(int i = 0; i < SpinCount; ++i){
             if(version != node->version){
-                //hazard.releaseAll();
+                //releaseAll();
                 return;
             }
         }
@@ -466,7 +484,7 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
         node->lock.unlock();
     }
 
-    //hazard.releaseAll();
+    //releaseAll();
 }
 
 template<typename T, int Threads>
@@ -544,25 +562,25 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
         }
 
         if(condition != UnlinkRequired && condition != RebalanceRequired){
-            hazard.publish(node, 0);
+            publish(node);
             scoped_lock lock(node->lock);
             
             node = fixHeight_nl(node);
 
-            hazard.releaseAll();
+            releaseAll();
         } else {
             Node* nParent = node->parent;
-            hazard.publish(nParent, 0);
+            publish(nParent);
             scoped_lock lock(nParent->lock);
 
             if(!isUnlinked(nParent->version) && node->parent == nParent){
-                hazard.publish(node, 1);
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 node = rebalance_nl(nParent, node);
             }
 
-            hazard.releaseAll();
+            releaseAll();
         }
     }
 }
@@ -616,7 +634,7 @@ Node* AVLTree<T, Threads>::rebalance_nl(Node* nParent, Node* n){
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
-    hazard.publish(nL, 2);
+    publish(nL);
     scoped_lock lock(nL->lock);
 
     int hL = nL->height;
@@ -631,7 +649,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
             return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR0);
         } else {
             {
-                hazard.publish(nLR, 3);
+                publish(nLR);
                 scoped_lock subLock(nLR->lock);
 
                 int hLR = nLR->height;
@@ -653,7 +671,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
-    hazard.publish(nR, 4);
+    publish(nR);
     scoped_lock lock(nR->lock);
 
     int hR = nR->height;
@@ -668,7 +686,7 @@ Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, 
             return rotateLeft_nl(nParent, n, hL0, nR, nRL, hRL0, hRR0);
         } else {
             {
-                hazard.publish(nRL, 5);
+                publish(nRL);
                 scoped_lock subLock(nRL->lock);
 
                 int hRL = nRL->height;
