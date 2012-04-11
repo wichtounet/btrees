@@ -40,9 +40,11 @@ struct Node {
     Node* left;
     Node* right;
 
-    Node* nextNode = nullptr; //For hazard pointers
+    Node* nextNode; //For hazard pointers
 
     std::mutex lock;
+
+    Node() : nextNode(nullptr) {}
 
     Node* child(int direction){
         if(direction > 0){

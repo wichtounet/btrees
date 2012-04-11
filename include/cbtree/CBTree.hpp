@@ -82,13 +82,13 @@ struct Node {
     Node* left;
     Node* right;
     
-    int ncnt = 1;
-    int rcnt = 0;
-    int lcnt = 0;
+    int ncnt;
+    int rcnt;
+    int lcnt;
 
     std::mutex lock;
 
-    Node(int key, bool value, Node* parent, long changeOVL, Node* left, Node* right) : key(key), value(value), parent(parent), changeOVL(changeOVL), left(left), right(right) {
+    Node(int key, bool value, Node* parent, long changeOVL, Node* left, Node* right) : key(key), value(value), parent(parent), changeOVL(changeOVL), left(left), right(right), ncnt(1), rcnt(0), lcnt(0) {
         //Nothing    
     }
 
