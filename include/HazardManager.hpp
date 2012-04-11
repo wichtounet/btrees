@@ -130,29 +130,13 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
 
         //Little optimization for the first insertion to the free queue (avoid a branch in the second loop)
         if(!isReferenced(pred)){
-            FreeQueues[tid][0] = FreeQueues[tid][1] = pred;
-                
+            Enqueue(FreeQueues, pred, tid);
+
             //Pop the node from the local queue
             LocalQueues[tid][0] = pred->nextNode;
             --CountFreeNodes[tid];
-        } /*else {
-            while((node = pred->nextNode)){
-                if(!isReferenced(node)){
-                    if(!(pred->nextNode = node->nextNode)){
-                        LocalQueues[tid][1] = pred;
-                    }
-            
-                    FreeQueues[tid][0] = FreeQueues[tid][1] = node;
-                
-                    --CountFreeNodes[tid];
+        } 
 
-                    break;
-                } else {
-                    pred = node;
-                }
-            }
-        }*/
-            
         //Enqueue all the other free nodes to the free queue
         while((node = pred->nextNode)){
             if(!isReferenced(node)){
@@ -160,8 +144,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
                     LocalQueues[tid][1] = pred;
                 }
 
-                FreeQueues[tid][1]->nextNode = node;
-                FreeQueues[tid][1] = node;
+                Enqueue(FreeQueues, pred, tid);
 
                 --CountFreeNodes[tid];
             }
