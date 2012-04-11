@@ -80,6 +80,11 @@ inline void deleteAll(Node** Queue){
     }
 }
 
+static int alloc = 0;
+static int releaseCount = 0;
+
+#include <iostream>
+
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     for(unsigned int tid = 0; tid < Threads; ++tid){
@@ -89,6 +94,10 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
         deleteAll(LocalQueues[tid]);
         deleteAll(FreeQueues[tid]);
     }
+
+
+    std::cout << "get free node" << alloc << std::endl;
+    std::cout << "release nodes" << releaseCount << std::endl;
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
@@ -103,6 +112,7 @@ void HazardManager<Node, Threads, Size, Prefill>::Enqueue(Node* Queue[Threads][2
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
+    ++releaseCount;
     //Add the node to the localqueue
     node->nextNode = nullptr;
     Enqueue(LocalQueues, node, thread_num);
@@ -113,6 +123,7 @@ void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
+    ++alloc;
     int tid = thread_num;
 
     //First test if there are free nodes for this thread

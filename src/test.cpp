@@ -17,7 +17,7 @@
 #include "cbtree/CBTree.hpp"
 
 //Number of nodes for the tests (for up to 32 threads)
-#define N 10000//00         //A too big number can put nodes in swap
+#define N 1000//00         //A too big number can put nodes in swap
 
 template<typename T>
 void testST(const std::string& name){
@@ -158,14 +158,14 @@ void testMT(){
 #define TEST(type, name) \
     testST<type<int, 1>>(name);\
     std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
-    testMT<type<int, 2>, 2>();\
+    /*testMT<type<int, 2>, 2>();\
     testMT<type<int, 3>, 3>();\
     testMT<type<int, 4>, 4>();\
     testMT<type<int, 6>, 6>();\
     testMT<type<int, 8>, 8>();\
     testMT<type<int, 12>, 12>();\
     testMT<type<int, 16>, 16>();\
-    testMT<type<int, 32>, 32>();
+    testMT<type<int, 32>, 32>();*/
 
 void test(){
     std::cout << "Tests the different versions" << std::endl;
