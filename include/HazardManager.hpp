@@ -30,6 +30,8 @@ class HazardManager {
         
         bool isReferenced(Node* node);
 
+        void Enqueue(Node* Queue[Threads][2], Node* node);
+
         /* Verify the template parameters */
         static_assert(Threads > 0, "The number of threads must be greater than 0");
         static_assert(Size > 0, "The number of hazard pointers must greater than 0");
@@ -95,21 +97,25 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
-void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
+void HazardManager<Node, Threads, Size, Prefill>::Enqueue(Node* Queue[Threads][2], Node* node){
     int tid = thread_num;
-
-    node->nextNode = nullptr;
-
-    //Add the node to the localqueue
-    if(!LocalQueues[tid][0]){
-        LocalQueues[tid][0] = LocalQueues[tid][1] = node;
+    
+    if(!Queue[tid][0]){
+        Queue[tid][0] = Queue[tid][1] = node;
     } else {
-        LocalQueues[tid][1]->nextNode = node;
-        LocalQueues[tid][1] = node;
+        Queue[tid][1]->nextNode = node;
+        Queue[tid][1] = node;
     }
+}
+
+template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
+    //Add the node to the localqueue
+    node->nextNode = nullptr;
+    Enqueue(LocalQueues, node);
 
     //There is one more available node in the local queue
-    ++CountFreeNodes[tid];
+    ++CountFreeNodes[thread_num];
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
@@ -136,7 +142,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
             //Pop the node from the local queue
             LocalQueues[tid][0] = pred->nextNode;
             --CountFreeNodes[tid];
-        } else {
+        } /*else {
             while((node = pred->nextNode)){
                 if(!isReferenced(node)){
                     if(!(pred->nextNode = node->nextNode)){
@@ -152,7 +158,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
                     pred = node;
                 }
             }
-        }
+        }*/
             
         //Enqueue all the other free nodes to the free queue
         while((node = pred->nextNode)){
