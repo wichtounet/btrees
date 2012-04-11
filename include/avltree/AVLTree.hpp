@@ -33,17 +33,16 @@ enum Function {
 
 struct Node {
     int height;
-    const int key;
+    int key;
     long version;
     bool value;
     Node* parent;
     Node* left;
     Node* right;
 
-    std::mutex lock;
+    Node* nextNode = nullptr; //For hazard pointers
 
-    Node(int key) : key(key), parent(nullptr), left(nullptr), right(nullptr) {};
-    Node(int height, int key, long version, Node* parent, Node* left, Node* right) : height(height), key(key), version(version), parent(parent), left(left), right(right) {} 
+    std::mutex lock;
 
     Node* child(int direction){
         if(direction > 0){
@@ -86,6 +85,11 @@ class AVLTree {
     private:
         Node* rootHolder;
 
+        HazardManager<Node, Threads, 3> hazard;
+    
+        Node* newNode(int key);
+        Node* newNode(int height, int key, long version, bool value, Node* parent, Node* left, Node* right);
+
         //Search
         Result attemptGet(int key, Node* node, int dir, long nodeV);
 
@@ -118,12 +122,31 @@ static int nodeCondition(Node* node);
 
 template<typename T, int Threads>
 AVLTree<T, Threads>::AVLTree(){
-    rootHolder = new Node(std::numeric_limits<int>::min());
-    rootHolder->height = 1;
-    rootHolder->version = 0;
-    rootHolder->value = false;
+    rootHolder = newNode(std::numeric_limits<int>::min());
 }
-        
+    
+template<typename T, int Threads>
+Node* AVLTree<T, Threads>::newNode(int key){
+    return newNode(1, key, 0L, false, nullptr, nullptr, nullptr);
+}
+
+template<typename T, int Threads>
+Node* AVLTree<T, Threads>::newNode(int height, int key, long version, bool value, Node* parent, Node* left, Node* right){
+    Node* node = hazard.getFreeNode();
+    
+    node->key = key;
+    node->height = height;
+    node->version = version;
+    node->value = value;
+    node->parent = parent;
+    node->left = left;
+    node->right = right;
+    
+    node->nextNode = nullptr;
+
+    return node;
+}
+
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::contains(T value){
     int key = hash(value);
@@ -249,8 +272,7 @@ bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* hold
     scoped_lock lock(holder->lock);
 
     if(!holder->right){
-        holder->right = new Node(1, key, 0, holder, nullptr, nullptr);
-        holder->right->value = value;
+        holder->right = newNode(1, key, 0, value, holder, nullptr, nullptr);
         holder->height = 2;
         return true;
     } else {
@@ -296,9 +318,8 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                             return noUpdateResult(func, false);
                         }
 
-                        Node* newNode = new Node(1, key, 0, node, nullptr, nullptr);
-                        newNode->value = true;
-                        node->setChild(cmp, newNode);
+                        Node* newChild = newNode(1, key, 0, true, node, nullptr, nullptr);
+                        node->setChild(cmp, newChild);
 
                         success = true;
                         damaged = fixHeight_nl(node);
