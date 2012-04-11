@@ -126,7 +126,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
 
     //If there are enough local nodes, move then to the free queue
     if(CountFreeNodes[tid] > (Size + 1) * Threads){
-        Node* node; 
+        Node* node = nullptr; 
         Node* pred = LocalQueues[tid][0];
 
         //Little optimization for the first insertion to the free queue (avoid a branch in the second loop)
@@ -135,7 +135,6 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
                 
             //Pop the node from the local queue
             LocalQueues[tid][0] = pred->nextNode;
-            pred->nextNode = nullptr;
             --CountFreeNodes[tid];
         } else {
             while((node = pred->nextNode)){
@@ -145,7 +144,6 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
                     }
             
                     FreeQueues[tid][0] = FreeQueues[tid][1] = node;
-                    node->nextNode = nullptr;
                 
                     --CountFreeNodes[tid];
 
@@ -155,7 +153,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
                 }
             }
         }
-
+            
         //Enqueue all the other free nodes to the free queue
         while((node = pred->nextNode)){
             if(!isReferenced(node)){
@@ -165,19 +163,21 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
 
                 FreeQueues[tid][1]->nextNode = node;
                 FreeQueues[tid][1] = node;
-                node->nextNode = nullptr;
 
                 --CountFreeNodes[tid];
-            } 
+            }
             
             pred = node;
         }
+
+        FreeQueues[tid][1]->nextNode = nullptr;
     
         node = FreeQueues[tid][0];
 
         //The algorithm ensures that there will be at least one node in the free queue
         assert(node);
         
+        //Pop it out of the queue
         FreeQueues[tid][0] = node->nextNode;
 
         return node;
