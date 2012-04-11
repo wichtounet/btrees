@@ -123,6 +123,24 @@ class AVLTree {
         void releaseAll();
 };
 
+static Node* fixHeight_nl(Node* n);
+static int height(Node* node);
+static int nodeCondition(Node* node);
+
+template<typename T, int Threads>
+AVLTree<T, Threads>::AVLTree(){
+    rootHolder = newNode(std::numeric_limits<int>::min());
+
+    for(unsigned int i = 0; i < Threads; ++i){
+        Current[i] = 0;
+    }
+}
+
+template<typename T, int Threads>
+AVLTree<T, Threads>::~AVLTree(){
+    hazard.releaseNode(rootHolder);
+}
+
 template<typename T, int Threads>
 void AVLTree<T, Threads>::publish(Node* ref){
     hazard.publish(ref, Current[thread_num]);
@@ -138,19 +156,6 @@ void AVLTree<T, Threads>::releaseAll(){
     Current[thread_num] = 0;
 }
 
-static Node* fixHeight_nl(Node* n);
-static int height(Node* node);
-static int nodeCondition(Node* node);
-
-template<typename T, int Threads>
-AVLTree<T, Threads>::AVLTree(){
-    rootHolder = newNode(std::numeric_limits<int>::min());
-}
-
-template<typename T, int Threads>
-AVLTree<T, Threads>::~AVLTree(){
-    hazard.releaseNode(rootHolder);
-}
     
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::newNode(int key){
