@@ -30,7 +30,7 @@ class HazardManager {
         
         bool isReferenced(Node* node);
 
-        void Enqueue(Node* Queue[Threads][2], Node* node);
+        void Enqueue(Node* Queue[Threads][2], Node* node, unsigned int tid);
 
         /* Verify the template parameters */
         static_assert(Threads > 0, "The number of threads must be greater than 0");
@@ -46,19 +46,14 @@ HazardManager<Node, Threads, Size, Prefill>::HazardManager(){
 
         LocalQueues[tid][0] = LocalQueues[tid][1] = nullptr;
         CountFreeNodes[tid] = 0;
+        
+        FreeQueues[tid][0] = FreeQueues[tid][1] = nullptr;
 
         if(Prefill > 0){
-            FreeQueues[tid][0] = FreeQueues[tid][1] = new Node();
-            
-            for(unsigned int i = 1; i < Prefill; i++){
-                Node* node = new Node();
-
-                FreeQueues[tid][1]->nextNode = node;
-                FreeQueues[tid][1] = node;
+            for(unsigned int i = 0; i < Prefill; i++){
+                Enqueue(FreeQueues, new Node(), tid);
             }
-        } else {
-            FreeQueues[tid][0] = FreeQueues[tid][1] = nullptr;
-        }
+        } 
     }
 }
 
@@ -97,9 +92,7 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
-void HazardManager<Node, Threads, Size, Prefill>::Enqueue(Node* Queue[Threads][2], Node* node){
-    int tid = thread_num;
-    
+void HazardManager<Node, Threads, Size, Prefill>::Enqueue(Node* Queue[Threads][2], Node* node, unsigned int tid){
     if(!Queue[tid][0]){
         Queue[tid][0] = Queue[tid][1] = node;
     } else {
@@ -112,7 +105,7 @@ template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Pr
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     //Add the node to the localqueue
     node->nextNode = nullptr;
-    Enqueue(LocalQueues, node);
+    Enqueue(LocalQueues, node, thread_num);
 
     //There is one more available node in the local queue
     ++CountFreeNodes[thread_num];
