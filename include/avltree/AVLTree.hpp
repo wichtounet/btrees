@@ -173,8 +173,6 @@ Node* AVLTree<T, Threads>::newNode(int height, int key, long version, bool value
     node->parent = parent;
     node->left = left;
     node->right = right;
-    
-    node->nextNode = nullptr;
 
     return node;
 }
@@ -473,14 +471,11 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
 
 template<typename T, int Threads>
 void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
-    //publish(node, 0);
-    
     long version = node->version;
 
     if(isShrinking(version)){
         for(int i = 0; i < SpinCount; ++i){
             if(version != node->version){
-                //releaseAll();
                 return;
             }
         }
@@ -488,8 +483,6 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
         node->lock.lock();
         node->lock.unlock();
     }
-
-    //releaseAll();
 }
 
 template<typename T, int Threads>
@@ -527,6 +520,8 @@ bool AVLTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
 
     node->version = UnlinkedOVL;
     node->value = false;
+
+    hazard.releaseNode(node);
 
     return true;
 }
