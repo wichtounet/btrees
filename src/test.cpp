@@ -103,8 +103,6 @@ void testST(const std::string& name){
     std::cout << "Test passed successfully" << std::endl;
 }
 
-#define asserta(condition) if(!condition){std::cout << j << std::endl;}
-
 //This test could be improved with some randomness
 template<typename T, unsigned int Threads>
 void testMT(){
@@ -123,7 +121,7 @@ void testMT(){
             for(int j = tid * N; j < (tid + 1) * N; ++j){
                 assert(!tree.contains(j));
                 assert(tree.add(j));
-                asserta(tree.contains(j));
+                assert(tree.contains(j));
             }
 
             //Remove all the sequential numbers

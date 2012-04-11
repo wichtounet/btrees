@@ -87,8 +87,9 @@ class AVLTree {
     private:
         Node* rootHolder;
 
-        HazardManager<Node, Threads, 3> hazard;
+        HazardManager<Node, Threads, 5> hazard;
     
+        /* Allocate new nodes */
         Node* newNode(int key);
         Node* newNode(int height, int key, long version, bool value, Node* parent, Node* left, Node* right);
 
@@ -271,13 +272,16 @@ Result AVLTree<T, Threads>::updateUnderRoot(int key, Function func, bool expecte
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* holder){
+    hazard.publish(holder, 0);
     scoped_lock lock(holder->lock);
 
     if(!holder->right){
         holder->right = newNode(1, key, 0, value, holder, nullptr, nullptr);
         holder->height = 2;
+        hazard.releaseAll();
         return true;
     } else {
+        hazard.releaseAll();
         return false;
     }
 }
@@ -306,9 +310,11 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                 Node* damaged;
 
                 {
+                    hazard.publish(node, 0);
                     scoped_lock lock(node->lock);    
                 
                     if(node->version != nodeOVL){
+                        hazard.releaseAll();
                         return RETRY;
                     }
 
@@ -317,6 +323,7 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                         damaged = nullptr;
                     } else {
                         if(!shouldUpdate(func, false, expected)){
+                            hazard.releaseAll();
                             return noUpdateResult(func, false);
                         }
 
@@ -326,6 +333,8 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
                         success = true;
                         damaged = fixHeight_nl(node);
                     }
+                    
+                    hazard.releaseAll();
                 }
 
                 if(success){
@@ -368,29 +377,37 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
         Node* damaged;
 
         {
+            hazard.publish(parent, 0);
             scoped_lock parentLock(parent->lock);
             
             if(isUnlinked(parent->version) || node->parent != parent){
+                hazard.releaseAll();
                 return RETRY;
             }
 
             {
+                hazard.publish(node, 1);
                 scoped_lock lock(node->lock);
                 
                 prev = node->value;
 
                 if(!shouldUpdate(func, prev, expected)){
+                    hazard.releaseAll();
                     return noUpdateResult(func, prev);
                 }
 
                 if(!prev){
+                    hazard.releaseAll();
                     return updateResult(func, prev);
                 }
 
                 if(!attemptUnlink_nl(parent, node)){
+                    hazard.releaseAll();
                     return RETRY;
                 }
             }
+            
+            hazard.releaseAll();
 
             damaged = fixHeight_nl(parent);
         }
@@ -399,33 +416,42 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
 
         return updateResult(func, prev);
     } else {
+        hazard.publish(node, 0);
         scoped_lock lock(node->lock);
 
         if(isUnlinked(node->version)){
+            hazard.releaseAll();
             return RETRY;
         }
 
         bool prev = node->value;
         if(!shouldUpdate(func, prev, expected)){
+            hazard.releaseAll();
             return noUpdateResult(func, prev);
         }
 
         if(!newValue && (!node->left || !node->right)){
+            hazard.releaseAll();
             return RETRY;
         }
 
         node->value = newValue;
+        
+        hazard.releaseAll();
         return updateResult(func, prev);
     }
 }
 
 template<typename T, int Threads>
 void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
+    //hazard.publish(node, 0);
+    
     long version = node->version;
 
     if(isShrinking(version)){
         for(int i = 0; i < SpinCount; ++i){
             if(version != node->version){
+                //hazard.releaseAll();
                 return;
             }
         }
@@ -433,6 +459,47 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
         node->lock.lock();
         node->lock.unlock();
     }
+
+    //hazard.releaseAll();
+}
+
+template<typename T, int Threads>
+bool AVLTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
+    assert(!isUnlinked(parent->version));
+
+    Node* parentL = parent->left;
+    Node* parentR = parent->right;
+
+    if(parentL != node && parentR != node){
+        return false;
+    }
+
+    assert(!isUnlinked(node->version));
+    assert(parent == node->parent);
+
+    Node* left = node->left;
+    Node* right = node->right;
+
+    if(left && right){
+        return false;
+    }
+
+    Node* splice = left ? left : right;
+    
+    if(parentL == node){
+        parent->left = splice;
+    } else {
+        parent->right = splice;
+    }
+
+    if(splice){
+        splice->parent = parent;
+    }
+
+    node->version = UnlinkedOVL;
+    node->value = false;
+
+    return true;
 }
 
 int height(Node* node){
@@ -471,18 +538,25 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
         }
 
         if(condition != UnlinkRequired && condition != RebalanceRequired){
+            hazard.publish(node, 0);
             scoped_lock lock(node->lock);
-
+            
             node = fixHeight_nl(node);
+
+            hazard.releaseAll();
         } else {
             Node* nParent = node->parent;
+            hazard.publish(nParent, 0);
             scoped_lock lock(nParent->lock);
 
             if(!isUnlinked(nParent->version) && node->parent == nParent){
+                hazard.publish(node, 1);
                 scoped_lock nodeLock(node->lock);
 
                 node = rebalance_nl(nParent, node);
             }
+
+            hazard.releaseAll();
         }
     }
 }
@@ -536,6 +610,7 @@ Node* AVLTree<T, Threads>::rebalance_nl(Node* nParent, Node* n){
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
+    hazard.publish(nL, 1);
     scoped_lock lock(nL->lock);
 
     int hL = nL->height;
@@ -550,6 +625,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
             return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR0);
         } else {
             {
+                hazard.publish(nLR, 2);
                 scoped_lock subLock(nLR->lock);
 
                 int hLR = nLR->height;
@@ -571,6 +647,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
 
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
+    hazard.publish(nR, 3);
     scoped_lock lock(nR->lock);
 
     int hR = nR->height;
@@ -585,6 +662,7 @@ Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, 
             return rotateLeft_nl(nParent, n, hL0, nR, nRL, hRL0, hRR0);
         } else {
             {
+                hazard.publish(nRL, 4);
                 scoped_lock subLock(nRL->lock);
 
                 int hRL = nRL->height;
@@ -802,45 +880,6 @@ Node* AVLTree<T, Threads>::rotateLeftOverRight_nl(Node* nParent, Node* n, int hL
     }
     
     return fixHeight_nl(nParent);
-}
-
-template<typename T, int Threads>
-bool AVLTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
-    assert(!isUnlinked(parent->version));
-
-    Node* parentL = parent->left;
-    Node* parentR = parent->right;
-
-    if(parentL != node && parentR != node){
-        return false;
-    }
-
-    assert(!isUnlinked(node->version));
-    assert(parent == node->parent);
-
-    Node* left = node->left;
-    Node* right = node->right;
-
-    if(left && right){
-        return false;
-    }
-
-    Node* splice = left ? left : right;
-    
-    if(parentL == node){
-        parent->left = splice;
-    } else {
-        parent->right = splice;
-    }
-
-    if(splice){
-        splice->parent = parent;
-    }
-
-    node->version = UnlinkedOVL;
-    node->value = false;
-
-    return true;
 }
 
 } //end of avltree
