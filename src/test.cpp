@@ -68,7 +68,6 @@ void testST(const std::string& name){
             assert(!tree.add(number));     
             assert(tree.contains(number));
         } else {
-            std::cout << "Tree.add " << number << std::endl;
             assert(tree.add(number));     
             assert(tree.contains(number));
 
@@ -81,7 +80,6 @@ void testST(const std::string& name){
         int number = generator();
 
         if(!tree.contains(number)){
-        std::cout << "tree.try remove " << number << std::endl;
             assert(!tree.remove(number));
             assert(!tree.contains(number));
         }
@@ -92,7 +90,6 @@ void testST(const std::string& name){
 
     //Verify that we can remove all the numbers from the tree
     for(int number : rand){
-        std::cout << "tree.remove " << number << std::endl;
         assert(tree.contains(number));
         assert(tree.remove(number));
     }
@@ -100,8 +97,6 @@ void testST(const std::string& name){
     //Try remove numbers in the empty tree
     for(unsigned int i = 0; i < N; ++i){
         auto number = generator();
-        
-        std::cout << "tree.try remove " << number << std::endl;
 
         assert(!tree.contains(number));
         assert(!tree.remove(number));
@@ -163,14 +158,14 @@ void testMT(){
 #define TEST(type, name) \
     testST<type<int, 1>>(name);\
     std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
-    /*testMT<type<int, 2>, 2>();\
+    testMT<type<int, 2>, 2>();\
     testMT<type<int, 3>, 3>();\
     testMT<type<int, 4>, 4>();\
     testMT<type<int, 6>, 6>();\
     testMT<type<int, 8>, 8>();\
     testMT<type<int, 12>, 12>();\
     testMT<type<int, 16>, 16>();\
-    testMT<type<int, 32>, 32>();*/
+    testMT<type<int, 32>, 32>();
 
 void test(){
     std::cout << "Tests the different versions" << std::endl;
