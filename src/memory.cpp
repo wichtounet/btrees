@@ -110,13 +110,13 @@ void test_memory_consumption(){
     std::vector<int> sizes = {1000, 10000, 100000, 1000000, 10000000};
 
     for(auto size : sizes){
-        memory_high<skiplist::SkipList<int, 32>>("SkipList", size);
-        memory_high<nbbst::NBBST<int, 32>>("NBBST", size);
+        //memory_high<skiplist::SkipList<int, 32>>("SkipList", size);
+        //memory_high<nbbst::NBBST<int, 32>>("NBBST", size);
     }
     
     for(auto size : sizes){
-        memory<skiplist::SkipList<int, 32>>("SkipList", size);
-        memory<nbbst::NBBST<int, 32>>("NBBST", size);
+        //memory<skiplist::SkipList<int, 32>>("SkipList", size);
+        //memory<nbbst::NBBST<int, 32>>("NBBST", size);
     }
 }
 

@@ -84,8 +84,8 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
 void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+    //BENCH(skiplist::SkipList, "SkipList", range, add, remove);
+    //BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
     //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
     //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
     //BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
@@ -160,11 +160,11 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    SKEWED_BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    SKEWED_BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
+    //SKEWED_BENCH(skiplist::SkipList, "SkipList", range, add, remove);
+    //SKEWED_BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
     //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
     //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
-    SKEWED_BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
+    //SKEWED_BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
 }
 
 void skewed_bench(unsigned int range){
@@ -238,11 +238,11 @@ void seq_construction_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        SEQ_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        SEQ_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
-        SEQ_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
-        SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQ_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
+        //SEQ_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
+        //SEQ_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
+        //SEQ_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
+        //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //SEQ_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
     }
 }
 
@@ -301,11 +301,11 @@ void random_construction_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        RANDOM_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        RANDOM_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
-        RANDOM_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
-        RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        RANDOM_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
+        //RANDOM_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
+        //RANDOM_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
+        //RANDOM_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
+        //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //RANDOM_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
     }
 }
 
@@ -356,11 +356,11 @@ void seq_removal_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
-        SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
-        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
-        SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+        //SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
+        //SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
+        //SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
     }
 }
 
@@ -418,11 +418,11 @@ void random_removal_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        RANDOM_REMOVAL(skiplist::SkipList, "SkipList", size);
-        RANDOM_REMOVAL(nbbst::NBBST, "NBBST", size);
-        RANDOM_REMOVAL(avltree::AVLTree, "AVLTree", size);
-        RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        RANDOM_REMOVAL(cbtree::CBTree, "CBTree", size);
+        //RANDOM_REMOVAL(skiplist::SkipList, "SkipList", size);
+        //RANDOM_REMOVAL(nbbst::NBBST, "NBBST", size);
+        //RANDOM_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //RANDOM_REMOVAL(cbtree::CBTree, "CBTree", size);
     }
 }
 
@@ -502,11 +502,11 @@ void search_random_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        SEARCH_RANDOM(skiplist::SkipList, "SkipList", size);
-        SEARCH_RANDOM(nbbst::NBBST, "NBBST", size);
-        SEARCH_RANDOM(avltree::AVLTree, "Optimistic AVL Tree", size);
-        SEARCH_RANDOM(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEARCH_RANDOM(cbtree::CBTree, "CBTree", size);
+        //SEARCH_RANDOM(skiplist::SkipList, "SkipList", size);
+        //SEARCH_RANDOM(nbbst::NBBST, "NBBST", size);
+        //SEARCH_RANDOM(avltree::AVLTree, "Optimistic AVL Tree", size);
+        //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //SEARCH_RANDOM(cbtree::CBTree, "CBTree", size);
     }
 }
 
@@ -537,11 +537,11 @@ void search_sequential_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        SEARCH_SEQUENTIAL(skiplist::SkipList, "SkipList", size);
-        SEARCH_SEQUENTIAL(nbbst::NBBST, "NBBST", size);
-        SEARCH_SEQUENTIAL(avltree::AVLTree, "Optimistic AVL Tree", size);
-        SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEARCH_SEQUENTIAL(cbtree::CBTree, "CBTree", size);
+        //SEARCH_SEQUENTIAL(skiplist::SkipList, "SkipList", size);
+        //SEARCH_SEQUENTIAL(nbbst::NBBST, "NBBST", size);
+        //SEARCH_SEQUENTIAL(avltree::AVLTree, "Optimistic AVL Tree", size);
+        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        //SEARCH_SEQUENTIAL(cbtree::CBTree, "CBTree", size);
     }
 }
 

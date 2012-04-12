@@ -17,7 +17,7 @@
 #include "cbtree/CBTree.hpp"
 
 //Number of nodes for the tests (for up to 32 threads)
-#define N 1000//00         //A too big number can put nodes in swap
+#define N 10000//00         //A too big number can put nodes in swap
 
 template<typename T>
 void testST(const std::string& name){
@@ -68,6 +68,7 @@ void testST(const std::string& name){
             assert(!tree.add(number));     
             assert(tree.contains(number));
         } else {
+            std::cout << "Tree.add " << number << std::endl;
             assert(tree.add(number));     
             assert(tree.contains(number));
 
@@ -80,6 +81,7 @@ void testST(const std::string& name){
         int number = generator();
 
         if(!tree.contains(number)){
+        std::cout << "tree.try remove " << number << std::endl;
             assert(!tree.remove(number));
             assert(!tree.contains(number));
         }
@@ -90,6 +92,7 @@ void testST(const std::string& name){
 
     //Verify that we can remove all the numbers from the tree
     for(int number : rand){
+        std::cout << "tree.remove " << number << std::endl;
         assert(tree.contains(number));
         assert(tree.remove(number));
     }
@@ -97,6 +100,8 @@ void testST(const std::string& name){
     //Try remove numbers in the empty tree
     for(unsigned int i = 0; i < N; ++i){
         auto number = generator();
+        
+        std::cout << "tree.try remove " << number << std::endl;
 
         assert(!tree.contains(number));
         assert(!tree.remove(number));
@@ -176,4 +181,3 @@ void test(){
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
     //TEST(cbtree::CBTree, "Counter Based Tree");
 }
-
