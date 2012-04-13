@@ -74,8 +74,6 @@ struct Contents {
 struct Node {
     Contents* contents;
 
-    Node(Contents* contents) : contents(contents) {}
-
     bool casContents(Contents* cts, Contents* newCts){
         return CASPTR(&contents, cts, newCts);
     }
@@ -110,10 +108,12 @@ class MultiwaySearchTree {
         HazardManager<HeadNode, Threads, 1, 1> roots;
         HazardManager<Search, Threads, 3> searches;
         HazardManager<Contents, Threads, 3> nodeContents;
+        HazardManager<Node, Threads, 3> nodes;
 
         HeadNode* newHeadNode(Node* node, int height);
         Search* newSearch(Node* node, Contents* contents, int index);
         Contents* newContents(Keys* items, Children* children, Node* link);
+        Node* newNode(Contents* contents);
 
         bool attemptSlideKey(Node* node, Contents* contents);
         bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
@@ -176,6 +176,15 @@ Contents* MultiwaySearchTree<T, Threads>::newContents(Keys* items, Children* chi
     return contents;
 }
 
+template<typename T, int Threads>
+Node* MultiwaySearchTree<T, Threads>::newNode(Contents* contents){
+    Node* node = nodes.getFreeNode();
+
+    node->contents = contents;
+
+    return node;
+}
+
 /* Some internal utilities */ 
 
 static int search(Keys* items, Key key);
@@ -204,7 +213,7 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     (*keys)[0] = {KeyFlag::INF, 0};
 
     Contents* contents = newContents(keys, nullptr, nullptr);
-    Node* node = new Node(contents);
+    Node* node = newNode(contents);
 
     root = newHeadNode(node, 0);
     
@@ -670,13 +679,14 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         Children* children = new Children(1); 
         (*children)[0] = root->node;
         Contents* contents = newContents(keys, children, nullptr);
-        Node* newNode = new Node(contents);
-        HeadNode* update = newHeadNode(newNode, height + 1);
+        Node* newHeadNodeNode = newNode(contents);
+        HeadNode* update = newHeadNode(newHeadNodeNode, height + 1);
         
         if(CASPTR(&this->root, root, update)){
             roots.releaseNode(root);
         } else {
             nodeContents.releaseNode(contents);
+            nodes.releaseNode(newHeadNodeNode);
             roots.releaseNode(update);
         }
 
@@ -916,13 +926,14 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
 
         
         Contents* rightContents = newContents(rightKeys, rightChildren, contents->link);
-        Node* right = new Node(rightContents);
+        Node* right = newNode(rightContents);
         Contents* left = newContents(leftKeys, leftChildren, right);
 
         if(node->casContents(contents, left)){
             return right;
         } else {
             nodeContents.releaseNode(rightContents);
+            nodes.releaseNode(right);
             nodeContents.releaseNode(left);
 
             results = moveForward(node, key, index);
