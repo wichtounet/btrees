@@ -39,11 +39,7 @@ struct Key {
 //Hold a set of key include the length of the set
 struct Keys {
     Key* elements;
-    const int length;
-
-    Keys(int length) : length(length){
-        elements = (Key*) calloc(length, sizeof(Key)); 
-    }
+    int length;
 
     Key& operator[](int index){
         return elements[index];
@@ -53,16 +49,13 @@ struct Keys {
 //Hold a set of key including the lenght of the set
 struct Children {
     Node** elements;
-    const int length;
-
-    Children(int length) : length(length){
-        elements = (Node**) calloc(length, sizeof(Node*));
-    }
+    int length;
 
     Node*& operator[](int index){
         return elements[index];
     }
 };
+
 
 struct Contents {
     Keys* items;
@@ -108,11 +101,18 @@ class MultiwaySearchTree {
         HazardManager<Search, Threads, 3> searches;
         HazardManager<Contents, Threads, 3> nodeContents;
         HazardManager<Node, Threads, 3> nodes;
+        HazardManager<Keys, Threads, 3> nodeKeys;
+        HazardManager<Children, Threads, 3> nodeChildren;
 
         HeadNode* newHeadNode(Node* node, int height);
         Search* newSearch(Node* node, Contents* contents, int index);
         Contents* newContents(Keys* items, Children* children, Node* link);
         Node* newNode(Contents* contents);
+        Keys* newKeys(int length);
+        Children* newChildren(int length);
+
+        Keys* removeSingleItem(Keys* a, int index);
+        Children* removeSingleItem(Children* a, int index);
 
         bool attemptSlideKey(Node* node, Contents* contents);
         bool shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild);
@@ -134,6 +134,14 @@ class MultiwaySearchTree {
 
         Search* moveForward(Node* node, Key key, int hint);
 
+        Keys* generateNewItems(Key key, Keys* keys, int index);
+        Keys* generateLeftItems(Keys* children, int index);
+        Keys* generateRightItems(Keys* children, int index);
+        Children* generateNewChildren(Node* child, Children* children, int index);
+        Children* generateLeftChildren(Children* children, int index);
+        Children* generateRightChildren(Children* children, int index);
+        Children* copyChildren(Children* rhs);
+
         bool insertLeafLevel(Key key, Search* results);
         bool beginInsertOneLevel(Key key, Search** results);
         Node* splitOneLevel(Key key, Search* result);
@@ -147,6 +155,8 @@ template<typename T, int Threads>
 HeadNode* MultiwaySearchTree<T, Threads>::newHeadNode(Node* node, int height){
     HeadNode* root = roots.getFreeNode();
 
+    assert(root);
+
     root->node = node;
     root->height = height;
 
@@ -156,6 +166,8 @@ HeadNode* MultiwaySearchTree<T, Threads>::newHeadNode(Node* node, int height){
 template<typename T, int Threads>
 Search* MultiwaySearchTree<T, Threads>::newSearch(Node* node, Contents* contents, int index){
     Search* search = searches.getFreeNode();
+
+    assert(search);
 
     search->node = node;
     search->contents = contents;
@@ -168,6 +180,8 @@ template<typename T, int Threads>
 Contents* MultiwaySearchTree<T, Threads>::newContents(Keys* items, Children* children, Node* link){
     Contents* contents = nodeContents.getFreeNode();
 
+    assert(contents);
+
     contents->items = items;
     contents->children = children;
     contents->link = link;
@@ -179,9 +193,35 @@ template<typename T, int Threads>
 Node* MultiwaySearchTree<T, Threads>::newNode(Contents* contents){
     Node* node = nodes.getFreeNode();
 
+    assert(node);
+
     node->contents = contents;
 
     return node;
+}
+    
+template<typename T, int Threads>
+Keys* MultiwaySearchTree<T, Threads>::newKeys(int length){
+    Keys* keys = nodeKeys.getFreeNode();
+
+    assert(keys);
+
+    keys->length = length;
+    keys->elements = (Key*) calloc(length, sizeof(Key)); 
+
+    return keys;
+}
+
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::newChildren(int length){
+    Children* children = nodeChildren.getFreeNode();
+
+    assert(children);
+
+    children->length = length;
+    children->elements = (Node**) calloc(length, sizeof(Node*));
+
+    return children;
 }
 
 /* Some internal utilities */ 
@@ -191,13 +231,6 @@ static int searchWithHint(Keys* items, Key key, int hint);
 static int compare(Key k1, Key k2);
 
 static Node* pushRight(Node* node, Key leftBarrier);
-static Keys* generateNewItems(Key key, Keys* keys, int index);
-static Children* copyChildren(Children* rhs);
-static Children* generateNewChildren(Node* child, Children* children, int index);
-static Keys* generateLeftItems(Keys* children, int index);
-static Keys* generateRightItems(Keys* children, int index);
-static Children* generateLeftChildren(Children* children, int index);
-static Children* generateRightChildren(Children* children, int index);
 
 template<typename T>
 Key special_hash(T value){
@@ -208,7 +241,7 @@ Key special_hash(T value){
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
-    Keys* keys = new Keys(1);
+    Keys* keys = newKeys(1);
     (*keys)[0] = {KeyFlag::INF, 0};
 
     Contents* contents = newContents(keys, nullptr, nullptr);
@@ -366,10 +399,21 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
     }
 }
 
-template<typename T>
-T* removeSingleItem(T* a, int index){
+template<typename T, int Threads>
+Keys* MultiwaySearchTree<T, Threads>::removeSingleItem(Keys* a, int index){
     int length = a->length;
-    T* newArray = new T(length - 1);
+    Keys* newArray = newKeys(length - 1);
+
+    std::copy(a->elements, a->elements + index, newArray->elements);
+    std::copy(a->elements + index + 1, a->elements + length, newArray->elements + index);
+
+    return newArray;
+}
+
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::removeSingleItem(Children* a, int index){
+    int length = a->length;
+    Children* newArray = newChildren(length - 1);
 
     std::copy(a->elements, a->elements + index, newArray->elements);
     std::copy(a->elements + index + 1, a->elements + length, newArray->elements + index);
@@ -673,9 +717,9 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     int height = root->height;
 
     while(height < target){
-        Keys* keys = new Keys(1);
+        Keys* keys = newKeys(1);
         (*keys)[0].flag = KeyFlag::INF;
-        Children* children = new Children(1); 
+        Children* children = newChildren(1); 
         (*children)[0] = root->node;
         Contents* contents = newContents(keys, children, nullptr);
         Node* newHeadNodeNode = newNode(contents);
@@ -684,6 +728,8 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         if(CASPTR(&this->root, root, update)){
             roots.releaseNode(root);
         } else {
+            nodeChildren.releaseNode(children);
+            nodeKeys.releaseNode(keys);
             nodeContents.releaseNode(contents);
             nodes.releaseNode(newHeadNodeNode);
             roots.releaseNode(update);
@@ -714,8 +760,9 @@ Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key, int hin
     }
 }
 
-Children* copyChildren(Children* rhs){
-    Children* copy = new Children(rhs->length);
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::copyChildren(Children* rhs){
+    Children* copy = newChildren(rhs->length);
     
     std::copy(rhs->elements, rhs->elements + rhs->length, copy->elements);
 
@@ -724,13 +771,14 @@ Children* copyChildren(Children* rhs){
 
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild){
-    Children* newChildren = copyChildren(contents->children);
-    (*newChildren)[index] = adjustedChild;
+    Children* children = copyChildren(contents->children);
+    (*children)[index] = adjustedChild;
 
-    Contents* update = newContents(contents->items, newChildren, contents->link);
+    Contents* update = newContents(contents->items, children, contents->link);
     if(node->casContents(contents, update)){
         return true;
     } else {
+        nodeChildren.releaseNode(children);
         nodeContents.releaseNode(update);
 
         return false;
@@ -739,14 +787,15 @@ bool MultiwaySearchTree<T, Threads>::shiftChild(Node* node, Contents* contents, 
 
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2){
-    Children* newChildren = new Children(2);
-    (*newChildren)[0] = child1;
-    (*newChildren)[1] = child2;
+    Children* children = newChildren(2);
+    (*children)[0] = child1;
+    (*children)[1] = child2;
 
-    Contents* update = newContents(contents->items, newChildren, contents->link);
+    Contents* update = newContents(contents->items, children, contents->link);
     if(node->casContents(contents, update)){
         return true;
     } else {
+        nodeChildren.releaseNode(children);
         nodeContents.releaseNode(update);
 
         return false;
@@ -757,21 +806,23 @@ template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     int length = contents->items->length;
 
-    Keys* newKeys = new Keys(length - 1);
-    Children* newChildren = new Children(length - 1);
+    Keys* keys = newKeys(length - 1);
+    Children* children = newChildren(length - 1);
     
-    std::copy(contents->items->elements, contents->items->elements + index, newKeys->elements);
-    std::copy(contents->children->elements, contents->children->elements + index, newChildren->elements);
+    std::copy(contents->items->elements, contents->items->elements + index, keys->elements);
+    std::copy(contents->children->elements, contents->children->elements + index, children->elements);
     
-    (*newChildren)[index] = adjustedChild;
+    (*children)[index] = adjustedChild;
     
-    std::copy(contents->items->elements + index + 1, contents->items->elements + length, newKeys->elements + index);
-    std::copy(contents->children->elements + index + 2, contents->children->elements + length, newChildren->elements + index + 1);
+    std::copy(contents->items->elements + index + 1, contents->items->elements + length, keys->elements + index);
+    std::copy(contents->children->elements + index + 2, contents->children->elements + length, children->elements + index + 1);
 
-    Contents* update = newContents(newKeys, newChildren, contents->link);
+    Contents* update = newContents(keys, children, contents->link);
     if(node->casContents(contents, update)){
         return true;
     } else {
+        nodeChildren.releaseNode(children);
+        nodeKeys.releaseNode(keys);
         nodeContents.releaseNode(update);
 
         return false;
@@ -922,7 +973,6 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
         Keys* rightKeys = generateRightItems(contents->items, index);
         Children* leftChildren = generateLeftChildren(contents->children, index);
         Children* rightChildren = generateRightChildren(contents->children, index);
-
         
         Contents* rightContents = newContents(rightKeys, rightChildren, contents->link);
         Node* right = newNode(rightContents);
@@ -1033,66 +1083,80 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
     }
 }
 
-template<typename T, typename V>
-T* generateNew(V x, T* items, int index){
+template<typename T, int Threads>
+Keys* MultiwaySearchTree<T, Threads>::generateNewItems(Key key, Keys* items, int index){
     if(!items){
         return nullptr;
     }
 
     int length = items->length;
-    T* newItems = new T(length + 1);
+    Keys* newItems = newKeys(length + 1);
     
     std::copy(items->elements, items->elements + index, newItems->elements);
-    (*newItems)[index] = x;
+    (*newItems)[index] = key;
     std::copy(items->elements + index, items->elements + length, newItems->elements + index + 1);
     
     return newItems;
 }
 
-Keys* generateNewItems(Key key, Keys* items, int index){
-    return generateNew(key, items, index);
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::generateNewChildren(Node* child, Children* children, int index){
+    if(!children){
+        return nullptr;
+    }
+
+    int length = children->length;
+    Children* newItems = newChildren(length + 1);
+    
+    std::copy(children->elements, children->elements + index, newItems->elements);
+    (*newItems)[index] = child;
+    std::copy(children->elements + index, children->elements + length, newItems->elements + index + 1);
+    
+    return newItems;
 }
 
-Children* generateNewChildren(Node* child, Children* children, int index){
-    return generateNew(child, children, index);
-}
-
-template<typename T>
-T* generateLeft(T* items, int index){
+template<typename T, int Threads>
+Keys* MultiwaySearchTree<T, Threads>::generateLeftItems(Keys* items, int index){
     if(!items){
         return nullptr;
     }
 
-    T* newItems = new T(index + 1);
+    Keys* newItems = newKeys(index + 1);
     std::copy(items->elements, items->elements + index + 1, newItems->elements);
     return newItems;
 }
 
-template<typename T>
-T* generateRight(T* items, int index){
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::generateLeftChildren(Children* children, int index){
+    if(!children){
+        return nullptr;
+    }
+
+    Children* newItems = newChildren(index + 1);
+    std::copy(children->elements, children->elements + index + 1, newItems->elements);
+    return newItems;
+}
+
+template<typename T, int Threads>
+Keys* MultiwaySearchTree<T, Threads>::generateRightItems(Keys* items, int index){
     if(!items){
         return nullptr;
     }
 
-    T* newItems = new T(items->length - index - 1);
+    Keys* newItems = newKeys(items->length - index - 1);
     std::copy(items->elements + index + 1, items->elements + items->length, newItems->elements);
     return newItems;
 }
 
-Keys* generateLeftItems(Keys* items, int index){
-    return generateLeft(items, index); 
-}
+template<typename T, int Threads>
+Children* MultiwaySearchTree<T, Threads>::generateRightChildren(Children* children, int index){
+    if(!children){
+        return nullptr;
+    }
 
-Children* generateLeftChildren(Children* children, int index){
-    return generateLeft(children, index);
-}
-
-Keys* generateRightItems(Keys* keys, int index){
-    return generateRight(keys, index);
-}
-
-Children* generateRightChildren(Children* children, int index){
-    return generateRight(children, index);
+    Children* newItems = newChildren(children->length - index - 1);
+    std::copy(children->elements + index + 1, children->elements + children->length, newItems->elements);
+    return newItems;
 }
 
 } //end of lfmst
