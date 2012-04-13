@@ -42,7 +42,7 @@ struct Keys {
     const int length;
 
     Keys(int length) : length(length){
-        elements = new Key[length];
+        elements = (Key*) calloc(length, sizeof(Key)); 
     }
 
     Key& operator[](int index){
@@ -68,7 +68,6 @@ struct Contents {
     Keys* items;
     Children* children;
     Node* link;
-
 };
 
 struct Node {
