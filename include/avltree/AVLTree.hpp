@@ -41,21 +41,7 @@ struct Node {
     Node* left;
     Node* right;
 
-    //Node* nextNode; //For hazard pointers
-
-    std::mutex* lock;
-
-    Node(){
-        lock = new std::mutex();
-
-        assert(lock);
-    }
-
-    ~Node(){
-        delete lock;
-    }
-
-    //Node() : nextNode(nullptr) {}
+    std::mutex lock;
 
     Node* child(int direction){
         if(direction > 0){
@@ -312,7 +298,7 @@ Result AVLTree<T, Threads>::updateUnderRoot(int key, Function func, bool expecte
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* holder){
     publish(holder);
-    scoped_lock lock(*holder->lock);
+    scoped_lock lock(holder->lock);
 
     if(!holder->right){
         holder->right = newNode(1, key, 0, value, holder, nullptr, nullptr);
@@ -350,7 +336,7 @@ Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected,
 
                 {
                     publish(node);
-                    scoped_lock lock(*node->lock);    
+                    scoped_lock lock(node->lock);    
                 
                     if(node->version != nodeOVL){
                         releaseAll();
@@ -417,7 +403,7 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
 
         {
             publish(parent);
-            scoped_lock parentLock(*parent->lock);
+            scoped_lock parentLock(parent->lock);
             
             if(isUnlinked(parent->version) || node->parent != parent){
                 releaseAll();
@@ -426,7 +412,7 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
 
             {
                 publish(node);
-                scoped_lock lock(*node->lock);
+                scoped_lock lock(node->lock);
                 
                 prev = node->value;
 
@@ -456,7 +442,7 @@ Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool
         return updateResult(func, prev);
     } else {
         publish(node);
-        scoped_lock lock(*node->lock);
+        scoped_lock lock(node->lock);
 
         if(isUnlinked(node->version)){
             releaseAll();
@@ -492,8 +478,8 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
             }
         }
             
-        node->lock->lock();
-        node->lock->unlock();
+        node->lock.lock();
+        node->lock.unlock();
     }
 }
 
@@ -575,7 +561,7 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
 
         if(condition != UnlinkRequired && condition != RebalanceRequired){
             publish(node);
-            scoped_lock lock(*node->lock);
+            scoped_lock lock(node->lock);
             
             node = fixHeight_nl(node);
 
@@ -583,11 +569,11 @@ void AVLTree<T, Threads>::fixHeightAndRebalance(Node* node){
         } else {
             Node* nParent = node->parent;
             publish(nParent);
-            scoped_lock lock(*nParent->lock);
+            scoped_lock lock(nParent->lock);
 
             if(!isUnlinked(nParent->version) && node->parent == nParent){
                 publish(node);
-                scoped_lock nodeLock(*node->lock);
+                scoped_lock nodeLock(node->lock);
 
                 node = rebalance_nl(nParent, node);
             }
@@ -647,7 +633,7 @@ Node* AVLTree<T, Threads>::rebalance_nl(Node* nParent, Node* n){
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL, int hR0){
     publish(nL);
-    scoped_lock lock(*nL->lock);
+    scoped_lock lock(nL->lock);
 
     int hL = nL->height;
     if(hL - hR0 <= 1){
@@ -662,7 +648,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
         } else {
             {
                 publish(nLR);
-                scoped_lock subLock(*nLR->lock);
+                scoped_lock subLock(nLR->lock);
 
                 int hLR = nLR->height;
                 if(hLL0 >= hLR){
@@ -684,7 +670,7 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, int hL0){
     publish(nR);
-    scoped_lock lock(*nR->lock);
+    scoped_lock lock(nR->lock);
 
     int hR = nR->height;
     if(hL0 - hR >= -1){
@@ -699,7 +685,7 @@ Node* AVLTree<T, Threads>::rebalanceToLeft_nl(Node* nParent, Node* n, Node* nR, 
         } else {
             {
                 publish(nRL);
-                scoped_lock subLock(*nRL->lock);
+                scoped_lock subLock(nRL->lock);
 
                 int hRL = nRL->height;
                 if(hRR0 >= hRL){
