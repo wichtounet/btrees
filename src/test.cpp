@@ -162,10 +162,10 @@ void testMT(){
     testMT<type<int, 3>, 3>();\
     testMT<type<int, 4>, 4>();\
     testMT<type<int, 6>, 6>();\
-    testMT<type<int, 8>, 8>();\
-    testMT<type<int, 12>, 12>();\
-    testMT<type<int, 16>, 16>();\
-    testMT<type<int, 32>, 32>();
+    //testMT<type<int, 8>, 8>();\
+    //testMT<type<int, 12>, 12>();\
+    //testMT<type<int, 16>, 16>();\
+    //testMT<type<int, 32>, 32>();
 
 void test(){
     std::cout << "Tests the different versions" << std::endl;

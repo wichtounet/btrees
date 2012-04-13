@@ -108,10 +108,10 @@ class MultiwaySearchTree {
 
     private:
         HeadNode* root;
+        
+        HazardManager<HeadNode, Threads, 1, 1> roots;
 
         HeadNode* newHeadNode(Node* node, int height);
-
-        HazardManager<HeadNode, Threads, 1, 1> roots;
 
         int randomSeed;
 
@@ -625,6 +625,8 @@ int searchWithHint(Keys* items, Key key, int hint){
 template<typename T, int Threads>
 HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     HeadNode* root = this->root;
+    roots.publish(root, 0);
+
     int height = root->height;
 
     while(height < target){
@@ -635,10 +637,20 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         Contents* contents = new Contents(keys, children, nullptr);
         Node* newNode = new Node(contents);
         HeadNode* update = newHeadNode(newNode, height + 1);
-        CASPTR(&this->root, root, update);
+        
+        if(CASPTR(&this->root, root, update)){
+            roots.releaseNode(root);
+        } else {
+            roots.releaseNode(update);
+        }
+
         root = this->root;
+        roots.publish(root, 0);
+
         height = root->height;
     }
+
+    roots.release(0);
 
     return root;
 }
