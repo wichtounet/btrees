@@ -93,9 +93,7 @@ struct Search {
 
 struct HeadNode {
     Node* node;
-    const int height;
-
-    HeadNode(Node* node, int height) : node(node), height(height) {}
+    int height;
 };
 
 template<typename T, int Threads>
@@ -111,6 +109,10 @@ class MultiwaySearchTree {
     private:
         HeadNode* root;
 
+        HeadNode* newHeadNode(Node* node, int height);
+
+        HazardManager<HeadNode, Threads, 1, 1> roots;
+
         int randomSeed;
 
         Search* traverseLeaf(Key key, bool cleanup);
@@ -121,6 +123,16 @@ class MultiwaySearchTree {
         unsigned int randomLevel();
         HeadNode* increaseRootHeight(int height);
 };
+
+template<typename T, int Threads>
+HeadNode* MultiwaySearchTree<T, Threads>::newHeadNode(Node* node, int height){
+    HeadNode* root = roots.getFreeNode();
+
+    root->node = node;
+    root->height = height;
+
+    return root;
+}
 
 /* Some internal utilities */ 
 static Search* moveForward(Node* node, Key key, int hint);
@@ -168,7 +180,7 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     Contents* contents = new Contents(keys, nullptr, nullptr);
     Node* node = new Node(contents);
 
-    root = new HeadNode(node, 0);
+    root = newHeadNode(node, 0);
     
     std::mt19937_64 engine(time(NULL));
     std::uniform_int_distribution<unsigned int> distribution(0, std::numeric_limits<int>::max());
@@ -177,7 +189,7 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
-    delete root;
+    roots.releaseNode(root);
 }
 
 template<typename T, int Threads>
@@ -241,7 +253,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         
 template<typename T, int Threads>
 Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
-    Node* node = root->node;
+    Node* node = this->root->node;
     Contents* contents = node->contents;
     int index = search(contents->items, key);
     Key leftBarrier = {KeyFlag::EMPTY, 0};
@@ -622,7 +634,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         (*children)[0] = root->node;
         Contents* contents = new Contents(keys, children, nullptr);
         Node* newNode = new Node(contents);
-        HeadNode* update = new HeadNode(newNode, height + 1);
+        HeadNode* update = newHeadNode(newNode, height + 1);
         CASPTR(&this->root, root, update);
         root = this->root;
         height = root->height;
