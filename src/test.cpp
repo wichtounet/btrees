@@ -172,7 +172,7 @@ void test(){
 
     //TEST(skiplist::SkipList, "SkipList")
     //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    TEST(avltree::AVLTree, "Optimistic AVL Tree")
-    //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
+    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
     //TEST(cbtree::CBTree, "Counter Based Tree");
 }

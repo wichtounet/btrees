@@ -6,6 +6,7 @@
 
 #include "hash.hpp"
 #include "Utils.hpp"
+#include "HazardManager.hpp"
 
 //Lock-Free Multiway Search Tree
 namespace lfmst {
