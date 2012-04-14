@@ -271,6 +271,22 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
+    if(root->node){
+        if(root->node->contents){
+            if(root->node->contents->items){
+                nodeKeys.releaseNode(root->node->contents->items);
+            }
+            
+            if(root->node->contents->children){
+                nodeChildren.releaseNode(root->node->contents->children);
+            }
+
+            nodeContents.releaseNode(root->node->contents);
+        }
+
+        nodes.releaseNode(root->node);
+    }
+
     roots.releaseNode(root);
 }
 
@@ -316,6 +332,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         Search* results = traverseLeaf(key, false);
         return insertLeafLevel(key, results);
     } else {
+        //TODO This memory should be released somewhere
         Search** results = (Search**) calloc(height + 1, sizeof(Search*));
         traverseNonLeaf(key, height, results);
 
