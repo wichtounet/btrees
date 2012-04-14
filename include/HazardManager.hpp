@@ -60,14 +60,14 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     for(unsigned int tid = 0; tid < Threads; ++tid){
         //No need to delete Hazard Pointers because each thread need to release its published references
 
-        while(!LocalQueues[tid].empty()){
-            delete LocalQueues[tid].front();
-            LocalQueues[tid].pop_front();
+        while(!LocalQueues.at(tid).empty()){
+            delete LocalQueues.at(tid).front();
+            LocalQueues.at(tid).pop_front();
         }
         
-        while(!FreeQueues[tid].empty()){
-            delete FreeQueues[tid].front();
-            FreeQueues[tid].pop_front();
+        while(!FreeQueues.at(tid).empty()){
+            delete FreeQueues.at(tid).front();
+            FreeQueues.at(tid).pop_front();
         }
     }
 }
