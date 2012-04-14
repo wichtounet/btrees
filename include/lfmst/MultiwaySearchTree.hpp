@@ -332,12 +332,13 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         Search* results = traverseLeaf(key, false);
         return insertLeafLevel(key, results);
     } else {
-        //TODO This memory should be released somewhere
         Search** results = (Search**) calloc(height + 1, sizeof(Search*));
         traverseNonLeaf(key, height, results);
 
         bool inserted = beginInsertOneLevel(key, results);
         if(!inserted){
+            free(results);
+
             return false;
         }
 
@@ -345,6 +346,8 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
             Node* right = splitOneLevel(key, results[i]);
             insertOneLevel(key, results, right, i + 1);
         }
+
+        free(results);
 
         return true;
     }
