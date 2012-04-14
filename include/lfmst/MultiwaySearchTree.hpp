@@ -56,7 +56,6 @@ struct Children {
     }
 };
 
-
 struct Contents {
     Keys* items;
     Children* children;
@@ -207,6 +206,14 @@ Keys* MultiwaySearchTree<T, Threads>::newKeys(int length){
     assert(keys);
 
     keys->length = length;
+
+    //TODO A little optimization would be to keep the array if the sizes are the same (or even if the old length is greater)
+
+    //If the object has already been used
+    if(keys->elements){
+        free(keys->elements);
+    }
+
     keys->elements = (Key*) calloc(length, sizeof(Key)); 
 
     return keys;
@@ -219,6 +226,14 @@ Children* MultiwaySearchTree<T, Threads>::newChildren(int length){
     assert(children);
 
     children->length = length;
+
+    //TODO A little optimization would be to keep the array if the sizes are the same (or even if the old length is greater)
+    
+    //If the object has already been used
+    if(children->elements){
+        free(children->elements);
+    }
+
     children->elements = (Node**) calloc(length, sizeof(Node*));
 
     return children;
