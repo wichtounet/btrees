@@ -345,6 +345,12 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
 
         bool inserted = beginInsertOneLevel(key, results);
         if(!inserted){
+            for(unsigned int i = 0; i < height + 1; ++i){
+                if(results[i]){
+                    searches.releaseNode(results[i]);
+                }
+            }
+
             free(results);
 
             return false;
@@ -353,6 +359,12 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         for(unsigned int i = 0; i < height; ++i){
             Node* right = splitOneLevel(key, results[i]);
             insertOneLevel(key, results, right, i + 1);
+        }
+            
+        for(unsigned int i = 0; i < height + 1; ++i){
+            if(results[i]){
+                searches.releaseNode(results[i]);
+            }
         }
 
         free(results);
@@ -439,8 +451,12 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
 
             return;
         } else {
-            Search* results = newSearch(node, contents, index);
-            results = goodSamaritanCleanNeighbor(key, results);
+            Search* first_results = newSearch(node, contents, index);
+            Search* results = goodSamaritanCleanNeighbor(key, first_results);
+
+            if(results != first_results){
+                searches.releaseNode(first_results);
+            }
 
             if(height <= target){
                 storeResults[height] = results;
@@ -459,6 +475,7 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::remove(T value){
     Key key = special_hash(value);
+
     Search* results = traverseLeaf(key, true);
 
     return removeFromNode(key, results);
@@ -473,6 +490,8 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
         int index = results->index;
 
         if(index < 0){
+            searches.releaseNode(results);
+            
             return false;
         } else {
             nodeContents.publish(contents, 0);
@@ -485,6 +504,7 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
                 nodeContents.release(0);
 
                 nodeContents.releaseNode(contents);
+                searches.releaseNode(results);
 
                 return true;
             } else {
@@ -492,6 +512,8 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
                 nodeContents.releaseNode(update);
 
                 nodeContents.release(0);
+
+                searches.releaseNode(results);
 
                 results = moveForward(node, key, index);
             }
@@ -1132,6 +1154,8 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
 
         if(index >= 0){
             nodeContents.release(0);
+            
+            searches.releaseNode(results);
 
             return false; //TODO Check that            
         } else {
@@ -1144,10 +1168,14 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
 
                 nodeContents.releaseNode(contents);
                 
+                searches.releaseNode(results);
+                
                 return true;
             } else {
                 nodeKeys.releaseNode(newKeys);
                 nodeContents.releaseNode(update);
+
+                searches.releaseNode(results);
 
                 results = moveForward(node, key, index);
             }
