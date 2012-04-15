@@ -41,6 +41,12 @@ struct Keys {
     Key* elements;
     int length;
 
+    ~Keys(){
+        if(elements){
+            free(elements);
+        }
+    }
+
     Key& operator[](int index){
         return elements[index];
     }
@@ -50,6 +56,12 @@ struct Keys {
 struct Children {
     Node** elements;
     int length;
+    
+    ~Children(){
+        if(elements){
+            free(elements);
+        }
+    }
 
     Node*& operator[](int index){
         return elements[index];
