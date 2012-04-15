@@ -43,7 +43,7 @@ struct Keys {
 
     ~Keys(){
         if(elements){
-            free(elements);
+//TODO            free(elements);
         }
     }
 
@@ -59,7 +59,7 @@ struct Children {
     
     ~Children(){
         if(elements){
-            free(elements);
+//TODO            free(elements);
         }
     }
 
@@ -111,8 +111,8 @@ class MultiwaySearchTree {
         HazardManager<HeadNode, Threads, 1, 1> roots;
         HazardManager<Node, Threads, 3> nodes;
         HazardManager<Contents, Threads, 4> nodeContents;
-        HazardManager<Keys, Threads, 3> nodeKeys;
-        HazardManager<Children, Threads, 3> nodeChildren;
+        HazardManager<Keys, Threads, 4> nodeKeys;
+        HazardManager<Children, Threads, 4> nodeChildren;
         HazardManager<Search, Threads, 1> searches;
 
         HeadNode* newHeadNode(Node* node, int height);
@@ -163,6 +163,11 @@ class MultiwaySearchTree {
         unsigned int randomLevel();
         HeadNode* increaseRootHeight(int height);
 };
+
+//Values for the random generation
+static const int avgLength = 32;
+static const int avgLengthMinusOne = 31;
+static const int logAvgLength = 5; // log_2 of the average node length
 
 template<typename T, int Threads>
 HeadNode* MultiwaySearchTree<T, Threads>::newHeadNode(Node* node, int height){
@@ -310,6 +315,8 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
     
     Contents* contents = node->contents;
     nodeContents.publish(contents, 0);
+    nodeKeys.publish(contents->items, 0);
+    nodeChildren.publish(contents->children, 0);
     
     int index = search(contents->items, key);
     while(contents->children){
@@ -323,6 +330,8 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
 
         contents = node->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
         
         index = search(contents->items, key);
     }
@@ -332,12 +341,16 @@ bool MultiwaySearchTree<T, Threads>::contains(T value){
             node = contents->link;
         } else {
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             return index >= 0;
         }
         
         contents = node->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         index = search(contents->items, key);
     }
@@ -392,6 +405,8 @@ Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
 
     Contents* contents = node->contents;
     nodeContents.publish(contents, 0);
+    nodeKeys.publish(contents->items, 0);
+    nodeChildren.publish(contents->children, 0);
 
     int index = search(contents->items, key);
     Key leftBarrier = {KeyFlag::EMPTY, 0};
@@ -418,6 +433,8 @@ Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
         
         contents = node->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         index = search(contents->items, key);
     }
@@ -425,6 +442,8 @@ Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
     while(true){
         if(index > -contents->items->length -1){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             return newSearch(node, contents, index);
         } else {
@@ -433,6 +452,8 @@ Search* MultiwaySearchTree<T, Threads>::traverseLeaf(Key key, bool cleanup){
 
         contents = node->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         index = search(contents->items, key);
     }
@@ -452,6 +473,8 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
     while(true){
         Contents* contents = node->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         int index = search(contents->items, key);
 
@@ -461,6 +484,8 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
             storeResults[0] = newSearch(node, contents, index);
 
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             return;
         } else {
@@ -508,6 +533,8 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
             return false;
         } else {
             nodeContents.publish(contents, 0);
+            nodeKeys.publish(contents->items, 0);
+            nodeChildren.publish(contents->children, 0);
 
             Keys* newKeys = removeSingleItem(contents->items, index);
 
@@ -515,8 +542,13 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
 
             if(node->casContents(contents, update)){
                 nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
 
                 nodeContents.releaseNode(contents);
+                nodeChildren.releaseNode(contents->children);
+                nodeKeys.releaseNode(contents->items);
+
                 searches.releaseNode(results);
 
                 return true;
@@ -525,6 +557,8 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
                 nodeContents.releaseNode(update);
 
                 nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
 
                 searches.releaseNode(results);
 
@@ -543,13 +577,20 @@ Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* conten
 
         if(newLink == contents->link){
             nodeContents.release(1);
+            nodeKeys.release(1);
+            nodeChildren.release(1);
 
             return contents;
         }
+        
+        nodeKeys.publish(contents->items, 1);
+        nodeChildren.publish(contents->children, 1);
 
         Contents* update = newContents(contents->items, contents->children, newLink);
         if(node->casContents(contents, update)){
             nodeContents.release(1);
+            nodeKeys.release(1);
+            nodeChildren.release(1);
 
             nodeContents.releaseNode(contents);
 
@@ -559,6 +600,8 @@ Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* conten
         }
 
         nodeContents.release(1);
+        nodeKeys.release(1);
+        nodeChildren.release(1);
 
         contents = node->contents;
     }
@@ -580,6 +623,8 @@ template<typename T, int Threads>
 void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* contents, int index, Key leftBarrier){
     while(true){
         nodeContents.publish(contents, 1);
+        nodeKeys.publish(contents->items, 1);
+        nodeChildren.publish(contents->children, 1);
 
         int length = contents->items->length;
 
@@ -588,27 +633,37 @@ void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* co
         } else if(length == 1){
             if(cleanNode1(node, contents, leftBarrier)){
                 nodeContents.release(1);
+                nodeKeys.release(1);
+                nodeChildren.release(1);
                 return;
             }
         } else if(length == 2){
             if(cleanNode2(node, contents, leftBarrier)){
                 nodeContents.release(1);
+                nodeKeys.release(1);
+                nodeChildren.release(1);
                 return;
             }
         } else {
             if(cleanNodeN(node, contents, index, leftBarrier)){
                 nodeContents.release(1);
+                nodeKeys.release(1);
+                nodeChildren.release(1);
                 return;
             }
         }
 
         contents = node->contents;
         nodeContents.publish(contents, 1);
+        nodeKeys.publish(contents->items, 1);
+        nodeChildren.publish(contents->children, 1);
         
         index = search(contents->items, key);
 
         if(-index - 1 == contents->items->length){
             nodeContents.release(1);
+            nodeKeys.release(1);
+            nodeChildren.release(1);
             return;
         } else if(index < 0){
             index = -index -1;
@@ -616,7 +671,9 @@ void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* co
     }
 }
 
-//contents must be published by parent
+//contents must be published
+//contents->items must be published
+//contents->children must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::cleanNode1(Node* node, Contents* contents, Key leftBarrier){
     bool success = attemptSlideKey(node, contents);
@@ -642,6 +699,8 @@ bool MultiwaySearchTree<T, Threads>::cleanNode1(Node* node, Contents* contents, 
 }
 
 //contents must be published by parent
+//contents->items must be published
+//contents->children must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::cleanNode2(Node* node, Contents* contents, Key leftBarrier){
     bool success = attemptSlideKey(node, contents);
@@ -670,6 +729,8 @@ bool MultiwaySearchTree<T, Threads>::cleanNode2(Node* node, Contents* contents, 
 }
 
 //contents must be published by parent
+//contents->items must be published
+//contents->children must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::cleanNodeN(Node* node, Contents* contents, int index, Key leftBarrier){
     Key key0 = (*contents->items)[0];
@@ -707,6 +768,7 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
     while(true){
         Contents* contents = node->contents;
         nodeContents.publish(contents, 2);
+        nodeKeys.publish(contents->items, 2);
 
         int length = contents->items->length;
 
@@ -714,6 +776,7 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
             node = contents->link;
         } else if(leftBarrier.flag == KeyFlag::EMPTY || compare((*contents->items)[length - 1], leftBarrier) > 0){
             nodeContents.release(2);
+            nodeKeys.release(2);
 
             return node;
         } else {
@@ -721,10 +784,6 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
         }
     }
 }
-
-static const int avgLength = 32;
-static const int avgLengthMinusOne = 31;
-static const int logAvgLength = 5; // log_2 of the average node length
 
 template<typename T, int Threads>
 unsigned int MultiwaySearchTree<T, Threads>::randomLevel(){
@@ -750,6 +809,7 @@ unsigned int MultiwaySearchTree<T, Threads>::randomLevel(){
 }
 
 //The Contents containing items should have been published
+//items should have been published
 int search(Keys* items, Key key){
     int low = 0;
     int high = items->length - 1;
@@ -780,6 +840,7 @@ int search(Keys* items, Key key){
 }
 
 //The Contents containing items should have been published
+//items should have been published
 int searchWithHint(Keys* items, Key key, int hint){
     int low = 0;
     int mid = hint;
@@ -825,8 +886,10 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     while(height < target){
         Keys* keys = newKeys(1);
         (*keys)[0].flag = KeyFlag::INF;
+
         Children* children = newChildren(1); 
         (*children)[0] = root->node;
+        
         Contents* contents = newContents(keys, children, nullptr);
         Node* newHeadNodeNode = newNode(contents);
         HeadNode* update = newHeadNode(newHeadNodeNode, height + 1);
@@ -857,10 +920,12 @@ Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key, int hin
     while(true){
         Contents* contents = node->contents;
         nodeContents.publish(contents, 1);
+        nodeKeys.publish(contents->items, 1);
 
         int index = searchWithHint(contents->items, key, hint);
         if(index > -contents->items->length - 1){
             nodeContents.release(1);
+            nodeKeys.release(1);
 
             return newSearch(node, contents, index);
         } else {
@@ -870,6 +935,8 @@ Search* MultiwaySearchTree<T, Threads>::moveForward(Node* node, Key key, int hin
 }
 
 //contents must be published by parent
+//contents->items must be published
+//contents->children must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::shiftChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     Children* children = copyChildren(contents->children);
@@ -878,6 +945,7 @@ bool MultiwaySearchTree<T, Threads>::shiftChild(Node* node, Contents* contents, 
     Contents* update = newContents(contents->items, children, contents->link);
     if(node->casContents(contents, update)){
         nodeContents.releaseNode(contents);
+        nodeChildren.releaseNode(contents->children);
 
         return true;
     } else {
@@ -889,6 +957,8 @@ bool MultiwaySearchTree<T, Threads>::shiftChild(Node* node, Contents* contents, 
 }
 
 //contents must be published by parent
+//contents->items must be published
+//contents->children must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::shiftChildren(Node* node, Contents* contents, Node* child1, Node* child2){
     Children* children = newChildren(2);
@@ -898,6 +968,7 @@ bool MultiwaySearchTree<T, Threads>::shiftChildren(Node* node, Contents* content
     Contents* update = newContents(contents->items, children, contents->link);
     if(node->casContents(contents, update)){
         nodeContents.releaseNode(contents);
+        nodeChildren.releaseNode(contents->children);
 
         return true;
     } else {
@@ -909,6 +980,8 @@ bool MultiwaySearchTree<T, Threads>::shiftChildren(Node* node, Contents* content
 }
 
 //contents must be published by parent
+//contents->children must be published
+//contents->item must be published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::dropChild(Node* node, Contents* contents, int index, Node* adjustedChild){
     int length = contents->items->length;
@@ -927,6 +1000,8 @@ bool MultiwaySearchTree<T, Threads>::dropChild(Node* node, Contents* contents, i
     Contents* update = newContents(keys, children, contents->link);
     if(node->casContents(contents, update)){
         nodeContents.releaseNode(contents);
+        nodeChildren.releaseNode(contents->children);
+        nodeKeys.releaseNode(contents->items);
 
         return true;
     } else {
@@ -939,6 +1014,8 @@ bool MultiwaySearchTree<T, Threads>::dropChild(Node* node, Contents* contents, i
 }
 
 //contents is published by parent
+//contents->items is published
+//contents->children is published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* contents){
     if(!contents->link){
@@ -952,11 +1029,15 @@ bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* conte
     
     Contents* siblingContents = sibling->contents;
     nodeContents.publish(siblingContents, 2);
+    nodeKeys.publish(siblingContents->items, 2);
+    nodeChildren.publish(siblingContents->children, 2);
 
     Node* nephew = nullptr;
 
     if(siblingContents->children->length == 0){
         nodeContents.release(2);
+        nodeKeys.release(2);
+        nodeChildren.release(2);
 
         return false;
     } else {
@@ -971,6 +1052,8 @@ bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* conte
 
     if(nephew != child){
         nodeContents.release(2);
+        nodeKeys.release(2);
+        nodeChildren.release(2);
 
         return false;
     }
@@ -981,11 +1064,15 @@ bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* conte
     }
     
     nodeContents.release(2);
+    nodeKeys.release(2);
+    nodeChildren.release(2);
 
     return true;
 }
 
 //sibContents is published by parent
+//sibContents->items is published
+//sibContents->children is published
 template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::slideToNeighbor(Node* sibling, Contents* sibContents, Key kkey, Key key, Node* child){
     int index = search(sibContents->items, key);
@@ -1001,6 +1088,8 @@ bool MultiwaySearchTree<T, Threads>::slideToNeighbor(Node* sibling, Contents* si
     Contents* update = newContents(keys, children, sibContents->link);
     if(sibling->casContents(sibContents, update)){
         nodeContents.releaseNode(sibContents);
+        nodeKeys.releaseNode(sibContents->items);
+        nodeChildren.releaseNode(sibContents->children);
 
         return true;
     } else {
@@ -1012,7 +1101,9 @@ bool MultiwaySearchTree<T, Threads>::slideToNeighbor(Node* sibling, Contents* si
     }
 }
 
-//contents is published by parent
+//contents is published
+//contents->items is published
+//contents->children is published
 template<typename T, int Threads>
 Contents* MultiwaySearchTree<T, Threads>::deleteSlidedKey(Node* node, Contents* contents, Key key){
     int index = search(contents->items, key);
@@ -1026,6 +1117,8 @@ Contents* MultiwaySearchTree<T, Threads>::deleteSlidedKey(Node* node, Contents* 
     Contents* update = newContents(keys, children, contents->link);
     if(node->casContents(contents, update)){
         nodeContents.releaseNode(contents);
+        nodeChildren.releaseNode(contents->children);
+        nodeKeys.releaseNode(contents->items);
 
         return update;
     } else {
@@ -1040,6 +1133,7 @@ Contents* MultiwaySearchTree<T, Threads>::deleteSlidedKey(Node* node, Contents* 
 template<typename T, int Threads>
 Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Search* results){
     Node* node = results->node;
+    
     Contents* contents = results->contents;
     nodeContents.publish(contents, 2);
 
@@ -1048,6 +1142,9 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
 
         return results;
     }
+    
+    nodeKeys.publish(contents->items, 2);
+    nodeChildren.publish(contents->children, 2);
 
     int length = contents->items->length;
     Key leftBarrier = (*contents->items)[length - 1];
@@ -1056,6 +1153,8 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
 
     Contents* siblingContents = sibling->contents;
     nodeContents.publish(siblingContents, 3);
+    nodeKeys.publish(siblingContents->items, 3);
+    nodeChildren.publish(siblingContents->children, 3);
 
     Node* nephew = nullptr;
     Node* adjustedNephew = nullptr;
@@ -1065,7 +1164,11 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
         int index = search(contents->items, key);
         
         nodeContents.release(2);
+        nodeKeys.release(2);
+        nodeChildren.release(2);
         nodeContents.release(3);
+        nodeKeys.release(3);
+        nodeChildren.release(3);
 
         return newSearch(node, contents, index); //Perhaps a problem as there are no reference to contents
     } else {
@@ -1087,18 +1190,27 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
         if(success){
             contents = deleteSlidedKey(node, contents, leftBarrier);//TODO Check leftBarrier
             nodeContents.publish(contents, 2);
+            nodeKeys.publish(contents->items, 2);
             
             int index = search(contents->items, key);
             
             nodeContents.release(2);
+            nodeKeys.release(2);
+            nodeChildren.release(2);
             nodeContents.release(3);
+            nodeKeys.release(3);
+            nodeChildren.release(3);
             
             return newSearch(node, contents, index); //Perhaps a problem as there are no reference to contents
         }
     }
     
     nodeContents.release(2);
+    nodeKeys.release(2);
+    nodeChildren.release(2);
     nodeContents.release(3);
+    nodeKeys.release(3);
+    nodeChildren.release(3);
 
     return results;
 }
@@ -1109,14 +1221,19 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
 
     while(true){
         Node* node = results->node;
+        
         Contents* contents = results->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
         
         int index = results->index;
         int length = contents->items->length;
 
         if(index < 0){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             if(results != entry_results){
                 searches.releaseNode(results);
@@ -1125,6 +1242,8 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
             return nullptr;
         } else if(length < 2 || index == (length - 1)){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             if(results != entry_results){
                 searches.releaseNode(results);
@@ -1144,8 +1263,12 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
 
         if(node->casContents(contents, left)){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             nodeContents.releaseNode(contents);
+            nodeChildren.releaseNode(contents->children);
+            nodeKeys.releaseNode(contents->items);
 
             if(results != entry_results){
                 searches.releaseNode(results);
@@ -1170,6 +1293,8 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
         }
         
         nodeContents.release(0);
+        nodeKeys.release(0);
+        nodeChildren.release(0);
     }
 }
 
@@ -1177,14 +1302,19 @@ template<typename T, int Threads>
 bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
     while(true){
         Node* node = results->node;
+        
         Contents* contents = results->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
         
         Keys* keys = contents->items;
         int index = results->index;
 
         if(index >= 0){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
             
             searches.releaseNode(results);
 
@@ -1196,8 +1326,12 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
             Contents* update = newContents(newKeys, nullptr, contents->link);
             if(node->casContents(contents, update)){
                 nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
 
                 nodeContents.releaseNode(contents);
+                nodeChildren.releaseNode(contents->children);
+                nodeKeys.releaseNode(contents->items);
                 
                 searches.releaseNode(results);
                 
@@ -1212,6 +1346,8 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
             }
 
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
         }
     }
 }
@@ -1222,14 +1358,19 @@ bool MultiwaySearchTree<T, Threads>::beginInsertOneLevel(Key key, Search** resul
 
     while(true){
         Node* node = results->node;
+        
         Contents* contents = results->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         int index = results->index;
         Keys* keys = contents->items;
 
         if(index >= 0){
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
                 
             //If we return false, the value in resultsStore will never be used
             searches.releaseNode(results);
@@ -1243,8 +1384,12 @@ bool MultiwaySearchTree<T, Threads>::beginInsertOneLevel(Key key, Search** resul
             Contents* update = newContents(newKeys, nullptr, contents->link);
             if(node->casContents(contents, update)){
                 nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
 
                 nodeContents.releaseNode(contents);
+                nodeChildren.releaseNode(contents->children);
+                nodeKeys.releaseNode(contents->items);
                 
                 searches.releaseNode(results);
                 if(resultsStore[0] != results){
@@ -1264,6 +1409,8 @@ bool MultiwaySearchTree<T, Threads>::beginInsertOneLevel(Key key, Search** resul
             }
 
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
         }
     }
 }
@@ -1279,8 +1426,11 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
 
     while(true){
         Node* node = results->node;
+        
         Contents* contents = results->contents;
         nodeContents.publish(contents, 0);
+        nodeKeys.publish(contents->items, 0);
+        nodeChildren.publish(contents->children, 0);
 
         int index = results->index;
 
@@ -1290,6 +1440,8 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
             }
 
             nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             return;
         } else if(index > -contents->items->length - 1){
@@ -1301,6 +1453,8 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
             Contents* update = newContents(newKeys, newChildren, contents->link);
             if(node->casContents(contents, update)){
                 nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
             
                 if(results != entry_results){
                     searches.releaseNode(results);
@@ -1309,6 +1463,8 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
                 searches.releaseNode(resultsStore[target]);
 
                 nodeContents.releaseNode(contents);
+                nodeChildren.releaseNode(contents->children);
+                nodeKeys.releaseNode(contents->items);
 
                 resultsStore[target] = newSearch(node, update, index);
                 return;
@@ -1332,6 +1488,8 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
         }
         
         nodeContents.release(0);
+        nodeKeys.release(0);
+        nodeChildren.release(0);
     }
 }
 
