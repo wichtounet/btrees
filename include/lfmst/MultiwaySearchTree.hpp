@@ -71,7 +71,7 @@ struct Children {
 struct Contents {
     Keys* items;
     Children* children;
-    Node* link;
+    Node* link; //The next node
 };
 
 struct Node {
@@ -635,6 +635,9 @@ void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* co
                 nodeContents.release(1);
                 nodeKeys.release(1);
                 nodeChildren.release(1);
+
+                //Perhaps node->items[0] should be released there
+
                 return;
             }
         } else if(length == 2){
