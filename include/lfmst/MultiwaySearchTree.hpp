@@ -491,6 +491,11 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
         } else {
             Search* first_results = newSearch(node, contents, index);
             Search* results = goodSamaritanCleanNeighbor(key, first_results);
+            
+            //Releases the references from the good samaritan
+            nodeContents.release(2);
+            nodeKeys.release(2);
+            nodeChildren.release(2);
 
             if(results != first_results){
                 searches.releaseNode(first_results);
@@ -1166,14 +1171,12 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
         contents = cleanLink(node, node->contents);
         int index = search(contents->items, key);
         
-        nodeContents.release(2);
-        nodeKeys.release(2);
-        nodeChildren.release(2);
         nodeContents.release(3);
         nodeKeys.release(3);
         nodeChildren.release(3);
 
-        return newSearch(node, contents, index); //Perhaps a problem as there are no reference to contents
+        //References 2 are released by the caller
+        return newSearch(node, contents, index);
     } else {
         nephew = (*siblingContents->children)[0];
     }
@@ -1194,17 +1197,16 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
             contents = deleteSlidedKey(node, contents, leftBarrier);//TODO Check leftBarrier
             nodeContents.publish(contents, 2);
             nodeKeys.publish(contents->items, 2);
+            nodeChildren.publish(contents->children, 2);
             
             int index = search(contents->items, key);
             
-            nodeContents.release(2);
-            nodeKeys.release(2);
-            nodeChildren.release(2);
             nodeContents.release(3);
             nodeKeys.release(3);
             nodeChildren.release(3);
             
-            return newSearch(node, contents, index); //Perhaps a problem as there are no reference to contents
+            //References 2 are released by the caller
+            return newSearch(node, contents, index);
         }
     }
     
