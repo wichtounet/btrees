@@ -193,15 +193,15 @@ void skewed_bench(){
     skewed_bench(200000);
 }
 
-void duration(Clock::time_point t0, Clock::time_point t1){
+unsigned long get_duration(Clock::time_point t0, Clock::time_point t1){
     microseconds us = std::chrono::duration_cast<microseconds>(t1 - t0);
 
     if(us.count() < 100000){
-        std::cout << us.count() << "us";
+        return us.count();
     } else {
         milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
 
-        std::cout << ms.count() << "ms";
+        return ms.count();
     }
 }
 
@@ -230,9 +230,7 @@ void seq_construction_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    std::cout << "Construction of " << name << " with " << size << " elements took ";
-    duration(t0, t1); 
-    std::cout << " with " << Threads << " threads" << std::endl;
+    std::cout << "Construction of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -293,9 +291,7 @@ void random_construction_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    std::cout << "Construction of " << name << " with " << size << " elements took ";
-    duration(t0, t1);
-    std::cout << " with " << Threads << " threads" << std::endl;
+    std::cout << "Construction of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -353,9 +349,7 @@ void seq_removal_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    std::cout << "Removal of " << name << " with " << size << " elements took ";
-    duration(t0, t1);
-    std::cout << " with " << Threads << " threads" << std::endl;
+    std::cout << "Removal of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
 }
 
 #define SEQUENTIAL_REMOVAL(type, name, size)\
@@ -415,9 +409,7 @@ void random_removal_bench(const std::string& name, unsigned int size){
 
     Clock::time_point t1 = Clock::now();
 
-    std::cout << "Removal of " << name << " with " << size << " elements took ";
-    duration(t0, t1);
-    std::cout << " with " << Threads << " threads" << std::endl;
+    std::cout << "Removal of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
 }
 
 #define RANDOM_REMOVAL(type, name, size)\
