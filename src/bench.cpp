@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stringstream>
 #include <random>
 #include <chrono>
 #include <thread>
@@ -9,6 +10,7 @@
 #include "bench.hpp"
 #include "zipf.hpp"
 #include "HazardManager.hpp" //To manipulate thread_num
+#include "Results.hpp"
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
@@ -27,7 +29,7 @@ typedef std::chrono::milliseconds milliseconds;
 typedef std::chrono::microseconds microseconds;
 
 template<typename Tree, unsigned int Threads>
-void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove){
+void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, Results& results){
     Tree tree;
 
     //TODO Prefill ?
@@ -72,23 +74,33 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     unsigned long throughput = (Threads * OPERATIONS) / ms.count();
 
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+
+    results.add_result(name, throughput);
 }
 
 #define BENCH(type, name, range, add, remove)\
-    random_bench<type<int, 1>, 1>(name, range, add, remove);\
-    random_bench<type<int, 2>, 2>(name, range, add, remove);\
-    random_bench<type<int, 3>, 3>(name, range, add, remove);\
-    random_bench<type<int, 4>, 4>(name, range, add, remove);\
-    random_bench<type<int, 8>, 8>(name, range, add, remove);
+    random_bench<type<int, 1>, 1>(name, range, add, remove, results);\
+    random_bench<type<int, 2>, 2>(name, range, add, remove, results);\
+    random_bench<type<int, 3>, 3>(name, range, add, remove, results);\
+    random_bench<type<int, 4>, 4>(name, range, add, remove, results);\
+    random_bench<type<int, 8>, 8>(name, range, add, remove, results);
 
 void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    //BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
-    BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
-    //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
-    //BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
+    std::stringstream bench_name;
+    bench_name << "random-" << range << "-" << add << "-" << remove;
+
+    Results results;
+    results.start(bench_name.str());
+
+    BENCH(skiplist::SkipList, "skiplist", range, add, remove);
+    BENCH(nbbst::NBBST, "nbbst", range, add, remove);
+    BENCH(avltree::AVLTree, "avltree", range, add, remove)
+    //TODO BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+    BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+
+    results.finish();
 }
 
 void random_bench(unsigned int range){
