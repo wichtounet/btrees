@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stringstream>
+#include <sstream>
 #include <random>
 #include <chrono>
 #include <thread>
@@ -83,7 +83,9 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     random_bench<type<int, 2>, 2>(name, range, add, remove, results);\
     random_bench<type<int, 3>, 3>(name, range, add, remove, results);\
     random_bench<type<int, 4>, 4>(name, range, add, remove, results);\
-    random_bench<type<int, 8>, 8>(name, range, add, remove, results);
+    random_bench<type<int, 8>, 8>(name, range, add, remove, results);\
+    random_bench<type<int, 16>, 16>(name, range, add, remove, results);\
+    random_bench<type<int, 32>, 32>(name, range, add, remove, results);
 
 void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     std::cout << "Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
@@ -110,8 +112,9 @@ void random_bench(unsigned int range){
 }
 
 void random_bench(){
-    //random_bench(2000);        //Key in {0, 2000}
-    random_bench(200000);        //Key in {0, 200000}
+    random_bench(200);             //Key in {0, 200}
+    random_bench(2000);            //Key in {0, 2000}
+    random_bench(20000);           //Key in {0, 20000}
 }
 
 template<typename Tree, unsigned int Threads>
