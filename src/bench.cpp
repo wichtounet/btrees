@@ -260,10 +260,8 @@ void seq_construction_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void random_construction_bench(const std::string& name, unsigned int size){
+void random_construction_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
-
-    Clock::time_point t0 = Clock::now();
 
     std::vector<int> elements;
     for(unsigned int i = 0; i < size; ++i){
@@ -271,6 +269,8 @@ void random_construction_bench(const std::string& name, unsigned int size){
     }
 
     random_shuffle(elements.begin(), elements.end());
+
+    Clock::time_point t0 = Clock::now();
     
     unsigned int part = size / Threads;
 
@@ -292,6 +292,7 @@ void random_construction_bench(const std::string& name, unsigned int size){
     Clock::time_point t1 = Clock::now();
 
     std::cout << "Construction of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
+    results.add_result(name, get_duration(t0, t1));
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -300,11 +301,11 @@ void random_construction_bench(const std::string& name, unsigned int size){
 }
 
 #define RANDOM_CONSTRUCTION(type, name, size)\
-    random_construction_bench<type<int, 1>, 1>(name, size);\
-    random_construction_bench<type<int, 2>, 2>(name, size);\
-    random_construction_bench<type<int, 3>, 3>(name, size);\
-    random_construction_bench<type<int, 4>, 4>(name, size);\
-    random_construction_bench<type<int, 8>, 8>(name, size);
+    random_construction_bench<type<int, 1>, 1>(name, size, results);\
+    random_construction_bench<type<int, 2>, 2>(name, size, results);\
+    random_construction_bench<type<int, 3>, 3>(name, size, results);\
+    random_construction_bench<type<int, 4>, 4>(name, size, results);\
+    random_construction_bench<type<int, 8>, 8>(name, size, results);
 
 void random_construction_bench(){
     std::cout << "Bench the random construction time of each data structure" << std::endl;
@@ -312,11 +313,19 @@ void random_construction_bench(){
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
 
     for(auto size : sizes){
-        //RANDOM_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        //RANDOM_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
-        //RANDOM_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
-        //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //RANDOM_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
+        std::stringstream name;
+        name << "random-build-" << size;
+
+        Results results;
+        results.start(name.str());
+
+        RANDOM_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+        RANDOM_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+        RANDOM_CONSTRUCTION(avltree::AVLTree, "avltree", size);
+        //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
+        RANDOM_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
     }
 }
 
@@ -556,18 +565,18 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
-    skewed_bench();
+    //random_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
-    seq_construction_bench();
+    //seq_construction_bench();
     random_construction_bench();
     
     //Launch the removal benchmark
-    random_removal_bench();
-    seq_removal_bench();
+    //random_removal_bench();
+    //seq_removal_bench();
 
     //Launch the search benchmark
-    search_random_bench();
-    search_sequential_bench();
+    //search_random_bench();
+    //search_sequential_bench();
 }
