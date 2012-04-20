@@ -541,13 +541,13 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
             Contents* update = newContents(newKeys, nullptr, contents->link);
 
             if(node->casContents(contents, update)){
-                nodeContents.release(0);
-                nodeKeys.release(0);
-                nodeChildren.release(0);
-
                 nodeContents.releaseNode(contents);
                 nodeChildren.releaseNode(contents->children);
                 nodeKeys.releaseNode(contents->items);
+                
+                nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
 
                 searches.releaseNode(results);
 
@@ -555,7 +555,7 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
             } else {
                 nodeKeys.releaseNode(newKeys);
                 nodeContents.releaseNode(update);
-
+                
                 nodeContents.release(0);
                 nodeKeys.release(0);
                 nodeChildren.release(0);
@@ -588,11 +588,11 @@ Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* conten
 
         Contents* update = newContents(contents->items, contents->children, newLink);
         if(node->casContents(contents, update)){
+            nodeContents.releaseNode(contents);
+            
             nodeContents.release(1);
             nodeKeys.release(1);
             nodeChildren.release(1);
-
-            nodeContents.releaseNode(contents);
 
             return update;
         } else {
@@ -1265,13 +1265,13 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
         Contents* left = newContents(leftKeys, leftChildren, right);
 
         if(node->casContents(contents, left)){
-            nodeContents.release(0);
-            nodeKeys.release(0);
-            nodeChildren.release(0);
-
             nodeContents.releaseNode(contents);
             nodeChildren.releaseNode(contents->children);
             nodeKeys.releaseNode(contents->items);
+            
+            nodeContents.release(0);
+            nodeKeys.release(0);
+            nodeChildren.release(0);
 
             if(results != entry_results){
                 searches.releaseNode(results);
@@ -1328,13 +1328,13 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
             
             Contents* update = newContents(newKeys, nullptr, contents->link);
             if(node->casContents(contents, update)){
-                nodeContents.release(0);
-                nodeKeys.release(0);
-                nodeChildren.release(0);
-
                 nodeContents.releaseNode(contents);
                 nodeChildren.releaseNode(contents->children);
                 nodeKeys.releaseNode(contents->items);
+                
+                nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
                 
                 searches.releaseNode(results);
                 
@@ -1386,13 +1386,13 @@ bool MultiwaySearchTree<T, Threads>::beginInsertOneLevel(Key key, Search** resul
             
             Contents* update = newContents(newKeys, nullptr, contents->link);
             if(node->casContents(contents, update)){
-                nodeContents.release(0);
-                nodeKeys.release(0);
-                nodeChildren.release(0);
-
                 nodeContents.releaseNode(contents);
                 nodeChildren.releaseNode(contents->children);
                 nodeKeys.releaseNode(contents->items);
+                
+                nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
                 
                 searches.releaseNode(results);
                 if(resultsStore[0] != results){
@@ -1455,21 +1455,22 @@ void MultiwaySearchTree<T, Threads>::insertOneLevel(Key key, Search** resultsSto
             
             Contents* update = newContents(newKeys, newChildren, contents->link);
             if(node->casContents(contents, update)){
-                nodeContents.release(0);
-                nodeKeys.release(0);
-                nodeChildren.release(0);
-            
                 if(results != entry_results){
                     searches.releaseNode(results);
                 }
 
-                searches.releaseNode(resultsStore[target]);
-
                 nodeContents.releaseNode(contents);
                 nodeChildren.releaseNode(contents->children);
                 nodeKeys.releaseNode(contents->items);
+                
+                nodeContents.release(0);
+                nodeKeys.release(0);
+                nodeChildren.release(0);
+
+                searches.releaseNode(resultsStore[target]);
 
                 resultsStore[target] = newSearch(node, update, index);
+                
                 return;
             } else {
                 nodeKeys.releaseNode(newKeys);
