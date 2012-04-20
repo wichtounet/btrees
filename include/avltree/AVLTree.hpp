@@ -116,7 +116,7 @@ class AVLTree {
         
         Node* rootHolder;
 
-        HazardManager<Node, Threads, 5> hazard;
+        HazardManager<Node, Threads, 6> hazard;
         
         unsigned int Current[Threads];
 };
