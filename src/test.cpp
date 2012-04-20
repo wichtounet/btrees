@@ -158,7 +158,7 @@ void testMT(){
 #define TEST(type, name) \
     testST<type<int, 1>>(name);\
     std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
-    //testMT<type<int, 2>, 2>();\
+    testMT<type<int, 2>, 2>();\
     //testMT<type<int, 3>, 3>();\
     //testMT<type<int, 4>, 4>();\
     //testMT<type<int, 6>, 6>();\
