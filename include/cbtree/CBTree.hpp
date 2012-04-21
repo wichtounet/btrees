@@ -88,10 +88,6 @@ struct Node {
 
     std::mutex lock;
 
-    Node(int key, bool value, Node* parent, long changeOVL, Node* left, Node* right) : key(key), value(value), parent(parent), changeOVL(changeOVL), left(left), right(right), ncnt(1), rcnt(0), lcnt(0) {
-        //Nothing    
-    }
-
     Node* child(char dir){
         return dir == Left ? left : right;
     }
@@ -144,7 +140,18 @@ class CBTree {
         std::atomic<int> size;
         std::atomic<int> logSize;
         int local_size[Threads];
+        
+        void publish(Node* ref);
+        void releaseAll();
 
+        HazardManager<Node, Threads, 6> hazard;
+        
+        unsigned int Current[Threads];
+        
+        /* Allocate new nodes */
+        Node* newNode(int key, bool value, Node* parent, long changeOVL, Node* left, Node* right);
+
+        /* Internal stuff  */
         Result getImpl(int key);
         Result update(int key);
         Result attemptRemove(int key, Node* parent, Node* node, long nodeOVL, int height); 
@@ -168,7 +175,7 @@ class CBTree {
 
 template<typename T, int Threads>
 CBTree<T, Threads>::CBTree(){
-    rootHolder = new Node(std::numeric_limits<int>::min(), false, nullptr, 0L, nullptr, nullptr); 
+    rootHolder = newNode(std::numeric_limits<int>::min(), false, nullptr, 0L, nullptr, nullptr); 
     rootHolder->ncnt = std::numeric_limits<int>::max();
 
     size.store(0);
@@ -181,7 +188,40 @@ CBTree<T, Threads>::CBTree(){
 
 template<typename T, int Threads>
 CBTree<T, Threads>::~CBTree(){
-    //TODO
+    hazard.releaseNode(rootHolder);
+}
+
+template<typename T, int Threads>
+void CBTree<T, Threads>::publish(Node* ref){
+    hazard.publish(ref, Current[thread_num]);
+    ++Current[thread_num];
+}
+
+template<typename T, int Threads>
+void CBTree<T, Threads>::releaseAll(){
+    for(unsigned int i = 0; i < Current[thread_num]; ++i){
+        hazard.release(i);
+    }
+    
+    Current[thread_num] = 0;
+}
+
+template<typename T, int Threads>
+Node* CBTree<T, Threads>::newNode(int key, bool value, Node* parent, long changeOVL, Node* left, Node* right){
+    Node* node = hazard.getFreeNode();
+    
+    node->key = key;
+    node->value = value;
+    node->parent = parent;
+    node->changeOVL = changeOVL;
+    node->left = left;
+    node->right = right;
+
+    node->ncnt = 1;
+    node->rcnt = 0;
+    node->lcnt = 0;
+
+    return node;
 }
 
 template<typename T, int Threads>
@@ -375,7 +415,7 @@ bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
    scoped_lock lock(rootHolder->lock);
    
    if(!rootHolder->right){
-        rootHolder->right = new Node(key, true, rootHolder, 0L, nullptr, nullptr);
+        rootHolder->right = newNode(key, true, rootHolder, 0L, nullptr, nullptr);
         return true;
    } else {
         return false;
@@ -422,7 +462,7 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                 if(node->child(dirToC)){
                     //retry
                 } else {
-                    node->setChild(dirToC, new Node(key, true, node, 0L, nullptr, nullptr));
+                    node->setChild(dirToC, newNode(key, true, node, 0L, nullptr, nullptr));
 
                     if(dirToC == Left){
                         ++node->lcnt;
