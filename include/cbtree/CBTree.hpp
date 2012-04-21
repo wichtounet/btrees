@@ -155,7 +155,7 @@ class CBTree {
         void publish(Node* ref);
         void releaseAll();
 
-        HazardManager<Node, Threads, 6> hazard;
+        HazardManager<Node, Threads, 5> hazard;
         
         unsigned int Current[Threads];
         void deep_release(Node* node);
