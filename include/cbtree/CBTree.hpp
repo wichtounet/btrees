@@ -312,7 +312,7 @@ bool CBTree<T, Threads>::remove(T value){
         Node* right = rootHolder->right;
 
         if(!right){
-            return NOT_FOUND;
+            return false;
         } else {
             long ovl = right->changeOVL;
             if(isShrinkingOrUnlinked(ovl)){
