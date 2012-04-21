@@ -154,7 +154,6 @@ void AVLTree<T, Threads>::releaseAll(){
     Current[thread_num] = 0;
 }
 
-    
 template<typename T, int Threads>
 Node* AVLTree<T, Threads>::newNode(int key){
     return newNode(1, key, 0L, false, nullptr, nullptr, nullptr);
@@ -392,7 +391,6 @@ template<typename T, int Threads>
 Result AVLTree<T, Threads>::attemptNodeUpdate(Function func, bool expected, bool newValue, Node* parent, Node* node){
     if(!newValue){
         if(!node->value){
-            //TODO CHECK
             return NOT_FOUND;
         }
     }

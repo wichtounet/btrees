@@ -1,6 +1,9 @@
 #ifndef CB_TREE
 #define CB_TREE
 
+//Helper to unlink node
+#define UNLINK(parent, node) if((!node->left || !node->right) && !node->value){attemptUnlink_nl(parent, node);}
+
 #include <mutex>
 #include <atomic>
 
@@ -687,6 +690,8 @@ void CBTree<T, Threads>::SemiSplay(Node* child){
             if(parent->right == node){
                 publish(node);
                 scoped_lock nodeLock(node->lock);
+    
+                UNLINK(parent, node);
 
                 if(!isUnlinked(node->changeOVL)){
                     if(node->left == child){
