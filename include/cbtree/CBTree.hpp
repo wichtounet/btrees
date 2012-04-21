@@ -183,6 +183,7 @@ CBTree<T, Threads>::CBTree(){
 
     for(int i = 0; i < Threads; ++i){
         local_size[i] = 0;
+        Current[i] = 0;
     }
 }
 
