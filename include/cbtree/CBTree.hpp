@@ -624,6 +624,8 @@ bool CBTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
     node->changeOVL = UnlinkedOVL;
     node->value = false;
 
+    hazard.releaseNode(node);
+
     return true;
 }
 
