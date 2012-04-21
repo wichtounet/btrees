@@ -230,12 +230,13 @@ bool CBTree<T, Threads>::contains(T value){
 
     while(true){
         Node* right = rootHolder->right;
+
         if(!right){
             return false;
         } else {
             int rightCmp = key - right->key;
             if(rightCmp == 0){
-                return right->value ? true : false;
+                return right->value;
             }
 
             long ovl = right->changeOVL;

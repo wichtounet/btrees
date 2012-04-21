@@ -196,7 +196,7 @@ bool AVLTree<T, Threads>::contains(T value){
             } else if(right == rootHolder->right){
                 Result vo = attemptGet(key, right, rightCmp, ovl);
                 if(vo != RETRY){
-                    return vo == FOUND ? true : false;
+                    return vo == FOUND;
                 }
             }
         }
