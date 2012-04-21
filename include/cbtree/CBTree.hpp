@@ -226,19 +226,16 @@ Node* CBTree<T, Threads>::newNode(int key, bool value, Node* parent, long change
 
 template<typename T, int Threads>
 bool CBTree<T, Threads>::contains(T value){
-    return getImpl(hash(value)) == FOUND;
-}
+    int key = hash(value);
 
-template<typename T, int Threads>
-Result CBTree<T, Threads>::getImpl(int key){
     while(true){
         Node* right = rootHolder->right;
         if(!right){
-            return NOT_FOUND;
+            return false;
         } else {
             int rightCmp = key - right->key;
             if(rightCmp == 0){
-                return right->value ? FOUND : NOT_FOUND;
+                return right->value ? true : false;
             }
 
             long ovl = right->changeOVL;
@@ -247,7 +244,7 @@ Result CBTree<T, Threads>::getImpl(int key){
             } else if(right == rootHolder->right){
                 Result vo = attemptGet(key, right, (rightCmp < 0 ? Left : Right), ovl, 1);
                 if(vo != RETRY){
-                    return vo;
+                    return vo == FOUND;
                 }
             }
         }
