@@ -311,7 +311,6 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
     }
 }
 
-
 template<typename T, int Threads>
 bool CBTree<T, Threads>::add(T value){
     if(update(hash(value)) == NOT_FOUND){
@@ -335,7 +334,7 @@ bool CBTree<T, Threads>::add(T value){
                 }
             }
         }
-    
+
         return true;
     } else {
         return false;
@@ -350,6 +349,8 @@ bool CBTree<T, Threads>::remove(T value){
         Node* right = rootHolder->right;
 
         if(!right){
+            releaseAll();
+
             return false;
         } else {
             long ovl = right->changeOVL;
@@ -377,8 +378,12 @@ bool CBTree<T, Threads>::remove(T value){
                             }
                         }
 
+                        releaseAll();
+
                         return true;
                     } else {
+                        releaseAll();
+
                         return false;
                     }
                 }
@@ -386,10 +391,12 @@ bool CBTree<T, Threads>::remove(T value){
         }
     }
 }
+
 template<typename T, int Threads>
 Result CBTree<T, Threads>::update(int key){
     while(true){
         Node* right = rootHolder->right;
+
         if(!right){
             if(attemptInsertIntoEmpty(key)){
                 return NOT_FOUND;
@@ -410,14 +417,17 @@ Result CBTree<T, Threads>::update(int key){
 
 template<typename T, int Threads>
 bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
-   scoped_lock lock(rootHolder->lock);
-   
-   if(!rootHolder->right){
+    publish(rootHolder);
+    scoped_lock lock(rootHolder->lock);
+
+    if(!rootHolder->right){
         rootHolder->right = newNode(key, true, rootHolder, 0L, nullptr, nullptr);
+        releaseAll();
         return true;
-   } else {
+    } else {
+        releaseAll();
         return false;
-   }
+    }
 }
 
 template<typename T, int Threads>
@@ -451,9 +461,11 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
             bool doSemiSplay = false;
 
             {
+                publish(node);
                 scoped_lock lock(node->lock);
         
                 if(hasShrunkOrUnlinked(nodeOVL, node->changeOVL)){
+                    releaseAll();
                     return RETRY;
                 }
 
@@ -472,9 +484,12 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                     if(height >= ((log_size << 2 ))){
                        doSemiSplay = true; 
                     } else {
+                        releaseAll();
                         return NOT_FOUND;
                     }
                 }
+                    
+                releaseAll();
             }
 
             if(doSemiSplay){
@@ -521,40 +536,53 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
     }
 
     if(!newValue && (!node->left || !node->right)){
+        publish(parent);
         scoped_lock parentLock(parent->lock);
 
         if(isUnlinked(parent->changeOVL) || node->parent != parent){
+            releaseAll();
             return RETRY;
         }
 
+        publish(node);
         scoped_lock lock(node->lock);
         if(!node->value){
+            releaseAll();
             return NOT_FOUND;
         }
 
         if(!attemptUnlink_nl(parent, node)){
+            releaseAll();
             return RETRY;
         }
+        
+        releaseAll();
 
         return FOUND;
     } else {
+        publish(node);
         scoped_lock lock(node->lock);
 
         if(isUnlinked(node->changeOVL)){
+            releaseAll();
             return RETRY;
         }
 
         if(!newValue && (!node->left || !node->right)){
+            releaseAll();
             return RETRY;
         }
 
         bool prev = node->value;;
 
         if (!newValue && (!node->left || !node->right)) {
+            releaseAll();
             return RETRY;
         }
 
         node->value = newValue;
+        
+        releaseAll();
 
         return prev ? FOUND : NOT_FOUND;
     }
@@ -650,16 +678,20 @@ void CBTree<T, Threads>::SemiSplay(Node* child){
         }
 
         if(!parent->parent){
+            publish(parent);
             scoped_lock parentLock(parent->lock);
 
             if(parent->right == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 if(!isUnlinked(node->changeOVL)){
                     if(node->left == child){
+                        publish(child);
                         scoped_lock lock(child->lock);
                         rotateRight(parent, node, child, child->right);
                     } else if(node->right == child){
+                        publish(child);
                         scoped_lock lock(child->lock);
                         rotateLeft(parent, node, child, child->left);
                     }
@@ -667,33 +699,41 @@ void CBTree<T, Threads>::SemiSplay(Node* child){
             }
         } else {
             Node* grand = parent->parent;
+            publish(grand);
             scoped_lock lock(grand->lock);
 
             if(grand->left == parent || grand->right == parent){
+                publish(parent);
                 scoped_lock parentLock(parent->lock);
 
                 if(parent->left == node){
+                    publish(node);
                     scoped_lock nodeLock(node->lock);
                     
                     if(!isUnlinked(node->changeOVL)){
                         if(node->left == child){
+                            publish(child);
                             scoped_lock childLock(child->lock);
                             rotateRight(grand, parent, node, node->right);
                             child = node;   
                         } else if(node->right == child){
+                            publish(child);
                             scoped_lock childLock(child->lock);
                             rotateRightOverLeft(grand, parent, node, child);
                         }
                     }
                 } else if (parent->right == node){
+                    publish(node);
                     scoped_lock nodeLock(node->lock);
                     
                     if(!isUnlinked(node->changeOVL)){
                         if(node->right == child){
+                            publish(child);
                             scoped_lock childLock(child->lock);
                             rotateLeft(grand, parent, node, node->left);
                             child = node;   
                         } else if(node->left == child){
+                            publish(child);
                             scoped_lock childLock(child->lock);
                             rotateLeftOverRight(grand, parent, node, child);
                         }
@@ -701,6 +741,8 @@ void CBTree<T, Threads>::SemiSplay(Node* child){
                 }
             }
         }
+
+        releaseAll();
     }
 }
 
@@ -722,17 +764,21 @@ void CBTree<T, Threads>::RebalanceAtTarget(Node* parent, Node* node){
 
     if(n_other_cnt >= pcnt){
         Node* grand = parent->parent;
+        publish(grand);
         scoped_lock grandLock(grand->lock);
 
         if(grand->left == parent || grand->right == parent){
+            publish(parent);
             scoped_lock parentLock(parent->lock);
 
             if(parent->left == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 Node* nR = node->right;
 
                 if(nR){
+                    publish(nR);
                     scoped_lock nRLock(nR->lock);
 
                     rotateRightOverLeft(grand, parent, node, nR);
@@ -742,11 +788,13 @@ void CBTree<T, Threads>::RebalanceAtTarget(Node* parent, Node* node){
                     nR->lcnt += ncnt;
                 }
             } else if(parent->right == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 Node* nL = node->left;
 
                 if(nL){
+                    publish(nL);
                     scoped_lock nLLock(nL->lock);
 
                     rotateLeftOverRight(grand, parent, node, nL);
@@ -759,17 +807,21 @@ void CBTree<T, Threads>::RebalanceAtTarget(Node* parent, Node* node){
         }
     } else if(ncnt > pcnt){
         Node* grand = parent->parent;
+        publish(grand);
         scoped_lock grandLock(grand->lock);
 
         if(grand->left == parent || grand->right == parent){
+            publish(parent);
             scoped_lock parentLock(parent->lock);
 
             if(parent->left == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
                 rotateRight(grand, parent, node, node->right);
                 parent->lcnt = node->rcnt;
                 node->rcnt += pcnt;
             } else if(parent->right == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
                 rotateLeft(grand, parent, node, node->left);
                 parent->rcnt = node->lcnt;
@@ -777,6 +829,8 @@ void CBTree<T, Threads>::RebalanceAtTarget(Node* parent, Node* node){
             }
         }
     }
+
+    releaseAll();
 }
 
 template<typename T, int Threads>
@@ -807,16 +861,20 @@ void CBTree<T, Threads>::RebalanceNew(Node* parent, char dirToC){
 
     if(n_other_cnt >= pcnt){
         Node* grand = parent->parent;
+        publish(grand);
         scoped_lock grandLock(grand->lock);
 
         if(grand->left == parent || grand->right == parent){
+            publish(parent);
             scoped_lock parentLock(parent->lock);
 
             if(parent->left == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 Node* nR = node->right;
                 if(nR){
+                    publish(nR);
                     scoped_lock nRLock(nR->lock);
                     rotateRightOverLeft(grand, parent, node, nR);
                     parent->lcnt = nR->rcnt;
@@ -825,10 +883,12 @@ void CBTree<T, Threads>::RebalanceNew(Node* parent, char dirToC){
                     nR->lcnt += ncnt;
                 }
             } else if(parent->right == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
 
                 Node* nL = node->left;
                 if(nL){
+                    publish(nL);
                     scoped_lock nLLock(nL->lock);
                     rotateLeftOverRight(grand, parent, node, nL);
                     parent->rcnt = nL->lcnt;
@@ -840,15 +900,19 @@ void CBTree<T, Threads>::RebalanceNew(Node* parent, char dirToC){
         }
     } else if(ncnt > pcnt){
         Node* grand = parent->parent;
+        publish(grand);
         scoped_lock grandLock(grand->lock);
         if(grand->left == parent || grand->right == parent){
+            publish(parent);
             scoped_lock parentLock(parent->lock);
             if(parent->left == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
                 rotateRight(grand, parent, node, node->right);
                 parent->lcnt = node->rcnt;
                 node->rcnt += pcnt;
             } else if(parent->right == node){
+                publish(node);
                 scoped_lock nodeLock(node->lock);
                 rotateLeft(grand, parent, node, node->left);
                 parent->rcnt = node->lcnt;
@@ -862,6 +926,8 @@ void CBTree<T, Threads>::RebalanceNew(Node* parent, char dirToC){
             ++parent->rcnt;
         }
     }
+
+    releaseAll();
 }
 
 template<typename T, int Threads>
