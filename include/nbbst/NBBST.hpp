@@ -26,8 +26,6 @@ struct Info {
     Node* newInternal;      //Internal
     Node* l;                //Leaf
     Update pupdate;
-    
-    Info* nextNode;         //For hazard pointer chaining
 
     Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr), nextNode(nullptr) {}
 };
