@@ -452,7 +452,7 @@ void random_removal_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void search_bench(const std::string& name, unsigned int size, Tree& tree){
+void search_bench(const std::string& name, unsigned int size, Tree& tree, Results& results){
     Clock::time_point t0 = Clock::now();
 
     std::vector<std::thread> pool;
@@ -477,6 +477,7 @@ void search_bench(const std::string& name, unsigned int size, Tree& tree){
     unsigned long throughput = (Threads * SEARCH_BENCH_OPERATIONS) / ms.count();
 
     std::cout << name << "-" << size << " search througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+    results.add_result(name, throughput);
 }
 
 template<typename Tree>
@@ -501,12 +502,12 @@ void fill_sequential(Tree& tree, unsigned int size){
 }
 
 template<typename Tree, unsigned int Threads>
-void search_random_bench(const std::string& name, unsigned int size){
+void search_random_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
     
     fill_random(tree, size);
     
-    search_bench<Tree, Threads>(name, size, tree);
+    search_bench<Tree, Threads>(name, size, tree, results);
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -515,33 +516,41 @@ void search_random_bench(const std::string& name, unsigned int size){
 }
 
 #define SEARCH_RANDOM(type, name, size)\
-    search_random_bench<type<int, 1>, 1>(name, size);\
-    search_random_bench<type<int, 2>, 2>(name, size);\
-    search_random_bench<type<int, 3>, 3>(name, size);\
-    search_random_bench<type<int, 4>, 4>(name, size);\
-    search_random_bench<type<int, 8>, 8>(name, size);
+    search_random_bench<type<int, 1>, 1>(name, size, results);\
+    search_random_bench<type<int, 2>, 2>(name, size, results);\
+    search_random_bench<type<int, 3>, 3>(name, size, results);\
+    search_random_bench<type<int, 4>, 4>(name, size, results);\
+    search_random_bench<type<int, 8>, 8>(name, size, results);
 
 void search_random_bench(){
     std::cout << "Bench the search performances of each data structure with random insertion" << std::endl;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
-        //SEARCH_RANDOM(skiplist::SkipList, "SkipList", size);
-        //SEARCH_RANDOM(nbbst::NBBST, "NBBST", size);
-        //SEARCH_RANDOM(avltree::AVLTree, "Optimistic AVL Tree", size);
-        //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //SEARCH_RANDOM(cbtree::CBTree, "CBTree", size);
+        std::stringstream name;
+        name << "random-search-" << size;
+
+        Results results;
+        results.start(name.str());
+
+        SEARCH_RANDOM(skiplist::SkipList, "skiplist", size);
+        SEARCH_RANDOM(nbbst::NBBST, "nbbst", size);
+        SEARCH_RANDOM(avltree::AVLTree, "avltree", size);
+        //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "lfmst", size);
+        SEARCH_RANDOM(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
     }
 }
 
 template<typename Tree, unsigned int Threads>
-void search_sequential_bench(const std::string& name, unsigned int size){
+void search_sequential_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
     
     fill_sequential(tree, size);
     
-    search_bench<Tree, Threads>(name, size, tree);
+    search_bench<Tree, Threads>(name, size, tree, results);
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -550,11 +559,11 @@ void search_sequential_bench(const std::string& name, unsigned int size){
 }
 
 #define SEARCH_SEQUENTIAL(type, name, size)\
-    search_sequential_bench<type<int, 1>, 1>(name, size);\
-    search_sequential_bench<type<int, 2>, 2>(name, size);\
-    search_sequential_bench<type<int, 3>, 3>(name, size);\
-    search_sequential_bench<type<int, 4>, 4>(name, size);\
-    search_sequential_bench<type<int, 8>, 8>(name, size);
+    search_sequential_bench<type<int, 1>, 1>(name, size, results);\
+    search_sequential_bench<type<int, 2>, 2>(name, size, results);\
+    search_sequential_bench<type<int, 3>, 3>(name, size, results);\
+    search_sequential_bench<type<int, 4>, 4>(name, size, results);\
+    search_sequential_bench<type<int, 8>, 8>(name, size, results);
 
 void search_sequential_bench(){
     std::cout << "Bench the search performances of each data structure with sequential insertion" << std::endl;
@@ -582,10 +591,10 @@ void bench(){
     //random_construction_bench();
     
     //Launch the removal benchmark
-    random_removal_bench();
+    //random_removal_bench();
     //seq_removal_bench();
 
     //Launch the search benchmark
-    //search_random_bench();
+    search_random_bench();
     //search_sequential_bench();
 }
