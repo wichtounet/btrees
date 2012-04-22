@@ -121,11 +121,6 @@ template<typename Tree, unsigned int Threads>
 void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
     Tree tree;
 
-    std::mt19937_64 base_engine(time(0));
-    for(unsigned int i = 0; i < range; ++i){
-        tree.add(distribution(base_engine)); 
-    }
-
     Clock::time_point t0 = Clock::now();
     
     std::vector<std::thread> pool;
@@ -139,6 +134,11 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 
             std::uniform_int_distribution<int> operationDistribution(0, 99);
             auto operationGenerator = std::bind(operationDistribution, engine);
+            
+            for(int i = 0; i < OPERATIONS; ++i){
+                unsigned int value = distribution(engine);
+                tree.add(value);
+            }
 
             for(int i = 0; i < OPERATIONS; ++i){
                 unsigned int value = distribution(engine);
@@ -160,7 +160,7 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
     Clock::time_point t1 = Clock::now();
 
     milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-    unsigned long throughput = (Threads * OPERATIONS) / ms.count();
+    unsigned long throughput = (Threads * 2 * OPERATIONS) / ms.count();
 
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
     results.add_result(name, throughput);
@@ -169,7 +169,7 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
+    //skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
     skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
     skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
     //skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
@@ -185,15 +185,28 @@ void skewed_bench(unsigned int range){
 
     zipf_distribution<> distribution((double) range, 0, 0.8);
     skewed_bench(range, 10, 0, distribution, results);
+    
+    /*distribution = zipf_distribution<>((double) range, 0, 1.0);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = zipf_distribution<>((double) range, 0, 1.2);
+    skewed_bench(range, 10, 0, distribution, results);*/
+    
+    distribution = zipf_distribution<>((double) range, 0, 1.4);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = zipf_distribution<>((double) range, 0, 1.6);
+    skewed_bench(range, 10, 0, distribution, results);
 
     results.finish();
 }
 
 void skewed_bench(){
     //TODO Perhaps other
-    skewed_bench(2000);
-    skewed_bench(20000);
-    skewed_bench(200000);
+    //skewed_bench(2000);
+    //skewed_bench(20000);
+    //skewed_bench(200000);
+    skewed_bench(2000000);
 }
 
 unsigned long get_duration(Clock::time_point t0, Clock::time_point t1){

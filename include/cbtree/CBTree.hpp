@@ -36,7 +36,7 @@ static const int OVLGrowCountShift = 3;
 static const long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
 static const long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
 
-#define NEW_LOG_CALCULATION_THRESHOLD 15 //log(2*Threads²)
+#define NEW_LOG_CALCULATION_THRESHOLD 8 //log(2*Threads²)
 
 static bool isChanging( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask)) != 0;
