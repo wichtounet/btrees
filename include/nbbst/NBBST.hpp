@@ -27,7 +27,7 @@ struct Info {
     Node* l;                //Leaf
     Update pupdate;
 
-    Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr), nextNode(nullptr) {}
+    Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr) {}
 };
 
 typedef Info* Update; 
@@ -52,9 +52,7 @@ struct Node {
     Node* left;
     Node* right;
 
-    Node* nextNode; //For hazard pointer chaining
-
-    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr), nextNode(nullptr) {};
+    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
 };
 
 struct SearchResult {
