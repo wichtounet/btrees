@@ -561,15 +561,41 @@ void search_sequential_bench(const std::string& name, unsigned int size, Results
 
 void search_sequential_bench(){
     std::cout << "Bench the search performances of each data structure with sequential insertion" << std::endl;
+    
+    std::vector<int> small_sizes = {1000, 5000, 10000};
+    
+    for(auto size : small_sizes){
+        std::stringstream name;
+        name << "sequential-search-" << size;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+        Results results;
+        results.start(name.str());
+        
+        SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
+        SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
+        SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
+        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+        SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
+    }
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
-        //SEARCH_SEQUENTIAL(skiplist::SkipList, "SkipList", size);
-        //SEARCH_SEQUENTIAL(nbbst::NBBST, "NBBST", size);
-        //SEARCH_SEQUENTIAL(avltree::AVLTree, "Optimistic AVL Tree", size);
-        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //SEARCH_SEQUENTIAL(cbtree::CBTree, "CBTree", size);
+        std::stringstream name;
+        name << "sequential-search-" << size;
+
+        Results results;
+        results.start(name.str());
+        
+        SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
+        //The nbbst is far too slow SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
+        SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
+        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+        SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
     }
 }
 
@@ -589,6 +615,6 @@ void bench(){
     //seq_removal_bench();
 
     //Launch the search benchmark
-    search_random_bench();
-    //search_sequential_bench();
+    //search_random_bench();
+    search_sequential_bench();
 }
