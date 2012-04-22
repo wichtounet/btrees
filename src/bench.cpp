@@ -118,11 +118,11 @@ void random_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution){
+void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
     Tree tree;
 
     std::mt19937_64 base_engine(time(0));
-    for(int i = 0; i < 10000; ++i){
+    for(unsigned int i = 0; i < range; ++i){
         tree.add(distribution(base_engine)); 
     }
 
@@ -163,33 +163,36 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
     unsigned long throughput = (Threads * OPERATIONS) / ms.count();
 
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
+    results.add_result(name, throughput);
 }
 
-#define SKEWED_BENCH(type, name, range, add, remove)\
-    skewed_bench<type<int, 1>, 1>(name, range, add, remove, distribution);\
-    skewed_bench<type<int, 2>, 2>(name, range, add, remove, distribution);\
-    skewed_bench<type<int, 3>, 3>(name, range, add, remove, distribution);\
-    skewed_bench<type<int, 4>, 4>(name, range, add, remove, distribution);\
-    skewed_bench<type<int, 8>, 8>(name, range, add, remove, distribution);
-
-void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution){
+void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //SKEWED_BENCH(skiplist::SkipList, "SkipList", range, add, remove);
-    //SKEWED_BENCH(nbbst::NBBST, "Non-Blocking Binary Search Tree", range, add, remove);
-    //BENCH(avltree::AVLTree, "Optimistic AVL Tree", range, add, remove)
-    //BENCH(lfmst::MultiwaySearchTree, "Lock-Free Multiway Search Tree", range, add, remove);
-    //SKEWED_BENCH(cbtree::CBTree, "Counter Based Tree", range, add, remove);
+    skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
+    skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
+    skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
+    //skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
+    skewed_bench<cbtree::CBTree<int, 8>, 8>("cbtree", range, add, remove, distribution, results);
 }
 
 void skewed_bench(unsigned int range){
+    std::stringstream name;
+    name << "skewed-" << range;
+
+    Results results;
+    results.start(name.str());
+
     zipf_distribution<> distribution((double) range, 0, 0.8);
-    
-    skewed_bench(range, 10, 0, distribution);
+    skewed_bench(range, 10, 0, distribution, results);
+
+    results.finish();
 }
 
 void skewed_bench(){
     //TODO Perhaps other
+    skewed_bench(2000);
+    skewed_bench(20000);
     skewed_bench(200000);
 }
 
@@ -604,7 +607,7 @@ void bench(){
 
     //Launch the random benchmark
     //random_bench();
-    //skewed_bench();
+    skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
@@ -616,5 +619,5 @@ void bench(){
 
     //Launch the search benchmark
     //search_random_bench();
-    search_sequential_bench();
+    //search_sequential_bench();
 }
