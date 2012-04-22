@@ -140,12 +140,26 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
 void test_memory_consumption(){
     std::cout << "Test the memory consumption of each version" << std::endl;
 
-    std::vector<unsigned int> sizes = {1000, 10000, 100000, 1000000, 10000000};
+    std::vector<unsigned int> little_sizes = {1000, 10000, 100000};
         
     Results results;
-    results.start("memory");
+    results.start("memory-little");
 
-    for(auto size : sizes){
+    for(auto size : little_sizes){
+        memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
+        memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
+        //LFMST
+        memory<avltree::AVLTree<int, 32>>("avltree", size, results);
+        memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
+    }
+
+    results.finish();
+
+    std::vector<unsigned int> big_sizes = {1000000, 10000000};
+    
+    results.start("memory-big");
+
+    for(auto size : big_sizes){
         memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
         memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
         //LFMST
