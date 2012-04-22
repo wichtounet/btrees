@@ -83,7 +83,8 @@ void memory(const std::string& name, unsigned int size, Results& results){
     //For now on, count all the allocations
     allocated = 0;
 
-    Tree tree;
+    Tree* alloc_tree = new Tree();
+    Tree& tree = *alloc_tree;
 
     //Fill the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -99,6 +100,8 @@ void memory(const std::string& name, unsigned int size, Results& results){
     for(unsigned int i = 0; i < size; ++i){
         tree.remove(i);
     }
+
+    delete alloc_tree;
 }
 
 template<typename Tree>
