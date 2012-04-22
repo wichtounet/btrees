@@ -310,7 +310,7 @@ void random_construction_bench(const std::string& name, unsigned int size, Resul
 void random_construction_bench(){
     std::cout << "Bench the random construction time of each data structure" << std::endl;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
         std::stringstream name;
@@ -371,7 +371,7 @@ void seq_removal_bench(const std::string& name, unsigned int size){
 void seq_removal_bench(){
     std::cout << "Bench the sequential removal time of each data structure" << std::endl;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
         //SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
@@ -383,7 +383,7 @@ void seq_removal_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void random_removal_bench(const std::string& name, unsigned int size){
+void random_removal_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
 
     std::vector<int> elements;
@@ -419,26 +419,35 @@ void random_removal_bench(const std::string& name, unsigned int size){
     Clock::time_point t1 = Clock::now();
 
     std::cout << "Removal of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " with " << Threads << " threads" << std::endl;
+    results.add_result(name, get_duration(t0, t1));
 }
 
 #define RANDOM_REMOVAL(type, name, size)\
-    random_removal_bench<type<int, 1>, 1>(name, size);\
-    random_removal_bench<type<int, 2>, 2>(name, size);\
-    random_removal_bench<type<int, 3>, 3>(name, size);\
-    random_removal_bench<type<int, 4>, 4>(name, size);\
-    random_removal_bench<type<int, 8>, 8>(name, size);
+    random_removal_bench<type<int, 1>, 1>(name, size, results);\
+    random_removal_bench<type<int, 2>, 2>(name, size, results);\
+    random_removal_bench<type<int, 3>, 3>(name, size, results);\
+    random_removal_bench<type<int, 4>, 4>(name, size, results);\
+    random_removal_bench<type<int, 8>, 8>(name, size, results);
 
 void random_removal_bench(){
     std::cout << "Bench the random removal time of each data structure" << std::endl;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
-        //RANDOM_REMOVAL(skiplist::SkipList, "SkipList", size);
-        //RANDOM_REMOVAL(nbbst::NBBST, "NBBST", size);
-        //RANDOM_REMOVAL(avltree::AVLTree, "AVLTree", size);
-        //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //RANDOM_REMOVAL(cbtree::CBTree, "CBTree", size);
+        std::stringstream name;
+        name << "random-removal-" << size;
+
+        Results results;
+        results.start(name.str());
+
+        RANDOM_REMOVAL(skiplist::SkipList, "skiplist", size);
+        RANDOM_REMOVAL(nbbst::NBBST, "nbbst", size);
+        RANDOM_REMOVAL(avltree::AVLTree, "avltree", size);
+        //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
+        RANDOM_REMOVAL(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
     }
 }
 
@@ -570,10 +579,10 @@ void bench(){
 
     //Launch the construction benchmark
     //seq_construction_bench();
-    random_construction_bench();
+    //random_construction_bench();
     
     //Launch the removal benchmark
-    //random_removal_bench();
+    random_removal_bench();
     //seq_removal_bench();
 
     //Launch the search benchmark
