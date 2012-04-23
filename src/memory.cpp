@@ -50,26 +50,6 @@ static void * my_malloc_hook (size_t size, const void*){
 #include "lfmst/MultiwaySearchTree.hpp"
 #include "cbtree/CBTree.hpp"
 
-unsigned int memory_kb(double size){
-    return size / 1024.0;
-}
-
-std::string memory(double size){
-    std::stringstream stream;
-    
-    if(size > (1024.0 * 1024.0 * 1024.0)){
-        stream << (size / (1024.0 * 1024.0 * 1024.0)) << "GB";
-    } else if(size > (1024.0 * 1024.0)){
-        stream << (size / (1024.0 * 1024.0)) << "MB";
-    } else if(size > 1024.0){
-        stream << (size / 1024.0) << "KB";
-    } else {
-        stream << size << "B";
-    }
-
-    return stream.str();
-}
-
 template<typename Tree>
 void memory(const std::string& name, unsigned int size, Results& results){
     //Use random insertion in order to support non-balanced version
