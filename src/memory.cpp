@@ -141,6 +141,7 @@ void test_memory_consumption(){
     std::cout << "Test the memory consumption of each version" << std::endl;
 
     std::vector<unsigned int> little_sizes = {1000, 10000, 100000};
+    std::vector<unsigned int> big_sizes = {1000000, 10000000};
         
     Results results;
     results.start("memory-little");
@@ -154,8 +155,18 @@ void test_memory_consumption(){
     }
 
     results.finish();
+    
+    results.start("memory-little-high");
 
-    std::vector<unsigned int> big_sizes = {1000000, 10000000};
+    for(auto size : little_sizes){
+        memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
+        memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
+        //LFMST
+        memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
+        memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
+    }
+
+    results.finish();
     
     results.start("memory-big");
 
@@ -165,6 +176,18 @@ void test_memory_consumption(){
         //LFMST
         memory<avltree::AVLTree<int, 32>>("avltree", size, results);
         memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
+    }
+
+    results.finish();
+    
+    results.start("memory-big-high");
+
+    for(auto size : big_sizes){
+        memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
+        memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
+        //LFMST
+        memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
+        memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
     }
 
     results.finish();

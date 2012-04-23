@@ -7,7 +7,7 @@
 #include "Utils.hpp"
 #include "HazardManager.hpp"
 
-#define MAX_LEVEL 25 //Should be choosen as log(1/p)(n)
+#define MAX_LEVEL 24 //Should be choosen as log(1/p)(n)
 #define P 0.5        //probability for randomLevel (geometric distribution)
 
 namespace skiplist {
