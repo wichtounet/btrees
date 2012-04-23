@@ -53,7 +53,6 @@ class SkipList {
         int randomLevel();
         bool find(int key, Node** preds, Node** succs);
 
-        Node* newNode(int key);
         Node* newNode(int key, int height);
 
         Node* head;
@@ -64,15 +63,6 @@ class SkipList {
         std::mt19937_64 engine;
         std::geometric_distribution<int> distribution;
 };
-
-template<typename T, int Threads>
-Node* SkipList<T, Threads>::newNode(int key){
-    Node* node = hazard.getFreeNode();
-
-    node->key = key;
-
-    return node;
-}
 
 template<typename T, int Threads>
 Node* SkipList<T, Threads>::newNode(int key, int height){
@@ -86,22 +76,18 @@ Node* SkipList<T, Threads>::newNode(int key, int height){
 
 template<typename T, int Threads>
 SkipList<T, Threads>::SkipList() : engine(time(NULL)), distribution(P) {
-    head = newNode(std::numeric_limits<int>::min());
-    tail = newNode(std::numeric_limits<int>::max());
-
-    head->topLevel = MAX_LEVEL;
+    head = newNode(std::numeric_limits<int>::min(), MAX_LEVEL);
+    tail = newNode(std::numeric_limits<int>::max(), 0);
 
     for(int i = 0; i < MAX_LEVEL + 1; ++i){
         head->next[i] = tail;
     }
-
-    tail->topLevel = 0;
 }
 
 template<typename T, int Threads>
 SkipList<T, Threads>::~SkipList(){
-    delete head;
-    delete tail;
+    hazard.releaseNode(tail);
+    hazard.releaseNode(head);
 }
 
 template<typename T, int Threads>
