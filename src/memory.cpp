@@ -119,7 +119,8 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     //For now on, count all the allocations
     allocated = 0;
 
-    Tree tree;
+    Tree* alloc_tree = new Tree();
+    Tree& tree = *alloc_tree;
 
     //Fill the tree
     for(auto i : elements){
@@ -135,6 +136,8 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     for(auto i : elements){
         tree.remove(i);
     }
+
+    delete alloc_tree;
 }
 
 void test_memory_consumption(){
