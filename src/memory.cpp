@@ -92,9 +92,17 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     auto valueGenerator = std::bind(valueDistribution, engine);
     
     std::set<int> elements;
+    std::vector<int> vector_elements;
+
     while(elements.size() < size){
         elements.insert(valueGenerator());
     }
+
+    for(auto i : elements){
+        vector_elements.push_back(i);
+    }
+
+    random_shuffle(vector_elements.begin(), vector_elements.end());
 
     //For now on, count all the allocations
     allocated = 0;
@@ -102,8 +110,7 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     Tree* alloc_tree = new Tree();
     Tree& tree = *alloc_tree;
 
-    //Fill the tree
-    for(auto i : elements){
+    for(auto i : vector_elements){
         tree.add(i);
     }
 
@@ -113,7 +120,7 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     results.add_result(name, (usage / 1024.0));
     
     //Empty the tree
-    for(auto i : elements){
+    for(auto i : vector_elements){
         tree.remove(i);
     }
 
