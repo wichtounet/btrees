@@ -19,6 +19,10 @@ void Results::add_result(const std::string& structure, unsigned long value){
         current[structure] = 0;
     }
 
+    if(values.find(structure) == values.end()){
+       values[structure].resize(10); 
+    }
+
     values[structure][level[structure]].push_back(value);
     
     ++current[structure];
