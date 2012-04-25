@@ -21,7 +21,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define REPEAT 10
+#define REPEAT 12
 #define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
