@@ -28,6 +28,30 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::milliseconds milliseconds;
 typedef std::chrono::microseconds microseconds;
 
+template<typename Tree>
+void fast_empty(Tree& tree, unsigned int Threads, unsigned int range){
+    //The fastest number of threads on the test machine is 8
+    //we cannot use more than the configured value for the tree...
+    Threads = Threads > 8 ? 8 : Threads; 
+
+    unsigned int part = range / Threads;
+
+    std::vector<std::thread> pool;
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, part, i](){
+            thread_num = i;
+
+            unsigned int tid = thread_num;
+
+            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
+                tree.remove(i);
+            }
+        }));
+    }
+    
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+}
+
 template<typename Tree, unsigned int Threads>
 void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, Results& results){
     Tree tree;
@@ -76,6 +100,9 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
 
     results.add_result(name, throughput);
+
+    //Empty the tree (this can be very slow)
+    fast_empty(tree, Threads, range);
 }
 
 #define BENCH(type, name, range, add, remove)\
