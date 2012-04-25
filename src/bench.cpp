@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "bench.hpp"
-#include "zipf.hpp"
-#include "HazardManager.hpp" //To manipulate thread_num
-#include "Results.hpp"
+#include "zipf.hpp"             //To generate zipf distributed numbers
+#include "HazardManager.hpp"    //To manipulate thread_num
+#include "Results.hpp"          //To generate the graphs data
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
@@ -21,7 +21,8 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define SEARCH_BENCH_OPERATIONS 100000
+#define REPEAT 2
+#define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
 typedef std::chrono::high_resolution_clock Clock;
@@ -117,9 +118,6 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     }
 
     for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
-
-    //Empty the tree (this can be very slow)
-    //fast_empty(tree, Threads, range);
 }
 
 #define BENCH(type, name, range, add, remove)\
@@ -139,12 +137,15 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
 
     Results results;
     results.start(bench_name.str());
+    results.set_max(7);
 
-    BENCH(skiplist::SkipList, "skiplist", range, add, remove);
-    BENCH(nbbst::NBBST, "nbbst", range, add, remove);
-    BENCH(avltree::AVLTree, "avltree", range, add, remove)
-    //TODO BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
-    BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+    for(int i = 0; i < REPEAT; ++i){
+        //BENCH(skiplist::SkipList, "skiplist", range, add, remove);
+        BENCH(nbbst::NBBST, "nbbst", range, add, remove);
+        //BENCH(avltree::AVLTree, "avltree", range, add, remove)
+        //TODO BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+        //BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+    }
 
     results.finish();
 }
