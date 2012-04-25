@@ -112,9 +112,10 @@ void random_bench(unsigned int range){
 }
 
 void random_bench(){
-    random_bench(200);             //Key in {0, 200}
-    random_bench(2000);            //Key in {0, 2000}
-    random_bench(20000);           //Key in {0, 20000}
+    //random_bench(200);                                  //Key in {0, 200}
+    //random_bench(2000);                                 //Key in {0, 2000}
+    //random_bench(20000);                                //Key in {0, 20000}
+    random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
 
 template<typename Tree, unsigned int Threads>
@@ -619,8 +620,8 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    //random_bench();
-    skewed_bench();
+    random_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
