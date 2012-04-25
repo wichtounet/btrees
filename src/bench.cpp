@@ -21,7 +21,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define REPEAT 2
+#define REPEAT 10
 #define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
@@ -140,11 +140,11 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     results.set_max(7);
 
     for(int i = 0; i < REPEAT; ++i){
-        //BENCH(skiplist::SkipList, "skiplist", range, add, remove);
+        BENCH(skiplist::SkipList, "skiplist", range, add, remove);
         BENCH(nbbst::NBBST, "nbbst", range, add, remove);
-        //BENCH(avltree::AVLTree, "avltree", range, add, remove)
+        BENCH(avltree::AVLTree, "avltree", range, add, remove)
         //TODO BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
-        //BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+        BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 
     results.finish();
@@ -157,10 +157,10 @@ void random_bench(unsigned int range){
 }
 
 void random_bench(){
-    //random_bench(200);                                  //Key in {0, 200}
+    random_bench(200);                                  //Key in {0, 200}
     //random_bench(2000);                                 //Key in {0, 2000}
     //random_bench(20000);                                //Key in {0, 20000}
-    random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
+    //random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
 
 template<typename Tree, unsigned int Threads>

@@ -20,10 +20,10 @@ void Results::add_result(const std::string& structure, unsigned long value){
     }
 
     if(values.find(structure) == values.end()){
-       values[structure].resize(10); 
+       values[structure].resize(max); 
     }
 
-    values[structure][level[structure]].push_back(value);
+    values[structure][current[structure]].push_back(value);
     
     ++current[structure];
 }
@@ -43,8 +43,10 @@ void Results::compute_stats(){
                 sum += j;
             }
 
-            stats[impl].push_back(sum / data.size());
+            stats[impl].push_back(sum / data[i].size());
         }
+
+        ++it;
     }
 }
 
