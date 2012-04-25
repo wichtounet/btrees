@@ -262,7 +262,7 @@ unsigned long get_duration(Clock::time_point t0, Clock::time_point t1){
 }
 
 template<typename Tree, unsigned int Threads>
-void seq_construction_bench(const std::string& name, unsigned int size){
+void seq_construction_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
 
     Clock::time_point t0 = Clock::now();
@@ -287,6 +287,7 @@ void seq_construction_bench(const std::string& name, unsigned int size){
     Clock::time_point t1 = Clock::now();
 
     std::cout << "Construction of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " ms with " << Threads << " threads" << std::endl;
+    results.add_result(name, get_duration(t0, t1));
 
     //Empty the tree
     for(unsigned int i = 0; i < size; ++i){
@@ -295,23 +296,51 @@ void seq_construction_bench(const std::string& name, unsigned int size){
 }
 
 #define SEQ_CONSTRUCTION(type, name, size)\
-    seq_construction_bench<type<int, 1>, 1>(name, size);\
-    seq_construction_bench<type<int, 2>, 2>(name, size);\
-    seq_construction_bench<type<int, 3>, 3>(name, size);\
-    seq_construction_bench<type<int, 4>, 4>(name, size);\
-    seq_construction_bench<type<int, 8>, 8>(name, size);
+    seq_construction_bench<type<int, 1>, 1>(name, size, results);\
+    seq_construction_bench<type<int, 2>, 2>(name, size, results);\
+    seq_construction_bench<type<int, 3>, 3>(name, size, results);\
+    seq_construction_bench<type<int, 4>, 4>(name, size, results);\
+    seq_construction_bench<type<int, 8>, 8>(name, size, results);
 
 void seq_construction_bench(){
     std::cout << "Bench the sequential construction time of each data structure" << std::endl;
+    
+    std::vector<int> small_sizes = {1000, 5000, 10000};
+    
+    for(auto size : small_sizes){
+        std::stringstream name;
+        name << "sequential-build-" << size;
 
-    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000, 20000000};
+        Results results;
+        results.start(name.str());
+        results.set_max(5);
+        
+        SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+        SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+        SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
+        //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
+    }
+
+    std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
-        //SEQ_CONSTRUCTION(skiplist::SkipList, "SkipList", size);
-        //SEQ_CONSTRUCTION(nbbst::NBBST, "NBBST", size);
-        //SEQ_CONSTRUCTION(avltree::AVLTree, "AVLTree", size);
+        std::stringstream name;
+        name << "sequential-build-" << size;
+
+        Results results;
+        results.start(name.str());
+        results.set_max(5);
+        
+        SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+        //Too slow SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+        SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
         //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //SEQ_CONSTRUCTION(cbtree::CBTree, "CBTree", size);
+        SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+
+        results.finish();
     }
 }
 
@@ -665,11 +694,11 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
+    //random_bench();
     //skewed_bench();
 
     //Launch the construction benchmark
-    //seq_construction_bench();
+    seq_construction_bench();
     //random_construction_bench();
     
     //Launch the removal benchmark
