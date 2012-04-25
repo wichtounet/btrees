@@ -59,10 +59,12 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     //TODO Prefill ?
 
     Clock::time_point t0 = Clock::now();
+
+    std::vector<int> elements[Threads];
     
     std::vector<std::thread> pool;
     for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, range, add, remove, i](){
+        pool.push_back(std::thread([&tree, &elements, range, add, remove, i](){
             thread_num = i;
 
             unsigned int tid = thread_num;
@@ -80,7 +82,9 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
                 unsigned int op = operationGenerator();
 
                 if(op < add){
-                    tree.add(value);
+                    if(tree.add(value)){
+                        elements[thread_num].push_back(value);
+                    }
                 } else if(op < (add + remove)){
                     tree.remove(value);
                 } else {
@@ -101,8 +105,21 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
 
     results.add_result(name, throughput);
 
+    pool.clear();
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, &elements, i](){
+            thread_num = i;
+
+            for(auto i : elements[thread_num]){
+                tree.remove(i);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
     //Empty the tree (this can be very slow)
-    fast_empty(tree, Threads, range);
+    //fast_empty(tree, Threads, range);
 }
 
 #define BENCH(type, name, range, add, remove)\
