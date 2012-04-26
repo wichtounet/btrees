@@ -415,7 +415,7 @@ void random_construction_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void seq_removal_bench(const std::string& name, unsigned int size){
+void seq_removal_bench(const std::string& name, unsigned int size, Results& results){
     Tree tree;
 
     for(unsigned int i = 0; i < size; ++i){
@@ -444,26 +444,55 @@ void seq_removal_bench(const std::string& name, unsigned int size){
     Clock::time_point t1 = Clock::now();
 
     std::cout << "Removal of " << name << " with " << size << " elements took " << get_duration(t0, t1) << " ms with " << Threads << " threads" << std::endl;
+    results.add_result(name, get_duration(t0, t1));
 }
 
 #define SEQUENTIAL_REMOVAL(type, name, size)\
-    seq_removal_bench<type<int, 1>, 1>(name, size);\
-    seq_removal_bench<type<int, 2>, 2>(name, size);\
-    seq_removal_bench<type<int, 3>, 3>(name, size);\
-    seq_removal_bench<type<int, 4>, 4>(name, size);\
-    seq_removal_bench<type<int, 8>, 8>(name, size);
+    seq_removal_bench<type<int, 1>, 1>(name, size, results);\
+    seq_removal_bench<type<int, 2>, 2>(name, size, results);\
+    seq_removal_bench<type<int, 3>, 3>(name, size, results);\
+    seq_removal_bench<type<int, 4>, 4>(name, size, results);\
+    seq_removal_bench<type<int, 8>, 8>(name, size, results);
 
 void seq_removal_bench(){
     std::cout << "Bench the sequential removal time of each data structure" << std::endl;
+    
+    std::vector<int> small_sizes = {1000, 5000, 10000};
+    
+    for(auto size : small_sizes){
+        std::stringstream name;
+        name << "sequential-removal-" << size;
+
+        Results results;
+        results.start(name.str());
+        results.set_max(5);
+        
+        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
+        SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
+        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+
+        results.finish();
+    }
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
 
     for(auto size : sizes){
-        //SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
-        //SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
-        //SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        std::stringstream name;
+        name << "sequential-removal-" << size;
+
+        Results results;
+        results.start(name.str());
+        results.set_max(5);
+        
+        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
+        //Too slow SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
+        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
         //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        //SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+
+        results.finish();
     }
 }
 
@@ -698,12 +727,12 @@ void bench(){
     //skewed_bench();
 
     //Launch the construction benchmark
-    seq_construction_bench();
+    //seq_construction_bench();
     //random_construction_bench();
     
     //Launch the removal benchmark
     //random_removal_bench();
-    //seq_removal_bench();
+    seq_removal_bench();
 
     //Launch the search benchmark
     //search_random_bench();
