@@ -467,11 +467,11 @@ void seq_removal_bench(){
         results.start(name.str());
         results.set_max(5);
         
-        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
-        SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
-        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
+        SEQUENTIAL_REMOVAL(nbbst::NBBST, "nbbst", size);
+        SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
         //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+        SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
 
         results.finish();
     }
@@ -486,11 +486,11 @@ void seq_removal_bench(){
         results.start(name.str());
         results.set_max(5);
         
-        SEQUENTIAL_REMOVAL(skiplist::SkipList, "SkipList", size);
+        SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
         //Too slow SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
-        SEQUENTIAL_REMOVAL(avltree::AVLTree, "AVLTree", size);
+        SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
         //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQUENTIAL_REMOVAL(cbtree::CBTree, "CBTree", size);
+        SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
 
         results.finish();
     }
