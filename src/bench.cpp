@@ -9,6 +9,7 @@
 
 #include "bench.hpp"
 #include "zipf.hpp"             //To generate zipf distributed numbers
+#include "file_distribution.hpp"
 #include "HazardManager.hpp"    //To manipulate thread_num
 #include "Results.hpp"          //To generate the graphs data
 
@@ -138,7 +139,7 @@ void random_bench(){
 }
 
 template<typename Tree, unsigned int Threads>
-void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
+void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, file_distribution<>& distribution, Results& results){
     Tree tree;
 
     Clock::time_point t0 = Clock::now();
@@ -154,8 +155,7 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
             auto operationGenerator = std::bind(operationDistribution, engine);
             
             for(int i = 0; i < OPERATIONS; ++i){
-                unsigned int value = distribution(engine);
-                tree.add(value);
+                tree.add(distribution(engine));
             }
 
             for(int i = 0; i < OPERATIONS; ++i){
@@ -182,12 +182,14 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
     results.add_result(name, throughput);
+
+    //TODO Empty the tree
 }
 
-void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, zipf_distribution<>& distribution, Results& results){
+void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, file_distribution<>& distribution, Results& results){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    //skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
+    skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
     skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
     skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
     //skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
@@ -200,20 +202,41 @@ void skewed_bench(unsigned int range){
 
     Results results;
     results.start(name.str());
+    results.set_max(11);
 
-    zipf_distribution<> distribution((double) range, 0, 0.8);
+    //TODO Set the range dynamically based on the parameter
+
+    file_distribution<> distribution("zipf/zipf-00-2000", 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    /*distribution = zipf_distribution<>((double) range, 0, 1.0);
+    /*distribution = file_distribution<>("zipf/zipf-02-2000", 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = zipf_distribution<>((double) range, 0, 1.2);
+    distribution = file_distribution<>("zipf/zipf-04-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-06-2000", 1000000);
     skewed_bench(range, 10, 0, distribution, results);*/
     
-    distribution = zipf_distribution<>((double) range, 0, 1.4);
+    distribution = file_distribution<>("zipf/zipf-08-2000", 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = zipf_distribution<>((double) range, 0, 1.6);
+    distribution = file_distribution<>("zipf/zipf-10-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-12-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-14-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-16-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-18-2000", 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-20-2000", 1000000);
     skewed_bench(range, 10, 0, distribution, results);
 
     results.finish();
@@ -710,7 +733,7 @@ void bench(){
 
     //Launch the random benchmark
     //random_bench();
-    //skewed_bench();
+    skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
@@ -718,7 +741,7 @@ void bench(){
     
     //Launch the removal benchmark
     //random_removal_bench();
-    seq_removal_bench();
+    //seq_removal_bench();
 
     //Launch the search benchmark
     //search_random_bench();

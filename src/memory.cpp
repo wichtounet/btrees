@@ -1,9 +1,29 @@
 #include <malloc.h>
+#include <pthread.h>
 
-static void my_init_hook(void);
+static void* (*malloc_call)(size_t, const void*);
+
+static unsigned long allocated = 0;
+
+static void* rqmalloc_hook(size_t size, const void* /* source*/){
+    void* result;
+    __malloc_hook = malloc_call;
+    result = malloc(size);
+    allocated += size;
+    //malloc_call = __malloc_hook;
+    __malloc_hook=rqmalloc_hook;
+    return result;
+}
+
+void memory_init(){
+    malloc_call = __malloc_hook;
+    __malloc_hook = rqmalloc_hook;
+}
+
+/*static void my_init_hook(void);
 static void* my_malloc_hook(size_t, const void*);
 
-void (*__malloc_initialize_hook) (void) = my_init_hook;
+void (* volatile __malloc_initialize_hook) (void) = my_init_hook;
 
 static void* (*old_malloc_hook)(size_t, const void*);
 
@@ -12,26 +32,24 @@ static void my_init_hook(void){
     __malloc_hook = my_malloc_hook;
 }
 
-static unsigned long allocated = 0;
-
 static void * my_malloc_hook (size_t size, const void*){
     void *result;
-    /* Restore all old hooks */
+    / Restore all old hooks /
     __malloc_hook = old_malloc_hook;
-    /* Call recursively */
+    / Call recursively /
     result = malloc (size);
-    /* Save underlying hooks */
+    / Save underlying hooks /
     old_malloc_hook = __malloc_hook;
     //Inc the allocated size
     allocated += size;
-    /* printf might call malloc, so protect it too. */
+    / printf might call malloc, so protect it too. /
     if(allocated % 1000000000 == 0){
         printf ("allocated=%lu\n", allocated);
     }
-    /* Restore our own hooks */
+    / Restore our own hooks /
     __malloc_hook = my_malloc_hook;
     return result;
-}
+}*/
 
 #include <string>
 #include <vector>
@@ -130,11 +148,14 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
 void test_memory_consumption(){
     std::cout << "Test the memory consumption of each version" << std::endl;
 
+    memory_init();
+
     std::vector<unsigned int> little_sizes = {1000, 10000, 100000};
     std::vector<unsigned int> big_sizes = {1000000, 10000000};
         
     Results results;
     results.start("memory-little");
+    results.set_max(3);
 
     for(auto size : little_sizes){
         memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
@@ -147,6 +168,7 @@ void test_memory_consumption(){
     results.finish();
     
     results.start("memory-little-high");
+    results.set_max(3);
 
     for(auto size : little_sizes){
         memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
@@ -159,6 +181,7 @@ void test_memory_consumption(){
     results.finish();
     
     results.start("memory-big");
+    results.set_max(2);
 
     for(auto size : big_sizes){
         memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
@@ -171,6 +194,7 @@ void test_memory_consumption(){
     results.finish();
     
     results.start("memory-big-high");
+    results.set_max(2);
 
     for(auto size : big_sizes){
         memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
