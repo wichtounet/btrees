@@ -284,12 +284,14 @@ void seq_construction_bench(){
         Results results;
         results.start(name.str());
         results.set_max(5);
-        
-        SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
-        SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
-        SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-        //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+
+        for(int i = 0; i < REPEAT; ++i){
+            SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+            SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+            SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
+            //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -304,11 +306,13 @@ void seq_construction_bench(){
         results.start(name.str());
         results.set_max(5);
         
-        SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
-        //Too slow SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
-        SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-        //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+            //Too slow SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+            SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
+            //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -371,12 +375,15 @@ void random_construction_bench(){
 
         Results results;
         results.start(name.str());
+        results.set_max(5);
 
-        RANDOM_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
-        RANDOM_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
-        RANDOM_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-        //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
-        RANDOM_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            RANDOM_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
+            RANDOM_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
+            RANDOM_CONSTRUCTION(avltree::AVLTree, "avltree", size);
+            //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
+            RANDOM_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -433,11 +440,13 @@ void seq_removal_bench(){
         results.start(name.str());
         results.set_max(5);
         
-        SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
-        SEQUENTIAL_REMOVAL(nbbst::NBBST, "nbbst", size);
-        SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
-        //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
+            SEQUENTIAL_REMOVAL(nbbst::NBBST, "nbbst", size);
+            SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
+            //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -452,11 +461,13 @@ void seq_removal_bench(){
         results.start(name.str());
         results.set_max(5);
         
-        SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
-        //Too slow SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
-        SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
-        //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
-        SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
+            //Too slow SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
+            SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
+            //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -518,12 +529,15 @@ void random_removal_bench(){
 
         Results results;
         results.start(name.str());
+        results.set_max(5);
 
-        RANDOM_REMOVAL(skiplist::SkipList, "skiplist", size);
-        RANDOM_REMOVAL(nbbst::NBBST, "nbbst", size);
-        RANDOM_REMOVAL(avltree::AVLTree, "avltree", size);
-        //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
-        RANDOM_REMOVAL(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            RANDOM_REMOVAL(skiplist::SkipList, "skiplist", size);
+            RANDOM_REMOVAL(nbbst::NBBST, "nbbst", size);
+            RANDOM_REMOVAL(avltree::AVLTree, "avltree", size);
+            //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            RANDOM_REMOVAL(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -611,12 +625,15 @@ void search_random_bench(){
 
         Results results;
         results.start(name.str());
+        results.set_max(5);
 
-        SEARCH_RANDOM(skiplist::SkipList, "skiplist", size);
-        SEARCH_RANDOM(nbbst::NBBST, "nbbst", size);
-        SEARCH_RANDOM(avltree::AVLTree, "avltree", size);
-        //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "lfmst", size);
-        SEARCH_RANDOM(cbtree::CBTree, "cbtree", size);
+        for(int i = 0; i < REPEAT; ++i){
+            SEARCH_RANDOM(skiplist::SkipList, "skiplist", size);
+            SEARCH_RANDOM(nbbst::NBBST, "nbbst", size);
+            SEARCH_RANDOM(avltree::AVLTree, "avltree", size);
+            //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_RANDOM(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -654,12 +671,15 @@ void search_sequential_bench(){
 
         Results results;
         results.start(name.str());
-        
-        SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
-        SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
-        SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
-        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
-        SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+        results.set_max(5);
+
+        for(int i = 0; i < REPEAT; ++i){
+            SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
+            SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
+            SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
+            //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
@@ -672,12 +692,15 @@ void search_sequential_bench(){
 
         Results results;
         results.start(name.str());
-        
-        SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
-        //The nbbst is far too slow SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
-        SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
-        //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
-        SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+        results.set_max(5);
+
+        for(int i = 0; i < REPEAT; ++i){
+            SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
+            //The nbbst is far too slow SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
+            SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
+            //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
+        }
 
         results.finish();
     }
