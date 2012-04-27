@@ -197,6 +197,8 @@ CBTree<T, Threads>::CBTree(){
         local_size[i] = 0;
         Current[i] = 0;
     }
+
+    //TODO Try to init the log calculation threshold here depending on the numbe rof threads
 }
 
 template<typename T, int Threads>
