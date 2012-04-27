@@ -86,6 +86,30 @@ int main(int argc, char *argv[]){
         generate("zipf/zipf-16-2000", 1.6, 2000, 1000000);
         generate("zipf/zipf-18-2000", 1.8, 2000, 1000000);
         generate("zipf/zipf-20-2000", 2.0, 2000, 1000000);
+        
+        generate("zipf/zipf-00-20000", 0.0, 20000, 1000000); //TODO Verify the numbers generated for skew=0
+        generate("zipf/zipf-02-20000", 0.2, 20000, 1000000);
+        generate("zipf/zipf-04-20000", 0.4, 20000, 1000000);
+        generate("zipf/zipf-06-20000", 0.6, 20000, 1000000);
+        generate("zipf/zipf-08-20000", 0.8, 20000, 1000000);
+        generate("zipf/zipf-10-20000", 1.0, 20000, 1000000);
+        generate("zipf/zipf-12-20000", 1.2, 20000, 1000000);
+        generate("zipf/zipf-14-20000", 1.4, 20000, 1000000);
+        generate("zipf/zipf-16-20000", 1.6, 20000, 1000000);
+        generate("zipf/zipf-18-20000", 1.8, 20000, 1000000);
+        generate("zipf/zipf-20-20000", 2.0, 20000, 1000000);
+        
+        generate("zipf/zipf-00-200000", 0.0, 200000, 1000000); //TODO Verify the numbers generated for skew=0
+        generate("zipf/zipf-02-200000", 0.2, 200000, 1000000);
+        generate("zipf/zipf-04-200000", 0.4, 200000, 1000000);
+        generate("zipf/zipf-06-200000", 0.6, 200000, 1000000);
+        generate("zipf/zipf-08-200000", 0.8, 200000, 1000000);
+        generate("zipf/zipf-10-200000", 1.0, 200000, 1000000);
+        generate("zipf/zipf-12-200000", 1.2, 200000, 1000000);
+        generate("zipf/zipf-14-200000", 1.4, 200000, 1000000);
+        generate("zipf/zipf-16-200000", 1.6, 200000, 1000000);
+        generate("zipf/zipf-18-200000", 1.8, 200000, 1000000);
+        generate("zipf/zipf-20-200000", 2.0, 200000, 1000000);
 
         //TODO Generate all the data for the benchmark
     } else {

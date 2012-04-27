@@ -197,46 +197,44 @@ void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, fil
 }
 
 void skewed_bench(unsigned int range){
-    std::stringstream name;
-    name << "skewed-" << range;
+    std::stringstream range_name;
+    range_name << range;
 
     Results results;
-    results.start(name.str());
+    results.start("skewed-" + range_name.str());
     results.set_max(11);
 
-    //TODO Set the range dynamically based on the parameter
-
-    file_distribution<> distribution("zipf/zipf-00-2000", 1000000);
+    file_distribution<> distribution("zipf/zipf-00-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    /*distribution = file_distribution<>("zipf/zipf-02-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-02-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-04-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-04-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-06-2000", 1000000);
-    skewed_bench(range, 10, 0, distribution, results);*/
-    
-    distribution = file_distribution<>("zipf/zipf-08-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-06-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-10-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-08-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-12-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-10-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-14-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-12-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-16-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-14-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-18-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-16-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
     
-    distribution = file_distribution<>("zipf/zipf-20-2000", 1000000);
+    distribution = file_distribution<>("zipf/zipf-18-" + range_name.str(), 1000000);
+    skewed_bench(range, 10, 0, distribution, results);
+    
+    distribution = file_distribution<>("zipf/zipf-20-" + range_name.str(), 1000000);
     skewed_bench(range, 10, 0, distribution, results);
 
     results.finish();
@@ -244,8 +242,8 @@ void skewed_bench(unsigned int range){
 
 void skewed_bench(){
     skewed_bench(2000);
-    //skewed_bench(20000);
-    //skewed_bench(200000);
+    skewed_bench(20000);
+    skewed_bench(200000);
     //skewed_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
 
