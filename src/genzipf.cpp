@@ -51,6 +51,8 @@
 #include <math.h>               // Needed for pow()
 #include <string.h>
 
+#include <iostream>
+
 int zipf(int n);               // Returns a Zipf random variable
 void init_zipf(int n);              
 double rand_val();                // Jain's RNG
@@ -60,42 +62,67 @@ double *powers;
 double *inverse_powers;
 double *c_powers;
 
-int main(int/* argc*/, char *argv[]){
-    FILE   *fp;                   // File pointer to output file
-    char   file_name[256];        // Output file name string
-    char   temp_string[256];      // Temporary string variable
-    double alpha;                 // Alpha parameter
-    int	n;                     // N parameter
-    int    num_values;            // Number of values
-    int    zipf_rv;               // Zipf random variable
-    int    i;                     // Loop counter
-    int	 *histogram;
-    int	 *universe;
-    int k,tmp;
+void generate(const char* file, double alpha, int n, int num_value);
 
-    strcpy(file_name, argv[1]);
-    fp = fopen(file_name, "w");
-    if (fp == NULL){
-        printf("ERROR in creating output file (%s) \n", file_name);
-        exit(1);
+int main(int argc, char *argv[]){
+    if(argc < 5){
+        //Generate all the necessary graphs
+        
+        //Generate the histograms
+        generate("zipf/zipf-histo-02", 0.2, 2000, 50000);
+        generate("zipf/zipf-histo-08", 0.8, 2000, 50000);
+        generate("zipf/zipf-histo-12", 1.2, 2000, 50000);
+        generate("zipf/zipf-histo-18", 1.8, 2000, 50000);
+
+        //Generate the data for the benchmarks
+        generate("zipf/zipf-00-2000", 0.0, 2000, 1000000); //TODO Verify the numbers generated for skew=0
+        generate("zipf/zipf-02-2000", 0.2, 2000, 1000000);
+        generate("zipf/zipf-04-2000", 0.4, 2000, 1000000);
+        generate("zipf/zipf-06-2000", 0.6, 2000, 1000000);
+        generate("zipf/zipf-08-2000", 0.8, 2000, 1000000);
+        generate("zipf/zipf-10-2000", 1.0, 2000, 1000000);
+        generate("zipf/zipf-12-2000", 1.2, 2000, 1000000);
+        generate("zipf/zipf-14-2000", 1.4, 2000, 1000000);
+        generate("zipf/zipf-16-2000", 1.6, 2000, 1000000);
+        generate("zipf/zipf-18-2000", 1.8, 2000, 1000000);
+        generate("zipf/zipf-20-2000", 2.0, 2000, 1000000);
+
+        //TODO Generate all the data for the benchmark
+    } else {
+        char   file_name[256];        // Output file name string
+        char   temp_string[256];      // Temporary string variable
+        
+        strcpy(file_name, argv[1]);
+
+        strcpy(temp_string, argv[2]);
+        double alpha = atof(temp_string);
+
+        strcpy(temp_string, argv[3]);
+        int n = atoi(temp_string);
+
+        strcpy(temp_string, argv[4]);
+        int num_values = atoi(temp_string);
+
+        generate(file_name, alpha, n, num_values);
     }
+
+    return 0;
+}
+
+void generate(const char* file_name, double alpha, int n, int num_values){
+    std::cout << "Generate " << num_values << " values in [0, " << n << "] with a skew of " << alpha << std::endl; 
 
     srand(time(NULL));
     init_rand_val(rand());
 
-    strcpy(temp_string, argv[2]);
-    alpha = atof(temp_string);
+    int    zipf_rv;               // Zipf random variable
+    int    i;                     // Loop counter
+    int k,tmp;
 
-    strcpy(temp_string, argv[3]);
-    n = atoi(temp_string);
-
-    strcpy(temp_string, argv[4]);
-    num_values = atoi(temp_string);
-
-    histogram = (int *) malloc(sizeof(int)*n);
+    int* histogram = (int *) malloc(sizeof(int)*n);
     memset(histogram, 0, sizeof(int)*n);
 
-    universe = (int *) malloc(sizeof(int)*n);
+    int* universe = (int *) malloc(sizeof(int)*n);
     memset(universe, 0, sizeof(int)*n);
 
     //calculate powers
@@ -124,6 +151,13 @@ int main(int/* argc*/, char *argv[]){
 
     init_zipf(n);
     
+    FILE   *fp;                   // File pointer to output file
+    fp = fopen(file_name, "w");
+    if (fp == NULL){
+        printf("ERROR in creating output file (%s) \n", file_name);
+        exit(1);
+    }
+    
     // Generate and output zipf random variables
     for (i=0; i<num_values; i++){
         zipf_rv = zipf(n) % n;
@@ -134,7 +168,12 @@ int main(int/* argc*/, char *argv[]){
     //Close the output file
     fclose(fp);
 
-    return 0;
+    //These pointers will be reused in the next run
+    free(histogram);
+    free(universe);
+    free(powers);
+    free(inverse_powers);
+    free(c_powers);
 }
 
 //Compute normalization constant
