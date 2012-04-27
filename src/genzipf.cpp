@@ -54,14 +54,14 @@
 #define  FALSE          0       // Boolean false
 #define  TRUE           1       // Boolean true
 
-int      zipf(double alpha, int n);  // Returns a Zipf random variable
+int      zipf(int n);  // Returns a Zipf random variable
 double   rand_val(int seed);         // Jain's RNG
 
 double *powers;
 double *inverse_powers;
 double *c_powers;
 
-void main(int argc, char *argv[]){
+int main(int/* argc*/, char *argv[]){
     FILE   *fp;                   // File pointer to output file
     char   file_name[256];        // Output file name string
     char   temp_string[256];      // Temporary string variable
@@ -126,31 +126,37 @@ void main(int argc, char *argv[]){
 
     // Generate and output zipf random variables
     for (i=0; i<num_values; i++){
-        zipf_rv = zipf(alpha, n)%n;
+        zipf_rv = zipf(n) % n;
         histogram[universe[zipf_rv]]++;
         fprintf(fp, "%d\n", universe[zipf_rv]);
     }
 
     //Close the output file
     fclose(fp);
+
+    return 0;
 }
 
-int zipf(double alpha, int n){
-    static int first = TRUE;      // Static first time flag
-    static double c = 0;          // Normalization constant
+int zipf(int n){
+    static bool first = true;        // Static first time flag
     double z;                     // Uniform random number (0 < z < 1)
     double sum_prob;              // Sum of probabilities
-    double zipf_value;            // Computed exponential value to be returned
-    int    i;                     // Loop counter
+    double zipf_value = 0;        // Computed exponential value to be returned
 
     // Compute normalization constant on first call only
-    if (first == TRUE){
-        for (i=1; i<=n; i++)
+    if (first){
+        double c = 0;
+        for (int i=1; i<=n; i++){
             c = c + inverse_powers[i];
+        }
+
         c = 1.0 / c;
-        for (i=1; i<=n; i++)
+        
+        for (int i=1; i<=n; i++){
             c_powers[i]= c / powers[i];
-        first = FALSE;
+        }
+
+        first = false;
     }
 
     // Pull a uniform random number (0 < z < 1)
@@ -160,7 +166,7 @@ int zipf(double alpha, int n){
 
     // Map z to the value
     sum_prob = 0;
-    for (i=1; i<=n; i++){
+    for (int i=1; i<=n; i++){
         sum_prob = sum_prob + c_powers[i];
         if (sum_prob >= z){
             zipf_value = i;
