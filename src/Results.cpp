@@ -37,13 +37,16 @@ void Results::compute_stats(){
         auto data = it->second;
 
         for(unsigned int i = 0; i < data.size(); ++i){
-            unsigned long sum = 0;
+            //If it's not the case, max has been configured too high
+            if(data[i].size() > 0){
+                unsigned long sum = 0;
 
-            for(auto j : data[i]){
-                sum += j;
+                for(auto j : data[i]){
+                    sum += j;
+                }
+
+                stats[impl].push_back(sum / data[i].size());
             }
-
-            stats[impl].push_back(sum / data[i].size());
         }
 
         ++it;

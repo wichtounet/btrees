@@ -244,9 +244,9 @@ void skewed_bench(unsigned int range){
 
 void skewed_bench(){
     skewed_bench(2000);
-    skewed_bench(20000);
-    skewed_bench(200000);
-    skewed_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
+    //skewed_bench(20000);
+    //skewed_bench(200000);
+    //skewed_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
 
 unsigned long get_duration(Clock::time_point t0, Clock::time_point t1){
