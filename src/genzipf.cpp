@@ -51,11 +51,10 @@
 #include <math.h>               // Needed for pow()
 #include <string.h>
 
-#define  FALSE          0       // Boolean false
-#define  TRUE           1       // Boolean true
-
-int      zipf(int n);  // Returns a Zipf random variable
-double   rand_val(int seed);         // Jain's RNG
+int zipf(int n);               // Returns a Zipf random variable
+void init_zipf(int n);              
+double rand_val();                // Jain's RNG
+void init_rand_val(int seed);   
 
 double *powers;
 double *inverse_powers;
@@ -82,8 +81,7 @@ int main(int/* argc*/, char *argv[]){
     }
 
     srand(time(NULL));
-
-    rand_val(rand());
+    init_rand_val(rand());
 
     strcpy(temp_string, argv[2]);
     alpha = atof(temp_string);
@@ -124,6 +122,8 @@ int main(int/* argc*/, char *argv[]){
         universe[i] = tmp;
     }
 
+    init_zipf(n);
+    
     // Generate and output zipf random variables
     for (i=0; i<num_values; i++){
         zipf_rv = zipf(n) % n;
@@ -137,31 +137,28 @@ int main(int/* argc*/, char *argv[]){
     return 0;
 }
 
+//Compute normalization constant
+void init_zipf(int n){
+    double c = 0;
+    for (int i=1; i<=n; i++){
+        c = c + inverse_powers[i];
+    }
+
+    c = 1.0 / c;
+
+    for (int i=1; i<=n; i++){
+        c_powers[i]= c / powers[i];
+    }
+}
+
 int zipf(int n){
-    static bool first = true;        // Static first time flag
     double z;                     // Uniform random number (0 < z < 1)
     double sum_prob;              // Sum of probabilities
     double zipf_value = 0;        // Computed exponential value to be returned
 
-    // Compute normalization constant on first call only
-    if (first){
-        double c = 0;
-        for (int i=1; i<=n; i++){
-            c = c + inverse_powers[i];
-        }
-
-        c = 1.0 / c;
-        
-        for (int i=1; i<=n; i++){
-            c_powers[i]= c / powers[i];
-        }
-
-        first = false;
-    }
-
     // Pull a uniform random number (0 < z < 1)
     do {
-        z = rand_val(0);
+        z = rand_val();
     } while ((z == 0) || (z == 1));
 
     // Map z to the value
@@ -177,21 +174,21 @@ int zipf(int n){
     return(zipf_value);
 }
 
-double rand_val(int seed){
+static long x = 0;
+
+void init_rand_val(int seed){
+    x = seed;
+}
+
+double rand_val(){
     const long  a =      16807;  // Multiplier
     const long  m = 2147483647;  // Modulus
     const long  q =     127773;  // m div a
     const long  r =       2836;  // m mod a
-    static long x;               // Random int value
+    
     long        x_div_q;         // x divided by q
     long        x_mod_q;         // x modulo q
     long        x_new;           // New x value
-
-    // Set the seed if argument is non-zero and then return zero
-    if (seed > 0){
-        x = seed;
-        return(0.0);
-    }
 
     // RNG using integer arithmetic
     x_div_q = x / q;
