@@ -30,5 +30,7 @@ file(
 )
 
 add_executable(btrees ${btrees_source_files})
+add_executable(gen_zip src/genzipf.c)
 
 target_link_libraries(btrees rt)
+target_link_libraries(gen_zip m)
