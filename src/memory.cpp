@@ -20,37 +20,6 @@ void memory_init(){
     __malloc_hook = rqmalloc_hook;
 }
 
-/*static void my_init_hook(void);
-static void* my_malloc_hook(size_t, const void*);
-
-void (* volatile __malloc_initialize_hook) (void) = my_init_hook;
-
-static void* (*old_malloc_hook)(size_t, const void*);
-
-static void my_init_hook(void){
-    old_malloc_hook = __malloc_hook;
-    __malloc_hook = my_malloc_hook;
-}
-
-static void * my_malloc_hook (size_t size, const void*){
-    void *result;
-    / Restore all old hooks /
-    __malloc_hook = old_malloc_hook;
-    / Call recursively /
-    result = malloc (size);
-    / Save underlying hooks /
-    old_malloc_hook = __malloc_hook;
-    //Inc the allocated size
-    allocated += size;
-    / printf might call malloc, so protect it too. /
-    if(allocated % 1000000000 == 0){
-        printf ("allocated=%lu\n", allocated);
-    }
-    / Restore our own hooks /
-    __malloc_hook = my_malloc_hook;
-    return result;
-}*/
-
 #include <string>
 #include <vector>
 #include <iostream>
