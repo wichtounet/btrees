@@ -29,6 +29,9 @@ file(
 	src/*.cpp
 )
 
+file(GLOB to_remove src/genzipf.cpp)
+list(REMOVE_ITEM btrees_source_files ${to_remove})
+
 add_executable(btrees ${btrees_source_files})
 add_executable(gen_zip src/genzipf.cpp)
 
