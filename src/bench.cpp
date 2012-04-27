@@ -29,30 +29,6 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::milliseconds milliseconds;
 typedef std::chrono::microseconds microseconds;
 
-template<typename Tree>
-void fast_empty(Tree& tree, unsigned int Threads, unsigned int range){
-    //The fastest number of threads on the test machine is 8
-    //we cannot use more than the configured value for the tree...
-    Threads = Threads > 8 ? 8 : Threads; 
-
-    unsigned int part = range / Threads;
-
-    std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, part, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
-
-            for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
-                tree.remove(i);
-            }
-        }));
-    }
-    
-    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
-}
-
 template<typename Tree, unsigned int Threads>
 void random_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, Results& results){
     Tree tree;
@@ -64,11 +40,9 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     std::vector<int> elements[Threads];
     
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, &elements, range, add, remove, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &elements, range, add, remove, tid](){
+            thread_num = tid;
 
             std::mt19937_64 engine(time(0) + tid);
 
@@ -107,9 +81,9 @@ void random_bench(const std::string& name, unsigned int range, unsigned int add,
     results.add_result(name, throughput);
 
     pool.clear();
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, &elements, i](){
-            thread_num = i;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &elements, tid](){
+            thread_num = tid;
 
             for(auto i : elements[thread_num]){
                 tree.remove(i);
@@ -170,11 +144,9 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
     Clock::time_point t0 = Clock::now();
     
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, &distribution, range, add, remove, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &distribution, range, add, remove, tid](){
+            thread_num = tid;
 
             std::mt19937_64 engine(time(0) + tid);
 
@@ -270,11 +242,9 @@ void seq_construction_bench(const std::string& name, unsigned int size, Results&
     unsigned int part = size / Threads;
 
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, part, size, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, part, size, tid](){
+            thread_num = tid;
 
             for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
                 tree.add(i);
@@ -360,11 +330,9 @@ void random_construction_bench(const std::string& name, unsigned int size, Resul
     unsigned int part = size / Threads;
 
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, &elements, part, size, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &elements, part, size, tid](){
+            thread_num = tid;
 
             for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
                 tree.add(elements[i]);
@@ -427,11 +395,9 @@ void seq_removal_bench(const std::string& name, unsigned int size, Results& resu
     Clock::time_point t0 = Clock::now();
 
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, part, size, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, part, size, tid](){
+            thread_num = tid;
 
             for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
                 tree.remove(i);
@@ -516,11 +482,9 @@ void random_removal_bench(const std::string& name, unsigned int size, Results& r
     Clock::time_point t0 = Clock::now();
 
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, &elements, part, size, i](){
-            thread_num = i;
-
-            unsigned int tid = thread_num;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &elements, part, size, tid](){
+            thread_num = tid;
 
             for(unsigned int i = tid * part; i < (tid + 1) * part; ++i){
                 tree.remove(elements[i]);
@@ -570,11 +534,11 @@ void search_bench(const std::string& name, unsigned int size, Tree& tree, Result
     Clock::time_point t0 = Clock::now();
 
     std::vector<std::thread> pool;
-    for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, size, i](){
-            thread_num = i;
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, size, tid](){
+            thread_num = tid;
     
-            std::mt19937_64 engine(time(0) + i);
+            std::mt19937_64 engine(time(0) + tid);
             std::uniform_int_distribution<int> distribution(0, size);
 
             for(int s = 0; s < SEARCH_BENCH_OPERATIONS; ++s){
