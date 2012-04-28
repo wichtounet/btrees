@@ -45,11 +45,11 @@ struct Keys {
     Key* elements;
     int length;
 
-    /*~Keys(){
+    ~Keys(){
         if(elements){
-//TODO            free(elements);
+            free(elements);
         }
-    }*/
+    }
 
     Key& operator[](int index){
         assert(index < length);
@@ -62,11 +62,11 @@ struct Children {
     Node** elements;
     int length;
     
-/*    ~Children(){
+    ~Children(){
         if(elements){
-//TODO            free(elements);
+            free(elements);
         }
-    }*/
+    }
 
     Node*& operator[](int index){
         assert(index < length);
