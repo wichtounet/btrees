@@ -354,7 +354,7 @@ bool CBTree<T, Threads>::add(T value){
             int new_size = ++size;
             int next_log_size = log_size + 1;
             if(new_size >= (1 << next_log_size)){
-                logSize.compare_exchange_weak(log_size, next_log_size);
+                logSize.compare_exchange_strong(log_size, next_log_size);
             }
         } else {
             ++local_size[thread_num];
@@ -364,7 +364,7 @@ bool CBTree<T, Threads>::add(T value){
                 local_size[thread_num] = 0;
                 int next_log_size = log_size + 1;
                 if(new_size >= (1 << next_log_size)){
-                    logSize.compare_exchange_weak(log_size, next_log_size);
+                    logSize.compare_exchange_strong(log_size, next_log_size);
                 }
             }
         }
@@ -401,7 +401,7 @@ bool CBTree<T, Threads>::remove(T value){
                         if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
                             int new_size = --size;
                             if(new_size < (1 << log_size)){
-                                logSize.compare_exchange_weak(log_size, log_size - 1);
+                                logSize.compare_exchange_strong(log_size, log_size - 1);
                             }
                         } else {
                             --local_size[thread_num];
@@ -409,7 +409,7 @@ bool CBTree<T, Threads>::remove(T value){
                                 int new_size = (size += local_size[thread_num]);
                                 local_size[thread_num] = 0;
                                 if(new_size < (1 << log_size)){
-                                    logSize.compare_exchange_weak(log_size, log_size - 1);
+                                    logSize.compare_exchange_strong(log_size, log_size - 1);
                                 }
                             }
                         }
