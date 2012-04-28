@@ -14,6 +14,7 @@
 
 #include <mutex>
 #include <atomic>
+#include <cmath>
 
 #include "Utils.hpp"
 #include "HazardManager.hpp"
@@ -35,8 +36,6 @@ static const long OVLShrinkLockMask = 4L;
 static const int OVLGrowCountShift = 3;
 static const long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
 static const long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
-
-#define NEW_LOG_CALCULATION_THRESHOLD 8 //log(2*Threads²)
 
 static bool isChanging( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask)) != 0;
@@ -151,6 +150,8 @@ class CBTree {
         std::atomic<int> size;
         std::atomic<int> logSize;
         int local_size[Threads];
+
+        int NEW_LOG_CALCULATION_THRESHOLD;
         
         void publish(Node* ref);
         void releaseAll();
@@ -198,7 +199,9 @@ CBTree<T, Threads>::CBTree(){
         Current[i] = 0;
     }
 
-    //TODO Try to init the log calculation threshold here depending on the numbe rof threads
+    NEW_LOG_CALCULATION_THRESHOLD = std::log(2 * Threads * Threads) + 1;
+
+    std::cout << NEW_LOG_CALCULATION_THRESHOLD << std::endl;
 }
 
 template<typename T, int Threads>
@@ -336,7 +339,7 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
                             ++node->rcnt;
                         }
                     }
-
+           
                     return vo;
                 }
             }
