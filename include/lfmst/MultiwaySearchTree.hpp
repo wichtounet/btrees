@@ -1052,14 +1052,21 @@ bool MultiwaySearchTree<T, Threads>::dropChild(Node* node, Contents* contents, i
 
     Keys* keys = newKeys(length - 1);
     Children* children = newChildren(length - 1);
-    
-    std::copy(contents->items->elements, contents->items->elements + index, keys->elements);
-    std::copy(contents->children->elements, contents->children->elements + index, children->elements);
+
+    for(int i = 0; i < index; ++i){
+        (*keys)[i] = (*contents->items)[i];
+        (*children)[i] = (*contents->children)[i];
+    }
     
     (*children)[index] = adjustedChild;
+
+    for(int i = index + 1; i < length; ++i){
+        (*keys)[i - 1] = (*contents->items)[i];
+    }
     
-    std::copy(contents->items->elements + index + 1, contents->items->elements + length, keys->elements + index);
-    std::copy(contents->children->elements + index + 2, contents->children->elements + length, children->elements + index + 1);
+    for(int i = index + 2; i < length; ++i){
+        (*children)[i - 1] = (*contents->children)[i];
+    }
 
     Contents* update = newContents(keys, children, contents->link);
     if(node->casContents(contents, update)){
