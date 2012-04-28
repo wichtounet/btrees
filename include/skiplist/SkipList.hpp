@@ -1,8 +1,6 @@
 #ifndef SKIP_LIST
 #define SKIP_LIST
 
-#include <cassert>
-
 #include "hash.hpp"
 #include "Utils.hpp"
 #include "HazardManager.hpp"

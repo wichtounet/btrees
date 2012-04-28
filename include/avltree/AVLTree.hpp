@@ -2,7 +2,6 @@
 #define AVL_TREE_TREE
 
 #include <mutex>
-#include <cassert>
 
 #include "hash.hpp"
 #include "HazardManager.hpp"
@@ -49,8 +48,6 @@ struct Node {
         } else if(direction < 0){
             return left;
         }
-
-        assert(false);
     }
 
     //Should only be called with lock on Node
@@ -60,8 +57,6 @@ struct Node {
         } else if(direction < 0){
             left = child;
         }
-
-        assert(direction != 0);
     }
 };
 
@@ -312,8 +307,6 @@ bool AVLTree<T, Threads>::attemptInsertIntoEmpty(int key, bool value, Node* hold
 
 template<typename T, int Threads>
 Result AVLTree<T, Threads>::attemptUpdate(int key, Function func, bool expected, bool newValue, Node* parent, Node* node, long nodeOVL){
-    assert(nodeOVL != UnlinkedOVL);
-
     int cmp = key - node->key;
     if(cmp == 0){
         return attemptNodeUpdate(func, expected, newValue, parent, node);
@@ -483,17 +476,12 @@ void AVLTree<T, Threads>::waitUntilNotChanging(Node* node){
 
 template<typename T, int Threads>
 bool AVLTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
-    assert(!isUnlinked(parent->version));
-
     Node* parentL = parent->left;
     Node* parentR = parent->right;
 
     if(parentL != node && parentR != node){
         return false;
     }
-
-    assert(!isUnlinked(node->version));
-    assert(parent == node->parent);
 
     Node* left = node->left;
     Node* right = node->right;
@@ -828,8 +816,6 @@ Node* AVLTree<T, Threads>::rotateRightOverLeft_nl(Node* nParent, Node* n, Node* 
     n->version = endChange(nodeOVL);
     nL->version = endChange(leftOVL);
 
-    assert(std::abs(hLL - hLRL) <= 1);
-
     int balN = hLRR - hR;
     if(balN < -1 || balN > 1){
         return n;
@@ -886,8 +872,6 @@ Node* AVLTree<T, Threads>::rotateLeftOverRight_nl(Node* nParent, Node* n, int hL
 
     n->version = endChange(nodeOVL);
     nR->version = endChange(rightOVL);
-    
-    assert(std::abs(hRR - hRLR) <= 1);
 
     int balN = hRLL - hL;
     if(balN < -1 || balN > 1){
