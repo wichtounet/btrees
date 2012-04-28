@@ -31,6 +31,10 @@ class file_distribution {
             distribution = std::uniform_int_distribution<int>(0, size - 1);
         }
         
+        result_type operator()(unsigned int i){
+            return values[i % values.size()];
+        }
+        
         template<class Engine>
         result_type operator()(Engine& eng){
             return values[distribution(eng)];
