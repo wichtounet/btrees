@@ -9,6 +9,8 @@ extern __thread unsigned int thread_num;
 
 #include <list>
 #include <array>
+#include <algorithm>
+#include <iostream>
 
 template<typename Node, unsigned int Threads, unsigned int Size = 2, unsigned int Prefill = 50>
 class HazardManager {
@@ -21,6 +23,7 @@ class HazardManager {
 
         /* Manage nodes */
         void releaseNode(Node* node);
+        void safe_release_node(Node* node);
         Node* getFreeNode();
 
         /* Manage references  */
@@ -72,8 +75,18 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     }
 }
 
-#include <algorithm>
-#include <iostream>
+template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
+void HazardManager<Node, Threads, Size, Prefill>::safe_release_node(Node* node){
+    //If the node is null, we have nothing to do
+    if(node){
+        if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
+            return;
+        }
+
+        //Add the node to the localqueue
+        LocalQueues.at(thread_num).push_back(node);
+    }
+}
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){

@@ -121,6 +121,8 @@ class MultiwaySearchTree {
         HazardManager<Children, Threads,    4 + MAX> nodeChildren;
         HazardManager<Search, Threads,      1> searches;
 
+        void deep_release(Node* node);
+
         HeadNode* newHeadNode(Node* node, int height);
         Search* newSearch(Node* node, Contents* contents, int index);
         Contents* newContents(Keys* items, Children* children, Node* link);
@@ -293,22 +295,31 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
 }
 
 template<typename T, int Threads>
-MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
-    if(root->node){
-        if(root->node->contents){
-            if(root->node->contents->items){
-                nodeKeys.releaseNode(root->node->contents->items);
+void MultiwaySearchTree<T, Threads>::deep_release(Node* node){
+   if(node){
+        if(node->contents){
+            if(node->contents->items){
+                nodeKeys.safe_release_node(node->contents->items);
             }
             
-            if(root->node->contents->children){
-                nodeChildren.releaseNode(root->node->contents->children);
+            if(node->contents->children){
+                for(int i = 0; i < node->contents->children->length; ++i){
+                    deep_release((*node->contents->children)[i]);
+                }
+
+                nodeChildren.safe_release_node(node->contents->children);
             }
 
-            nodeContents.releaseNode(root->node->contents);
+            nodeContents.safe_release_node(node->contents);
         }
 
-        nodes.releaseNode(root->node);
-    }
+        nodes.safe_release_node(node);
+   }
+}
+
+template<typename T, int Threads>
+MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
+    deep_release(root->node);
 
     roots.releaseNode(root);
 }
@@ -981,7 +992,6 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
     int height = root->height;
 
     while(height < target){
-
         Keys* keys = newKeys(1);
         (*keys)[0].flag = KeyFlag::INF;
 
@@ -994,7 +1004,7 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         
         if(CASPTR(&this->root, root, update)){
             roots.releaseNode(root);
-            nodes.releaseNode(root->node);
+            //TODO Certainly someting to release...
         } else {
             nodeChildren.releaseNode(children);
             nodeKeys.releaseNode(keys);
