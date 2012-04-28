@@ -72,10 +72,23 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     }
 }
 
+#include <algorithm>
+#include <iostream>
+
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
-    //Add the node to the localqueue
-    LocalQueues.at(thread_num).push_back(node);
+    //If the node is null, we have nothing to do
+    if(node){
+        if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
+            std::cout << node << std::endl;
+
+            //    assert(false);
+            return;
+        }
+
+        //Add the node to the localqueue
+        LocalQueues.at(thread_num).push_back(node);
+    }
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
