@@ -550,6 +550,10 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
             nodeContents.publish(contents, FIRST);
             nodeKeys.publish(contents->items, FIRST);
             nodeChildren.publish(contents->children, FIRST);
+
+            if(storeResults[0]){
+                searches.releaseNode(storeResults[0]);
+            }
             
             storeResults[0] = newSearch(node, contents, index);
 
@@ -580,6 +584,8 @@ void MultiwaySearchTree<T, Threads>::traverseNonLeaf(Key key, int target, Search
                 nodeChildren.publish(results->contents->children, FIRST + height);
             
                 storeResults[height] = results;
+            } else {
+                searches.releaseNode(results);
             }
             
             if(index < 0){
