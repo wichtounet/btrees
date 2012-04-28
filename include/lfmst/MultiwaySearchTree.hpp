@@ -13,7 +13,7 @@ namespace lfmst {
 
 //Constants to manage array of search
 #define FIRST   6
-#define MAX     7 //TODO Perhaps not enough
+#define MAX     8 //TODO Perhaps not enough
 
 struct Node;
 

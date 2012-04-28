@@ -22,7 +22,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define REPEAT 12
+#define REPEAT 1//2
 #define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
@@ -118,7 +118,7 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
         BENCH(skiplist::SkipList, "skiplist", range, add, remove);
         BENCH(nbbst::NBBST, "nbbst", range, add, remove);
         BENCH(avltree::AVLTree, "avltree", range, add, remove)
-        //TODO BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+        BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
         BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 
@@ -730,8 +730,8 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    //random_bench();
-    skewed_bench();
+    random_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();

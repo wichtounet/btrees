@@ -1,17 +1,6 @@
 #ifndef CB_TREE
 #define CB_TREE
 
-//#define DEBUG_LINK
-
-//Helper to unlink node
-#ifdef DEBUG_LINK
-#define UNLINK(parent, node) if((!node->left || !node->right) && !node->value){attemptUnlink_nl(parent, node);}
-#define CHECK(node) if(node && !isUnlinked(node->changeOVL) && (!node->left || !node->right) && !node->value){assert(!"Node needs unlink");}
-#else
-#define UNLINK(parent, node)
-#define CHECK(node)
-#endif
-
 #include <mutex>
 #include <atomic>
 #include <cmath>
@@ -305,9 +294,6 @@ Result CBTree<T, Threads>::attemptGet(int key, Node* node, char dirToC, long nod
                     RebalanceAtTarget(node, child);
                 }
 
-                CHECK(child);
-                CHECK(node);
-
                 ++child->ncnt;
                 return child->value ? FOUND : NOT_FOUND;
             }
@@ -393,8 +379,6 @@ bool CBTree<T, Threads>::remove(T value){
             } else if (right == rootHolder->right){
                 Result vo = attemptRemove(key, rootHolder, right, ovl, 1);
                 
-                CHECK(right);
-
                 if(vo != RETRY){
                     if(vo == FOUND){
                         int log_size = logSize.load();
@@ -444,8 +428,6 @@ Result CBTree<T, Threads>::update(int key){
             } else if(right == rootHolder->right){
                 Result vo = attemptUpdate(key, rootHolder, right, ovl, 1);
 
-                CHECK(right);
-                
                 if(vo != RETRY){
                     return vo;
                 }
@@ -482,9 +464,6 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
         } else {
             RebalanceAtTarget(parent, node);
         }
-
-        CHECK(parent);
-        CHECK(node);
 
         ++node->ncnt;
         return attemptNodeUpdate(true, parent, node);
@@ -530,16 +509,12 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                         return NOT_FOUND;
                     }
                 }
-        
-                CHECK(node);
-                    
+                
                 releaseAll();
             }
 
             if(doSemiSplay){
                 SemiSplay(node->child(dirToC));
-                CHECK(node);
-                CHECK(node->child(dirToC));
                 return NOT_FOUND;
             }
         } else {
@@ -554,10 +529,6 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                 }
 
                 Result vo = attemptUpdate(key, node, child, childOVL, height + 1);
-                    
-                CHECK(node);
-                CHECK(child);
-
                 if(vo != RETRY){
                     if(vo == NOT_FOUND){
                         RebalanceNew(node, dirToC);
@@ -568,8 +539,6 @@ Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long
                             ++node->rcnt;
                         }
                     }
-                
-                    CHECK(node);
 
                     return vo;
                 }
@@ -635,8 +604,6 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
         }
         
         releaseAll();
-        
-        CHECK(node);
 
         return prev ? FOUND : NOT_FOUND;
     }
@@ -715,8 +682,6 @@ Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long
                 }
 
                 Result vo = attemptRemove(key, node, child, childOVL, height + 1);
-                CHECK(node);
-                CHECK(child);
                 if(vo != RETRY){
                     return vo;
                 }
