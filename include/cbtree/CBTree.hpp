@@ -199,9 +199,7 @@ CBTree<T, Threads>::CBTree(){
         Current[i] = 0;
     }
 
-    NEW_LOG_CALCULATION_THRESHOLD = std::log(2 * Threads * Threads) + 1;
-
-    std::cout << NEW_LOG_CALCULATION_THRESHOLD << std::endl;
+    NEW_LOG_CALCULATION_THRESHOLD = std::log(2 * Threads * Threads);
 }
 
 template<typename T, int Threads>
