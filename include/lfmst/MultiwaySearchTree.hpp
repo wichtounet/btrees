@@ -639,6 +639,8 @@ bool MultiwaySearchTree<T, Threads>::removeFromNode(Key key, Search* results){
 
             Contents* update = newContents(newKeys, nullptr, contents->link);
 
+            //Note : contents->children is always empty here
+
             if(node->casContents(contents, update)){
                 nodeContents.releaseNode(contents);
                 nodeChildren.releaseNode(contents->children);
@@ -695,6 +697,8 @@ Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* conten
             nodeContents.release(1);
             nodeKeys.release(1);
             nodeChildren.release(1);
+
+            //It is not a good place to release the old link
 
             return update;
         } else {
@@ -802,6 +806,7 @@ bool MultiwaySearchTree<T, Threads>::cleanNode1(Node* node, Contents* contents, 
         return true;
     }
 
+    //Note childNode cannot be released here
     return shiftChild(node, contents, 0, adjustedChild);
 }
 
@@ -858,6 +863,7 @@ bool MultiwaySearchTree<T, Threads>::cleanNodeN(Node* node, Contents* contents, 
             return true;
         }
 
+        //Note: childnode cannot be removed here
         return shiftChild(node, contents, index, adjustedChild);
     }
 
@@ -1271,6 +1277,8 @@ Contents* MultiwaySearchTree<T, Threads>::deleteSlidedKey(Node* node, Contents* 
         nodeContents.releaseNode(contents);
         nodeChildren.releaseNode(contents->children);
         nodeKeys.releaseNode(contents->items);
+
+        //contents->children[index] cannot be released here
 
         return update;
     } else {
