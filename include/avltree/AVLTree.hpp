@@ -48,6 +48,8 @@ struct Node {
         } else if(direction < 0){
             return left;
         }
+
+        assert(false);
     }
 
     //Should only be called with lock on Node

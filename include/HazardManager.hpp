@@ -92,6 +92,7 @@ template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Pr
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     //If the node is null, we have nothing to do
     if(node){
+        //TODO Remove that test after debugging
         if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
             std::cout << node << std::endl;
 

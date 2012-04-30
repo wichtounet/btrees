@@ -143,24 +143,18 @@ void generate(const char* file_name, double alpha, int n, int num_values){
     int    i;                     // Loop counter
     int k,tmp;
 
-    int* histogram = (int *) malloc(sizeof(int)*n);
-    memset(histogram, 0, sizeof(int)*n);
-
-    int* universe = (int *) malloc(sizeof(int)*n);
-    memset(universe, 0, sizeof(int)*n);
+    int* histogram = static_cast<int*>(calloc(n, sizeof(int)));
+    int* universe = static_cast<int*>(calloc(n, sizeof(int)));
 
     //calculate powers
-    powers = (double *) malloc(sizeof(double)*n);
-    inverse_powers = (double *) malloc(sizeof(double)*n);
-    c_powers = (double *) malloc(sizeof(double)*n);
+    powers = static_cast<double*>(malloc(sizeof(double)*n));
+    inverse_powers = static_cast<double*>(malloc(sizeof(double)*n));
+    c_powers = static_cast<double*>(malloc(sizeof(double)*n));
 
+    //Setup initial values
     for (i = 0; i < n; i++){
         powers[i]=pow((double) i, alpha);
         inverse_powers[i]=1.0/powers[i];
-    }
-
-    // Set up initial identity permutation
-    for (i = 0; i < n; i++){
         universe[i] = i;
     }
 

@@ -17,7 +17,7 @@ struct Node {
     
     Node(){
         //Fill the array with null pointers
-        next = (Node**) calloc(MAX_LEVEL + 1, sizeof(Node *));
+        next = static_cast<Node**>(calloc(MAX_LEVEL + 1, sizeof(Node *)));
     }
 
     ~Node(){

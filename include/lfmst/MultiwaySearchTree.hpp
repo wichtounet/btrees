@@ -241,7 +241,7 @@ Keys* MultiwaySearchTree<T, Threads>::newKeys(int length){
         free(keys->elements);
     }
 
-    keys->elements = (Key*) calloc(length, sizeof(Key)); 
+    keys->elements = static_cast<Key*>(calloc(length, sizeof(Key))); 
 
     return keys;
 }
@@ -261,7 +261,7 @@ Children* MultiwaySearchTree<T, Threads>::newChildren(int length){
         free(children->elements);
     }
 
-    children->elements = (Node**) calloc(length, sizeof(Node*));
+    children->elements = static_cast<Node**>(calloc(length, sizeof(Node*)));
 
     return children;
 }
@@ -408,7 +408,7 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
         }
         */
 
-        Search** results = (Search**) calloc(height + 1, sizeof(Search*));
+        Search** results = static_cast<Search**>(calloc(height + 1, sizeof(Search*)));
         traverseNonLeaf(key, height, results);
 
         bool inserted = beginInsertOneLevel(key, results);
