@@ -31,6 +31,9 @@ class HazardManager {
         void release(unsigned int i);
         void releaseAll();
 
+        std::list<Node*>& direct_free(unsigned int t);
+        std::list<Node*>& direct_local(unsigned int t);
+
     private:
         std::array<std::array<Node*, Size>, Threads> Pointers;
         std::array<std::list<Node*>, Threads> LocalQueues;
@@ -73,6 +76,16 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
             FreeQueues.at(tid).pop_front();
         }
     }
+}
+        
+template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
+std::list<Node*>& HazardManager<Node, Threads, Size, Prefill>::direct_free(unsigned int t){
+    return FreeQueues.at(t);
+}
+        
+template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
+std::list<Node*>& HazardManager<Node, Threads, Size, Prefill>::direct_local(unsigned int t){
+    return LocalQueues.at(t);
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>

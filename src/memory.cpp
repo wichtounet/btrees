@@ -119,6 +119,8 @@ void test_memory_consumption(){
 
     memory_init();
 
+    thread_num = 0;
+
     std::vector<unsigned int> little_sizes = {1000, 10000, 100000};
     std::vector<unsigned int> big_sizes = {1000000, 10000000};
         
@@ -129,7 +131,7 @@ void test_memory_consumption(){
     for(auto size : little_sizes){
         memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
         memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        //memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+        memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
         memory<avltree::AVLTree<int, 32>>("avltree", size, results);
         memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
     }
@@ -142,7 +144,7 @@ void test_memory_consumption(){
     for(auto size : little_sizes){
         memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
         memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        //memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+        memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
         memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
         memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
     }
@@ -155,7 +157,7 @@ void test_memory_consumption(){
     for(auto size : big_sizes){
         memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
         memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        //memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+        memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
         memory<avltree::AVLTree<int, 32>>("avltree", size, results);
         memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
     }
@@ -168,7 +170,7 @@ void test_memory_consumption(){
     for(auto size : big_sizes){
         memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
         memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        //memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+        memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
         memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
         memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
     }

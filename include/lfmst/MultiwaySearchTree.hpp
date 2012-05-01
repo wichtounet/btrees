@@ -123,9 +123,7 @@ class MultiwaySearchTree {
         HazardManager<Children, Threads,    4 + MAX> nodeChildren;
         HazardManager<Search, Threads,      1> searches;
 
-        std::array<std::unordered_set<Node*>, Threads> trash;
-
-        void deep_release(Node* node);
+        std::array<std::vector<Node*>, Threads> trash;
 
         HeadNode* newHeadNode(Node* node, int height);
         Search* newSearch(Node* node, Contents* contents, int index);
@@ -298,57 +296,112 @@ MultiwaySearchTree<T, Threads>::MultiwaySearchTree(){
     randomSeed = distribution(engine) | 0x0100;
 }
 
-template<typename T, int Threads>
-void MultiwaySearchTree<T, Threads>::deep_release(Node* node){
-   if(node){
-        if(node->contents){
-            if(node->contents->items){
-                nodeKeys.safe_release_node(node->contents->items);
-            }
-            
-            if(node->contents->children){
-                for(int i = 0; i < node->contents->children->length; ++i){
-                    deep_release((*node->contents->children)[i]);
-                }
-
-                nodeChildren.safe_release_node(node->contents->children);
-            }
-
-            nodeContents.safe_release_node(node->contents);
-        }
-
-        nodes.safe_release_node(node);
-   }
+template<typename Node>
+inline void transfer(std::list<Node*>& source, std::unordered_set<Node*>& target){
+    for(auto j : source){
+        target.insert(j);
+    }
+    source.clear();
 }
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
-    //Reduction into one set
-    std::unordered_set<Node*> global_thrash;
+    std::unordered_set<Node*> set_nodes;
+    std::unordered_set<Keys*> set_keys;
+    std::unordered_set<Contents*> set_contents;
+    std::unordered_set<Children*> set_children;
+    
+    //Get the trashed nodes
     for(unsigned int i = 0; i < Threads; ++i){
         auto it = trash[i].begin();
         auto end = trash[i].end();
 
         while(it != end){
-            global_thrash.insert(*it);
+            set_nodes.insert(*it);
 
             ++it;
         }
     }
-    
-    //Delete all the collected references
-    auto it = global_thrash.begin();
-    auto end = global_thrash.end();
-
-    while(it != end){
-        deep_release(*it);
-
-        ++it;
-    }
-
-    deep_release(root->node);
 
     roots.releaseNode(root);
+    
+    std::vector<Node*> stack;
+    stack.push_back(root->node);
+
+    while(stack.size() > 0){
+        Node* n = stack.back();
+        stack.pop_back();
+
+        if(n->contents){
+            if(n->contents->items){
+                set_keys.insert(n->contents->items);
+            }
+
+            if(n->contents->children){
+                for(int i = 0; i < n->contents->children->length; ++i){
+                    stack.push_back((*n->contents->children)[i]);
+                }
+
+                set_children.insert(n->contents->children);
+            }
+
+            set_contents.insert(n->contents);
+
+            n->contents = nullptr;
+        }
+
+        set_nodes.insert(n);
+    }
+
+    for(unsigned int i = 0; i < Threads; ++i){
+        transfer(nodes.direct_free(i), set_nodes);
+        transfer(nodes.direct_local(i), set_nodes);
+        
+        transfer(nodeContents.direct_free(i), set_contents);
+        transfer(nodeContents.direct_local(i), set_contents);
+        
+        transfer(nodeKeys.direct_free(i), set_keys);
+        transfer(nodeKeys.direct_local(i), set_keys);
+        
+        transfer(nodeChildren.direct_free(i), set_children);
+        transfer(nodeChildren.direct_local(i), set_children);
+    }
+
+    auto nodes_it = set_nodes.begin();
+    auto nodes_end = set_nodes.end();
+
+    while(nodes_it != nodes_end){
+        nodes.releaseNode(*nodes_it);
+
+        ++nodes_it;
+    }
+    
+    auto keys_it = set_keys.begin();
+    auto keys_end = set_keys.end();
+    
+    while(keys_it != keys_end){
+        nodeKeys.releaseNode(*keys_it);
+
+        ++keys_it;
+    }
+
+    auto contents_it = set_contents.begin();
+    auto contents_end = set_contents.end();
+
+    while(contents_it != contents_end){
+        nodeContents.releaseNode(*contents_it);
+
+        ++contents_it;
+    }
+    
+    auto children_it = set_children.begin();
+    auto children_end = set_children.end();
+
+    while(children_it != children_end){
+        nodeChildren.releaseNode(*children_it);
+
+        ++children_it;
+    }
 }
 
 template<typename T, int Threads>
@@ -918,7 +971,7 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
         if(length == 0){
             //It is a good idea to release contents->link afterward
             node = contents->link;
-            trash[thread_num].insert(node);
+            trash[thread_num].push_back(node);
         } else if(leftBarrier.flag == KeyFlag::EMPTY || compare((*contents->items)[length - 1], leftBarrier) > 0){
             nodeContents.release(2);
             nodeKeys.release(2);
