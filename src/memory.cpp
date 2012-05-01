@@ -1,23 +1,70 @@
 #include <malloc.h>
 #include <pthread.h>
+#include <unordered_map>
 
-static void* (*malloc_call)(size_t, const void*);
+static void* (*old_malloc_hook)(size_t, const void*);
+static void (*old_free_hook)(void*, const void*);
 
 static unsigned long allocated = 0;
 
+static bool end = false;
+static std::unordered_map<void*, size_t> sizes;
+
+static void* rqmalloc_hook(size_t size, const void* source);
+static void rqfree_hook(void* memory, const void* source);
+
 static void* rqmalloc_hook(size_t size, const void* /* source*/){
     void* result;
-    __malloc_hook = malloc_call;
+    
+    __malloc_hook = old_malloc_hook;
+    __free_hook = old_free_hook;
+    
     result = malloc(size);
-    allocated += size;
-    //malloc_call = __malloc_hook;
-    __malloc_hook=rqmalloc_hook;
+
+    old_malloc_hook = __malloc_hook;
+    old_free_hook = __free_hook;
+
+    if(!end){
+        sizes[result] = size;
+        allocated += size;
+    }
+
+    __malloc_hook = rqmalloc_hook;
+    __free_hook = rqfree_hook;
+
     return result;
 }
 
-void memory_init(){
-    malloc_call = __malloc_hook;
+static void rqfree_hook(void* memory, const void* /* source */){
+    __malloc_hook = old_malloc_hook;
+    __free_hook = old_free_hook;
+    
+    free(memory);
+
+    old_malloc_hook = __malloc_hook;
+    old_free_hook = __free_hook;
+    
+    if(!end){
+        allocated -= sizes[memory];
+    }
+
     __malloc_hook = rqmalloc_hook;
+    __free_hook = rqfree_hook;
+}
+
+void memory_init(){
+    old_malloc_hook = __malloc_hook;
+    old_free_hook = __free_hook;
+    __malloc_hook = rqmalloc_hook;
+    __free_hook = rqfree_hook;
+    /*
+    malloc_call     = __malloc_hook;
+    __malloc_hook   = rqmalloc_hook;
+
+    free_call       = __free_hook;
+    __free_hook     = rqfree_hook;
+
+    sizes.clear();*/
 }
 
 #include <string>
@@ -150,6 +197,8 @@ void test_memory_consumption(){
     }
 
     results.finish();
+
+    return;
     
     results.start("memory-big");
     results.set_max(2);
@@ -178,3 +227,10 @@ void test_memory_consumption(){
     results.finish();
 }
 
+int main(){
+    test_memory_consumption();
+
+    end = true;
+
+    return 0;
+}

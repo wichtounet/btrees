@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include "memory.hpp"
 #include "test.hpp"
 #include "bench.hpp"
 
@@ -17,12 +16,9 @@ int main(int argc, const char* argv[]) {
             bench();
         } else if(arg == "-test"){
             test();
-        } else if(arg == "-memory"){
-            test_memory_consumption();
         } else if(arg == "-all"){
             test();
             bench();
-            test_memory_consumption();
         } else {
             std::cout << "Unrecognized option " << arg << std::endl;
         }
