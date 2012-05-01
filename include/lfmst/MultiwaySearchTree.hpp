@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <algorithm>
+#include <array>
+#include <unordered_set>
 
 #include "hash.hpp"
 #include "Utils.hpp"
@@ -120,6 +122,8 @@ class MultiwaySearchTree {
         HazardManager<Keys, Threads,        4 + MAX> nodeKeys;
         HazardManager<Children, Threads,    4 + MAX> nodeChildren;
         HazardManager<Search, Threads,      1> searches;
+
+        std::array<std::unordered_set<Node*>, Threads> trash;
 
         void deep_release(Node* node);
 
@@ -319,6 +323,29 @@ void MultiwaySearchTree<T, Threads>::deep_release(Node* node){
 
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
+    //Reduction into one set
+    std::unordered_set<Node*> global_thrash;
+    for(unsigned int i = 0; i < Threads; ++i){
+        auto it = trash[i].begin();
+        auto end = trash[i].end();
+
+        while(it != end){
+            global_thrash.insert(*it);
+
+            ++it;
+        }
+    }
+    
+    //Delete all the collected references
+    auto it = global_thrash.begin();
+    auto end = global_thrash.end();
+
+    while(it != end){
+        deep_release(*it);
+
+        ++it;
+    }
+
     deep_release(root->node);
 
     roots.releaseNode(root);
@@ -698,8 +725,6 @@ Contents* MultiwaySearchTree<T, Threads>::cleanLink(Node* node, Contents* conten
             nodeKeys.release(1);
             nodeChildren.release(1);
 
-            //It is not a good place to release the old link
-
             return update;
         } else {
             nodeContents.releaseNode(update);
@@ -743,7 +768,7 @@ void MultiwaySearchTree<T, Threads>::cleanNode(Key key, Node* node, Contents* co
                 nodeKeys.release(1);
                 nodeChildren.release(1);
 
-                //Perhaps node->items[0] should be released there
+                //Note : It is not interesting to remove contents[0] here
 
                 return;
             }
@@ -838,6 +863,7 @@ bool MultiwaySearchTree<T, Threads>::cleanNode2(Node* node, Contents* contents, 
         return true;
     }
 
+    //Note It is not a good place to release childNode1 and childNode2
     return shiftChildren(node, contents, adjustedChild1, adjustedChild2);
 }
 
@@ -890,7 +916,9 @@ Node* MultiwaySearchTree<T, Threads>::pushRight(Node* node, Key leftBarrier){
         int length = contents->items->length;
 
         if(length == 0){
+            //It is a good idea to release contents->link afterward
             node = contents->link;
+            trash[thread_num].insert(node);
         } else if(leftBarrier.flag == KeyFlag::EMPTY || compare((*contents->items)[length - 1], leftBarrier) > 0){
             nodeContents.release(2);
             nodeKeys.release(2);
@@ -1175,7 +1203,6 @@ bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* conte
     nodeChildren.publish(siblingContents->children, 2);
 
     Node* nephew = nullptr;
-
     if(siblingContents->children->length == 0){
         nodeContents.release(2);
         nodeKeys.release(2);
@@ -1214,6 +1241,9 @@ bool MultiwaySearchTree<T, Threads>::attemptSlideKey(Node* node, Contents* conte
     if(success){
         deleteSlidedKey(node, contents, kkey);
     }
+
+    //Note: oldNephew cannot be released here
+    //Note: oldLink  cannot be released here
     
     nodeContents.release(2);
     nodeKeys.release(2);

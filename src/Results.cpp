@@ -5,6 +5,8 @@
 
 void Results::start(const std::string& name){
     values.clear();
+    current.clear();
+
     this->name = name;
     this->max = -1;
 }
