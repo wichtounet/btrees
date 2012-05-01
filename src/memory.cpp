@@ -74,7 +74,6 @@ void memory_init(){
 #include <algorithm>
 #include <set>
 
-#include "memory.hpp"
 #include "Results.hpp"
 
 //Include all the trees implementations
@@ -161,74 +160,81 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     delete alloc_tree;
 }
 
-void test_memory_consumption(){
-    std::cout << "Test the memory consumption of each version" << std::endl;
-
+int main(int argc, const char* argv[]) {
     memory_init();
-
-    thread_num = 0;
 
     std::vector<unsigned int> little_sizes = {1000, 10000, 100000};
     std::vector<unsigned int> big_sizes = {1000000, 10000000};
-        
-    Results results;
-    results.start("memory-little");
-    results.set_max(3);
 
-    for(auto size : little_sizes){
-        memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
-        memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
-        memory<avltree::AVLTree<int, 32>>("avltree", size, results);
-        memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
+    thread_num = 0;
+
+    if(argc == 1){
+        std::cout << "low or high argument needed" << std::endl;
+    } else {
+        std::string arg = argv[1];
+
+        if(arg == "low"){
+            std::cout << "Test the normal memory consumption of each version" << std::endl;
+
+            Results results;
+            results.start("memory-little");
+            results.set_max(3);
+
+            for(auto size : little_sizes){
+                memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
+                memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
+                memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+                memory<avltree::AVLTree<int, 32>>("avltree", size, results);
+                memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
+            }
+
+            results.finish();
+
+            results.start("memory-big");
+            results.set_max(2);
+
+            for(auto size : big_sizes){
+                memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
+                memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
+                memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+                memory<avltree::AVLTree<int, 32>>("avltree", size, results);
+                memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
+            }
+
+            results.finish();
+        } else if(arg == "high"){
+            std::cout << "Test the high memory consumption of each version" << std::endl;
+
+            Results results;
+            results.start("memory-little-high");
+            results.set_max(3);
+
+            for(auto size : little_sizes){
+                memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
+                memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
+                memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+                memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
+                memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
+            }
+
+            results.finish();
+
+            results.start("memory-big-high");
+            results.set_max(2);
+
+            for(auto size : big_sizes){
+                memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
+                memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
+                memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
+                memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
+                memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
+            }
+
+            results.finish();
+        } else {
+            std::cout << "incorrect argument" << std::endl;
+        }
     }
-
-    results.finish();
-    
-    results.start("memory-little-high");
-    results.set_max(3);
-
-    for(auto size : little_sizes){
-        memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
-        memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
-        memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
-        memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
-    }
-
-    results.finish();
-
-    return;
-    
-    results.start("memory-big");
-    results.set_max(2);
-
-    for(auto size : big_sizes){
-        memory<skiplist::SkipList<int, 32>>("skiplist", size, results);
-        memory<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        memory<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
-        memory<avltree::AVLTree<int, 32>>("avltree", size, results);
-        memory<cbtree::CBTree<int, 32>>("cbtree", size, results);
-    }
-
-    results.finish();
-    
-    results.start("memory-big-high");
-    results.set_max(2);
-
-    for(auto size : big_sizes){
-        memory_high<skiplist::SkipList<int, 32>>("skiplist", size, results);
-        memory_high<nbbst::NBBST<int, 32>>("nbbst", size, results);
-        memory_high<lfmst::MultiwaySearchTree<int, 32>>("lfmst", size, results);
-        memory_high<avltree::AVLTree<int, 32>>("avltree", size, results);
-        memory_high<cbtree::CBTree<int, 32>>("cbtree", size, results);
-    }
-
-    results.finish();
-}
-
-int main(){
-    test_memory_consumption();
 
     end = true;
 
