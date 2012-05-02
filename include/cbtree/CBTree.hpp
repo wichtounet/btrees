@@ -18,55 +18,48 @@ static const char Left = 'L';
 static const char Right = 'R';
 
 /* Version stuff */
-static const int OVLBitsBeforeOverflow = 8;
+static const long OVLBitsBeforeOverflow = 8;
 static const long UnlinkedOVL = 1L;
 static const long OVLGrowLockMask = 2L;
 static const long OVLShrinkLockMask = 4L;
-static const int OVLGrowCountShift = 3;
+static const long OVLGrowCountShift = 3L;
 static const long OVLGrowCountMask = ((1L << OVLBitsBeforeOverflow) - 1) << OVLGrowCountShift;
 static const long OVLShrinkCountShift = OVLGrowCountShift + OVLBitsBeforeOverflow;
 
-static bool isChanging( long ovl) {
+static inline bool isChanging( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask)) != 0;
 }
 
-static bool isUnlinked( long ovl) {
+static inline bool isUnlinked( long ovl) {
     return ovl == UnlinkedOVL;
 }
 
-static bool isShrinkingOrUnlinked( long ovl) {
+static inline bool isShrinkingOrUnlinked( long ovl) {
     return (ovl & (OVLShrinkLockMask | UnlinkedOVL)) != 0;
 }
 
-static bool isChangingOrUnlinked( long ovl) {
+static inline bool isChangingOrUnlinked( long ovl) {
     return (ovl & (OVLShrinkLockMask | OVLGrowLockMask | UnlinkedOVL)) != 0;
 }
 
-static bool hasShrunkOrUnlinked( long orig,  long current) {
+static inline bool hasShrunkOrUnlinked( long orig,  long current) {
     return ((orig ^ current) & ~(OVLGrowLockMask | OVLGrowCountMask)) != 0;
 }
 
-static long beginGrow( long ovl) {
-    assert(!isChangingOrUnlinked(ovl));
+static inline long beginGrow( long ovl) {
     return ovl | OVLGrowLockMask;
 }
 
-static long endGrow( long ovl) {
-    assert(!isChangingOrUnlinked(ovl));
-
+static inline long endGrow( long ovl) {
     // Overflows will just go into the shrink lock count, which is fine.
     return ovl + (1L << OVLGrowCountShift);
 }
 
-static long beginShrink( long ovl) {
-    assert(!isChangingOrUnlinked(ovl));
-
+static inline long beginShrink( long ovl) {
     return ovl | OVLShrinkLockMask;
 }
 
-static long endShrink( long ovl) {
-    assert(!isChangingOrUnlinked(ovl));
-
+static inline long endShrink( long ovl) {
     // increment overflows directly
     return ovl + (1L << OVLShrinkCountShift);
 }
@@ -112,8 +105,6 @@ struct Node {
 
         lock.lock();
         lock.unlock();
-
-        assert(changeOVL != ovl);
     }
 };
 
@@ -188,7 +179,7 @@ CBTree<T, Threads>::CBTree(){
         Current[i] = 0;
     }
 
-    NEW_LOG_CALCULATION_THRESHOLD = std::log(2 * Threads * Threads);
+    NEW_LOG_CALCULATION_THRESHOLD = 15;//std::log(2 * Threads * Threads);
 }
 
 template<typename T, int Threads>
@@ -337,7 +328,7 @@ bool CBTree<T, Threads>::add(T value){
         int log_size = logSize.load();
 
         if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
-            int new_size = ++size;
+            int new_size = (size += 1);
             int next_log_size = log_size + 1;
             if(new_size >= (1 << next_log_size)){
                 logSize.compare_exchange_strong(log_size, next_log_size);
@@ -383,7 +374,7 @@ bool CBTree<T, Threads>::remove(T value){
                     if(vo == FOUND){
                         int log_size = logSize.load();
                         if(log_size < NEW_LOG_CALCULATION_THRESHOLD){
-                            int new_size = --size;
+                            int new_size = (size -= 1);
                             if(new_size < (1 << log_size)){
                                 logSize.compare_exchange_strong(log_size, log_size - 1);
                             }
@@ -453,8 +444,6 @@ bool CBTree<T, Threads>::attemptInsertIntoEmpty(int key){
 
 template<typename T, int Threads>
 Result CBTree<T, Threads>::attemptUpdate(int key, Node* parent, Node* node, long nodeOVL, int height){
-    assert(nodeOVL != UnlinkedOVL);
-
     int cmp = key - node->key;
     if(cmp == 0){
         int log_size = logSize.load();
@@ -590,18 +579,14 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
             return RETRY;
         }
 
+        bool prev = node->value;
+
         if(!newValue && (!node->left || !node->right)){
             releaseAll();
             return RETRY;
         }
 
-        bool prev = node->value;;
         node->value = newValue;
-
-        if (!newValue && (!node->left || !node->right)) {
-            releaseAll();
-            return RETRY;
-        }
         
         releaseAll();
 
@@ -611,17 +596,12 @@ Result CBTree<T, Threads>::attemptNodeUpdate(bool newValue, Node* parent, Node* 
 
 template<typename T, int Threads>
 bool CBTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
-    assert(!isUnlinked(parent->changeOVL));
-
     Node* parentL = parent->left;
     Node* parentR = parent->right;
 
     if(parentL != node && parentR != node){
         return false;
     }
-
-    assert(!isUnlinked(node->changeOVL));
-    assert(parent == node->parent);
 
     Node* left = node->left;
     Node* right = node->right;
@@ -651,8 +631,6 @@ bool CBTree<T, Threads>::attemptUnlink_nl(Node* parent, Node* node){
 
 template<typename T, int Threads>
 Result CBTree<T, Threads>::attemptRemove(int key, Node* parent, Node* node, long nodeOVL, int height){
-    assert(nodeOVL != UnlinkedOVL);
-
     int cmp = key - node->key;
     if(cmp == 0){
         return attemptNodeUpdate(false, parent, node);

@@ -210,7 +210,7 @@ void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, fil
     skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
     skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
     skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
-    //skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
+    skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
     skewed_bench<cbtree::CBTree<int, 8>, 8>("cbtree", range, add, remove, distribution, results);
 }
 
@@ -748,8 +748,8 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    random_bench();
-    //skewed_bench();
+    //random_bench();
+    skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
