@@ -142,11 +142,13 @@ template<typename Tree, unsigned int Threads>
 void skewed_bench(const std::string& name, unsigned int range, unsigned int add, unsigned int remove, file_distribution<>& distribution, Results& results){
     Tree tree;
 
+    std::vector<int> elements[Threads];
+
     Clock::time_point t0 = Clock::now();
     
     std::vector<std::thread> pool;
     for(unsigned int tid = 0; tid < Threads; ++tid){
-        pool.push_back(std::thread([&tree, &distribution, range, add, remove, tid](){
+        pool.push_back(std::thread([&tree, &elements, &distribution, range, add, remove, tid](){
             thread_num = tid;
 
             std::mt19937_64 engine(time(0) + tid);
@@ -155,7 +157,10 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
             auto operationGenerator = std::bind(operationDistribution, engine);
             
             for(int i = 0; i < OPERATIONS; ++i){
-                tree.add(distribution(engine));
+                auto value = distribution(engine);
+                if(tree.add(value)){
+                    elements[thread_num].push_back(value);
+                }
             }
 
             for(int i = 0; i < OPERATIONS; ++i){
@@ -163,7 +168,9 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
                 unsigned int op = operationGenerator();
 
                 if(op < add){
-                    tree.add(value);
+                    if(tree.add(value)){
+                        elements[thread_num].push_back(value);
+                    }
                 } else if(op < (add + remove)){
                     tree.remove(value);
                 } else {
@@ -183,7 +190,18 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
     std::cout << name << " througput with " << Threads << " threads = " << throughput << " operations / ms" << std::endl;
     results.add_result(name, throughput);
 
-    //TODO Empty the tree
+    pool.clear();
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        pool.push_back(std::thread([&tree, &elements, tid](){
+            thread_num = tid;
+
+            for(auto i : elements[thread_num]){
+                tree.remove(i);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
 }
 
 void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, file_distribution<>& distribution, Results& results){
