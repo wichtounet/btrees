@@ -304,6 +304,18 @@ inline void transfer(std::list<Node*>& source, std::unordered_set<Node*>& target
     source.clear();
 }
 
+template<typename HP, typename Node>
+inline void release_all(std::unordered_set<Node*>& nodes, HP& hazard){
+    auto nodes_it = nodes.begin();
+    auto nodes_end = nodes.end();
+
+    while(nodes_it != nodes_end){
+        hazard.releaseNode(*nodes_it);
+
+        ++nodes_it;
+    }
+}
+
 template<typename T, int Threads>
 MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
     std::unordered_set<Node*> set_nodes;
@@ -367,41 +379,10 @@ MultiwaySearchTree<T, Threads>::~MultiwaySearchTree(){
         transfer(nodeChildren.direct_local(i), set_children);
     }
 
-    auto nodes_it = set_nodes.begin();
-    auto nodes_end = set_nodes.end();
-
-    while(nodes_it != nodes_end){
-        nodes.releaseNode(*nodes_it);
-
-        ++nodes_it;
-    }
-    
-    auto keys_it = set_keys.begin();
-    auto keys_end = set_keys.end();
-    
-    while(keys_it != keys_end){
-        nodeKeys.releaseNode(*keys_it);
-
-        ++keys_it;
-    }
-
-    auto contents_it = set_contents.begin();
-    auto contents_end = set_contents.end();
-
-    while(contents_it != contents_end){
-        nodeContents.releaseNode(*contents_it);
-
-        ++contents_it;
-    }
-    
-    auto children_it = set_children.begin();
-    auto children_end = set_children.end();
-
-    while(children_it != children_end){
-        nodeChildren.releaseNode(*children_it);
-
-        ++children_it;
-    }
+    release_all(set_nodes, nodes);
+    release_all(set_keys, nodeKeys);
+    release_all(set_contents, nodeContents);
+    release_all(set_children, nodeChildren);
 }
 
 template<typename T, int Threads>
