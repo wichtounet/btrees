@@ -50,12 +50,20 @@ template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Pr
 HazardManager<Node, Threads, Size, Prefill>::HazardManager(){
     for(unsigned int tid = 0; tid < Threads; ++tid){
         for(unsigned int j = 0; j < Size; ++j){
+#ifdef DEBUG
             Pointers.at(tid).at(j) = nullptr;
+#else
+            Pointers[tid][j] = nullptr;
+#endif
         }
 
         if(Prefill > 0){
             for(unsigned int i = 0; i < Prefill; i++){
+#ifdef DEBUG
                 FreeQueues.at(tid).push_back(new Node());
+#else
+                FreeQueues[tid].push_back(new Node());
+#endif
             }
         } 
     }
@@ -66,6 +74,7 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
     for(unsigned int tid = 0; tid < Threads; ++tid){
         //No need to delete Hazard Pointers because each thread need to release its published references
 
+#ifdef DEBUG
         while(!LocalQueues.at(tid).empty()){
             delete LocalQueues.at(tid).front();
             LocalQueues.at(tid).pop_front();
@@ -75,17 +84,36 @@ HazardManager<Node, Threads, Size, Prefill>::~HazardManager(){
             delete FreeQueues.at(tid).front();
             FreeQueues.at(tid).pop_front();
         }
+#else
+        while(!LocalQueues[tid].empty()){
+            delete LocalQueues[tid].front();
+            LocalQueues[tid].pop_front();
+        }
+        
+        while(!FreeQueues[tid].empty()){
+            delete FreeQueues[tid].front();
+            FreeQueues[tid].pop_front();
+        }
+#endif
     }
 }
         
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 std::list<Node*>& HazardManager<Node, Threads, Size, Prefill>::direct_free(unsigned int t){
+#ifdef DEBUG
     return FreeQueues.at(t);
+#else
+    return FreeQueues[t];
+#endif
 }
         
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 std::list<Node*>& HazardManager<Node, Threads, Size, Prefill>::direct_local(unsigned int t){
+#ifdef DEBUG
     return LocalQueues.at(t);
+#else
+    return LocalQueues[t];
+#endif
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
@@ -105,16 +133,18 @@ template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Pr
 void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     //If the node is null, we have nothing to do
     if(node){
- /*       //TODO Remove that test after debugging
+#ifdef DEBUG
         if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
             std::cout << node << std::endl;
-
-            //    assert(false);
             return;
-        }*/
+        }
 
         //Add the node to the localqueue
         LocalQueues.at(thread_num).push_back(node);
+#else
+        //Add the node to the localqueue
+        LocalQueues[thread_num].push_back(node);
+#endif
     }
 }
 
@@ -122,6 +152,7 @@ template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Pr
 Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
     int tid = thread_num;
 
+#ifdef DEBUG
     //First, try to get a free node from the free queue
     if(!FreeQueues.at(tid).empty()){
         Node* free = FreeQueues.at(tid).front();
@@ -151,6 +182,37 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
 
         return free;
     }
+#else
+    //First, try to get a free node from the free queue
+    if(!FreeQueues[tid].empty()){
+        Node* free = FreeQueues[tid].front();
+        FreeQueues[tid].pop_front();
+
+        return free;
+    }
+
+    //If there are enough local nodes, move then to the free queue
+    if(LocalQueues[tid].size() > (Size + 1) * Threads){
+        typename std::list<Node*>::iterator it = LocalQueues[tid].begin();
+        typename std::list<Node*>::iterator end = LocalQueues[tid].end();
+
+        while(it != end){
+            if(!isReferenced(*it)){
+                FreeQueues[tid].push_back(*it);
+
+                it = LocalQueues[tid].erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+        
+        Node* free = FreeQueues[tid].front();
+        FreeQueues[tid].pop_front();
+
+        return free;
+    }
+#endif
 
     //There was no way to get a free node, allocate a new one
     return new Node();
@@ -158,6 +220,7 @@ Node* HazardManager<Node, Threads, Size, Prefill>::getFreeNode(){
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 bool HazardManager<Node, Threads, Size, Prefill>::isReferenced(Node* node){
+#ifdef DEBUG
     for(unsigned int tid = 0; tid < Threads; ++tid){
         for(unsigned int i = 0; i < Size; ++i){
             if(Pointers.at(tid).at(i) == node){
@@ -165,25 +228,48 @@ bool HazardManager<Node, Threads, Size, Prefill>::isReferenced(Node* node){
             }
         }
     }
+#else
+    for(unsigned int tid = 0; tid < Threads; ++tid){
+        for(unsigned int i = 0; i < Size; ++i){
+            if(Pointers[tid][i] == node){
+                return true;
+            }
+        }
+    }
+#endif
 
     return false;
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::publish(Node* node, unsigned int i){
+#ifdef DEBUG
     Pointers.at(thread_num).at(i) = node;
+#else
+    Pointers[thread_num][i] = node;
+#endif
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::release(unsigned int i){
+#ifdef DEBUG
     Pointers.at(thread_num).at(i) = nullptr;
+#else
+    Pointers[thread_num][i] = nullptr;
+#endif
 }
 
 template<typename Node, unsigned int Threads, unsigned int Size, unsigned int Prefill>
 void HazardManager<Node, Threads, Size, Prefill>::releaseAll(){
+#ifdef DEBUG
     for(unsigned int i = 0; i < Size; ++i){
         Pointers.at(thread_num).at(i) = nullptr;
     }
+#else
+    for(unsigned int i = 0; i < Size; ++i){
+        Pointers[thread_num][i] = nullptr;
+    }
+#endif
 }
 
 #endif

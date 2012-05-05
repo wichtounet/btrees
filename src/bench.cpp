@@ -22,7 +22,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define REPEAT 1//2
+#define REPEAT 1
 #define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
@@ -123,6 +123,8 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     }
 
     results.finish();
+
+    std::cout << "bench is over" << std::endl;
 }
 
 void random_bench(unsigned int range){
@@ -133,9 +135,9 @@ void random_bench(unsigned int range){
 
 void random_bench(){
     random_bench(200);                                  //Key in {0, 200}
-    //random_bench(2000);                                 //Key in {0, 2000}
-    //random_bench(20000);                                //Key in {0, 20000}
-    //random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
+    random_bench(2000);                                 //Key in {0, 2000}
+    random_bench(20000);                                //Key in {0, 20000}
+    random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
 
 template<typename Tree, unsigned int Threads>
@@ -207,11 +209,13 @@ void skewed_bench(const std::string& name, unsigned int range, unsigned int add,
 void skewed_bench(unsigned int range, unsigned int add, unsigned int remove, file_distribution<>& distribution, Results& results){
     std::cout << "Skewed Bench with " << OPERATIONS << " operations/thread, range = " << range << ", " << add << "% add, " << remove << "% remove, " << (100 - add - remove) << "% contains" << std::endl;
 
-    skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
-    skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
-    skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
-    skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
-    skewed_bench<cbtree::CBTree<int, 8>, 8>("cbtree", range, add, remove, distribution, results);
+    for(int i = 0; i < REPEAT; ++i){
+        skewed_bench<skiplist::SkipList<int, 8>, 8>("skiplist", range, add, remove, distribution, results);
+        skewed_bench<nbbst::NBBST<int, 8>, 8>("nbbst", range, add, remove, distribution, results);
+        skewed_bench<avltree::AVLTree<int, 8>, 8>("avltree", range, add, remove, distribution, results);
+        skewed_bench<lfmst::MultiwaySearchTree<int, 8>, 8>("lfmst", range, add, remove, distribution, results);
+        skewed_bench<cbtree::CBTree<int, 8>, 8>("cbtree", range, add, remove, distribution, results);
+    }
 }
 
 void skewed_bench(unsigned int range){
@@ -256,11 +260,13 @@ void skewed_bench(unsigned int range){
     skewed_bench(range, 10, 0, distribution, results);
 
     results.finish();
+
+    std::cout << "bench is over" << std::endl;
 }
 
 void skewed_bench(){
-    skewed_bench(2000);
-    skewed_bench(20000);
+    //skewed_bench(2000);
+    //skewed_bench(20000);
     skewed_bench(200000);
     //skewed_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
 }
@@ -327,11 +333,13 @@ void seq_construction_bench(){
             SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
             SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
             SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-            //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
             SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
@@ -348,11 +356,13 @@ void seq_construction_bench(){
             SEQ_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
             //Too slow SEQ_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
             SEQ_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-            //SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQ_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
             SEQ_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -419,11 +429,13 @@ void random_construction_bench(){
             RANDOM_CONSTRUCTION(skiplist::SkipList, "skiplist", size);
             RANDOM_CONSTRUCTION(nbbst::NBBST, "nbbst", size);
             RANDOM_CONSTRUCTION(avltree::AVLTree, "avltree", size);
-            //RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
+            RANDOM_CONSTRUCTION(lfmst::MultiwaySearchTree, "lfmst", size);
             RANDOM_CONSTRUCTION(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -482,11 +494,13 @@ void seq_removal_bench(){
             SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
             SEQUENTIAL_REMOVAL(nbbst::NBBST, "nbbst", size);
             SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
-            //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
             SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
@@ -503,11 +517,13 @@ void seq_removal_bench(){
             SEQUENTIAL_REMOVAL(skiplist::SkipList, "skiplist", size);
             //Too slow SEQUENTIAL_REMOVAL(nbbst::NBBST, "NBBST", size);
             SEQUENTIAL_REMOVAL(avltree::AVLTree, "avltree", size);
-            //SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "Multiway Search Tree", size);
+            SEQUENTIAL_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
             SEQUENTIAL_REMOVAL(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -573,11 +589,13 @@ void random_removal_bench(){
             RANDOM_REMOVAL(skiplist::SkipList, "skiplist", size);
             RANDOM_REMOVAL(nbbst::NBBST, "nbbst", size);
             RANDOM_REMOVAL(avltree::AVLTree, "avltree", size);
-            //RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            RANDOM_REMOVAL(lfmst::MultiwaySearchTree, "lfmst", size);
             RANDOM_REMOVAL(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -669,11 +687,13 @@ void search_random_bench(){
             SEARCH_RANDOM(skiplist::SkipList, "skiplist", size);
             SEARCH_RANDOM(nbbst::NBBST, "nbbst", size);
             SEARCH_RANDOM(avltree::AVLTree, "avltree", size);
-            //SEARCH_RANDOM(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_RANDOM(lfmst::MultiwaySearchTree, "lfmst", size);
             SEARCH_RANDOM(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -715,11 +735,13 @@ void search_sequential_bench(){
             SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
             SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
             SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
-            //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
             SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 
     std::vector<int> sizes = {50000, 100000, 500000, 1000000, 5000000, 10000000};
@@ -736,11 +758,13 @@ void search_sequential_bench(){
             SEARCH_SEQUENTIAL(skiplist::SkipList, "skiplist", size);
             //The nbbst is far too slow SEARCH_SEQUENTIAL(nbbst::NBBST, "nbbst", size);
             SEARCH_SEQUENTIAL(avltree::AVLTree, "avltree", size);
-            //SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
+            SEARCH_SEQUENTIAL(lfmst::MultiwaySearchTree, "lfmst", size);
             SEARCH_SEQUENTIAL(cbtree::CBTree, "cbtree", size);
         }
 
         results.finish();
+
+        std::cout << "bench is over" << std::endl;
     }
 }
 
@@ -749,7 +773,7 @@ void bench(){
 
     //Launch the random benchmark
     //random_bench();
-    skewed_bench();
+    //skewed_bench();
 
     //Launch the construction benchmark
     //seq_construction_bench();
@@ -760,6 +784,6 @@ void bench(){
     //seq_removal_bench();
 
     //Launch the search benchmark
-    //search_random_bench();
-    //search_sequential_bench();
+    search_random_bench();
+    search_sequential_bench();
 }
