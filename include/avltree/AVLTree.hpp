@@ -627,7 +627,9 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
     if(hL - hR0 <= 1){
         return n;
     } else {
+        publish(nL->right);
         Node* nLR = nL->right;
+
         int hLL0 = height(nL->left);
         int hLR0 = height(nLR);
 
@@ -635,7 +637,9 @@ Node* AVLTree<T, Threads>::rebalanceToRight_nl(Node* nParent, Node* n, Node* nL,
             return rotateRight_nl(nParent, n, nL, hR0, hLL0, nLR, hLR0);
         } else {
             {
-                publish(nLR);
+                if(reinterpret_cast<long>(&nLR->lock) == 0x30){
+                    return n;
+                }
                 scoped_lock subLock(nLR->lock);
 
                 int hLR = nLR->height;

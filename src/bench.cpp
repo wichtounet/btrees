@@ -116,9 +116,9 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
 
     for(int i = 0; i < REPEAT; ++i){
      //   BENCH(skiplist::SkipList, "skiplist", range, add, remove);
-        BENCH(nbbst::NBBST, "nbbst", range, add, remove);
+     //   BENCH(nbbst::NBBST, "nbbst", range, add, remove);
      //   BENCH(avltree::AVLTree, "avltree", range, add, remove)
-     //   BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+        BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
      //   BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 

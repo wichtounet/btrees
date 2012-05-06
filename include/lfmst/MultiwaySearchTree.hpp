@@ -47,6 +47,10 @@ struct Keys {
     Key* elements;
     int length;
 
+    Keys() : elements(nullptr) {
+        //Nothing
+    }
+
     ~Keys(){
         if(elements){
             free(elements);
@@ -63,6 +67,10 @@ struct Keys {
 struct Children {
     Node** elements;
     int length;
+
+    Children() : elements(nullptr) {
+        //Nothing
+    }
     
     ~Children(){
         if(elements){

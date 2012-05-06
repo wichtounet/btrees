@@ -17,7 +17,7 @@
 #include "cbtree/CBTree.hpp"
 
 //Number of nodes for the tests (for up to 32 threads)
-#define N 10000         //A too big number can put nodes in swap
+#define N 1000000         //A too big number can put nodes in swap
 
 template<typename T>
 void testST(const std::string& name){
@@ -173,8 +173,8 @@ void test(){
     std::cout << "Tests the different versions" << std::endl;
 
     //TEST(skiplist::SkipList, "SkipList")
-    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
     //TEST(cbtree::CBTree, "Counter Based Tree");
 }

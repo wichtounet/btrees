@@ -3,7 +3,7 @@
 
 #include <cassert>
 
-#define DEBUG //Indicates that the at() function is used for array accesses
+//#define DEBUG //Indicates that the at() function is used for array accesses
 
 //Thread local id
 //Note: __thread is GCC specific
