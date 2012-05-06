@@ -3,6 +3,8 @@
 
 #include <cassert>
 
+#define DEBUG //Indicates that the at() function is used for array accesses
+
 //Thread local id
 //Note: __thread is GCC specific
 extern __thread unsigned int thread_num;
@@ -134,10 +136,10 @@ void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     //If the node is null, we have nothing to do
     if(node){
 #ifdef DEBUG
-        if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
+        /*if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
             std::cout << node << std::endl;
             return;
-        }
+        }*/
 
         //Add the node to the localqueue
         LocalQueues.at(thread_num).push_back(node);

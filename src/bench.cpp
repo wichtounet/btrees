@@ -22,7 +22,7 @@
 
 //For benchmark
 #define OPERATIONS 1000000
-#define REPEAT 1
+#define REPEAT 12
 #define SEARCH_BENCH_OPERATIONS 100000 //TODO Perhaps a bit few...
 
 //Chrono typedefs
@@ -115,11 +115,11 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     results.set_max(7);
 
     for(int i = 0; i < REPEAT; ++i){
-        BENCH(skiplist::SkipList, "skiplist", range, add, remove);
+     //   BENCH(skiplist::SkipList, "skiplist", range, add, remove);
         BENCH(nbbst::NBBST, "nbbst", range, add, remove);
-        BENCH(avltree::AVLTree, "avltree", range, add, remove)
-        BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
-        BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+     //   BENCH(avltree::AVLTree, "avltree", range, add, remove)
+     //   BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+     //   BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 
     results.finish();
@@ -129,15 +129,17 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
 
 void random_bench(unsigned int range){
     random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
-    random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
-    random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
+    //random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
+    //random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
 }
 
 void random_bench(){
-    random_bench(200);                                  //Key in {0, 200}
-    random_bench(2000);                                 //Key in {0, 2000}
-    random_bench(20000);                                //Key in {0, 20000}
-    random_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
+    //random_bench(200);                                  //Key in {0, 200}
+    //random_bench(2000);                                 //Key in {0, 2000}
+    //random_bench(20000);                                //Key in {0, 20000}
+    
+    //Note: The max number itself cannot be managed by some impl
+    random_bench(std::numeric_limits<int>::max() - 1);      //Key in {0, 2^32}
 }
 
 template<typename Tree, unsigned int Threads>
@@ -268,7 +270,8 @@ void skewed_bench(){
     //skewed_bench(2000);
     //skewed_bench(20000);
     skewed_bench(200000);
-    //skewed_bench(std::numeric_limits<int>::max());      //Key in {0, 2^32}
+
+    //TODO Add a test with a biggest range
 }
 
 unsigned long get_duration(Clock::time_point t0, Clock::time_point t1){
@@ -772,7 +775,7 @@ void bench(){
     std::cout << "Tests the performance of the different versions" << std::endl;
 
     //Launch the random benchmark
-    //random_bench();
+    random_bench();
     //skewed_bench();
 
     //Launch the construction benchmark
@@ -784,6 +787,6 @@ void bench(){
     //seq_removal_bench();
 
     //Launch the search benchmark
-    search_random_bench();
-    search_sequential_bench();
+    //search_random_bench();
+    //search_sequential_bench();
 }

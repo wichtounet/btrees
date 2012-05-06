@@ -28,7 +28,9 @@ void testST(const std::string& name){
     T tree;
     
     std::mt19937_64 engine(time(NULL));
-    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max());
+
+    //Note: The max() value cannot be handled by all data structure
+    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max() - 1);
     auto generator = std::bind(distribution, engine);
 
     //Try remove numbers in the empty tree
@@ -171,8 +173,8 @@ void test(){
     std::cout << "Tests the different versions" << std::endl;
 
     //TEST(skiplist::SkipList, "SkipList")
-    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
     //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
-    TEST(cbtree::CBTree, "Counter Based Tree");
+    //TEST(cbtree::CBTree, "Counter Based Tree");
 }
