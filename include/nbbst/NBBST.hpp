@@ -378,7 +378,7 @@ bool NBBST<T, Threads>::HelpDelete(Info* op){
         if(result){
             infos.releaseNode(Unmark(result));
         }
-        //nodes.releaseNode(op->l);
+        nodes.releaseNode(op->l);
         HelpMarked(Unmark(op));
         infos.releaseAll();
         return true;
