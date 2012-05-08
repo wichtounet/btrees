@@ -118,7 +118,7 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
      //   BENCH(skiplist::SkipList, "skiplist", range, add, remove);
      //   BENCH(nbbst::NBBST, "nbbst", range, add, remove);
      //   BENCH(avltree::AVLTree, "avltree", range, add, remove)
-        BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+     //   BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
      //   BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 
@@ -128,9 +128,9 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
 }
 
 void random_bench(unsigned int range){
-    random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
+    //random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
     //random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
-    //random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
+    random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
 }
 
 void random_bench(){

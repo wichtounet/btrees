@@ -41,13 +41,17 @@ struct Key {
         return !(*this == rhs);
     }
 };
+    
+static void verify(int index, int length){
+    assert(index < length);
+}
 
 //Hold a set of key include the length of the set
 struct Keys {
-    Key* elements;
     int length;
+    Key* elements;
 
-    Keys() : elements(nullptr) {
+    Keys() : length(0), elements(nullptr) {
         //Nothing
     }
 
@@ -58,17 +62,17 @@ struct Keys {
     }
 
     Key& operator[](int index){
-        assert(index < length);
+        verify(index, length);
         return elements[index];
     }
 };
 
 //Hold a set of key including the lenght of the set
 struct Children {
-    Node** elements;
     int length;
+    Node** elements;
 
-    Children() : elements(nullptr) {
+    Children() : length(0), elements(nullptr) {
         //Nothing
     }
     
@@ -79,7 +83,7 @@ struct Children {
     }
 
     Node*& operator[](int index){
-        assert(index < length);
+        verify(index, length);
         return elements[index];
     }
 };
@@ -173,7 +177,7 @@ class MultiwaySearchTree {
         Children* copyChildren(Children* rhs);
 
         //These methods can only be called from add
-        bool insertLeafLevel(Key key, Search* results);
+        char insertLeafLevel(Key key, Search* results, int length);
         bool beginInsertOneLevel(Key key, Search** results);
         Node* splitOneLevel(Key key, Search* result);
         void insertOneLevel(Key, Search** results, Node* right, int index);
@@ -456,7 +460,12 @@ bool MultiwaySearchTree<T, Threads>::add(T value){
     if(height == 0){
         Search* results = traverseLeaf(key, false);
         
-        bool inserted = insertLeafLevel(key, results);
+        char inserted = insertLeafLevel(key, results, results->contents->items->length);
+
+        //Retry
+        if(inserted == 2){
+            return add(value);
+        }
 
         //results is released in insertLeafLevel
     
@@ -1370,7 +1379,7 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
     Contents* contents = results->contents;
     nodeContents.publish(contents, 2);
 
-    if(!contents->link){
+    if(!contents->link || !contents->items || !contents->items){ //That's ugly
         nodeContents.release(2);
         nodes.release(1);
 
@@ -1557,17 +1566,20 @@ Node* MultiwaySearchTree<T, Threads>::splitOneLevel(Key key, Search* results){
 }
 
 template<typename T, int Threads>
-bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
+char MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results, int back){
+    int back_length = back;
+
     while(true){
         Node* node = results->node;
         nodes.publish(node, 0);
         
         Contents* contents = results->contents;
         nodeContents.publish(contents, 0);
-        nodeKeys.publish(contents->items, 0);
         nodeChildren.publish(contents->children, 0);
         
         Keys* keys = contents->items;
+        nodeKeys.publish(keys, 0);
+        
         int index = results->index;
 
         if(index >= 0){
@@ -1578,9 +1590,14 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
             
             searches.releaseNode(results);
 
-            return false; //TODO Check that            
+            return false;
         } else {
             index = -index - 1;
+
+            if(keys->length != back_length || index >= back_length){
+                return 2; //RETRY
+            }
+
             Keys* newKeys = generateNewItems(key, keys, index);
             
             Contents* update = newContents(newKeys, nullptr, contents->link);
@@ -1604,6 +1621,8 @@ bool MultiwaySearchTree<T, Threads>::insertLeafLevel(Key key, Search* results){
                 searches.releaseNode(results);
 
                 results = moveForward(node, key, index);
+
+                back_length = results->contents->items->length;
             }
 
             nodes.release(0);
@@ -1779,7 +1798,9 @@ template<typename T, int Threads>
 Children* MultiwaySearchTree<T, Threads>::copyChildren(Children* rhs){
     Children* copy = newChildren(rhs->length);
     
-    std::copy(rhs->elements, rhs->elements + rhs->length, copy->elements);
+    for(int i = 0; i < copy->length; ++i){
+        (*copy)[i] = (*rhs)[i];
+    }
 
     return copy;
 }
@@ -1789,8 +1810,13 @@ Keys* MultiwaySearchTree<T, Threads>::removeSingleItem(Keys* a, int index){
     int length = a->length;
     Keys* newArray = newKeys(length - 1);
 
-    std::copy(a->elements, a->elements + index, newArray->elements);
-    std::copy(a->elements + index + 1, a->elements + length, newArray->elements + index);
+    for(int i = 0; i < index; ++i){
+        (*newArray)[i] = (*a)[i];
+    }
+
+    for(int i = index + 1; i < length; ++i){
+        (*newArray)[i - 1] = (*a)[i];
+    }
 
     return newArray;
 }
@@ -1800,8 +1826,13 @@ Children* MultiwaySearchTree<T, Threads>::removeSingleItem(Children* a, int inde
     int length = a->length;
     Children* newArray = newChildren(length - 1);
 
-    std::copy(a->elements, a->elements + index, newArray->elements);
-    std::copy(a->elements + index + 1, a->elements + length, newArray->elements + index);
+    for(int i = 0; i < index; ++i){
+        (*newArray)[i] = (*a)[i];
+    }
+
+    for(int i = index + 1; i < length; ++i){
+        (*newArray)[i - 1] = (*a)[i];
+    }
 
     return newArray;
 }
@@ -1814,10 +1845,14 @@ Keys* MultiwaySearchTree<T, Threads>::generateNewItems(Key key, Keys* items, int
 
     int length = items->length;
     Keys* newItems = newKeys(length + 1);
-    
-    std::copy(items->elements, items->elements + index, newItems->elements);
-    std::copy(items->elements + index, items->elements + length, newItems->elements + index + 1);
+
+    for(int i = 0; i < index; ++i){
+        (*newItems)[i] = (*items)[i];
+    }
     (*newItems)[index] = key;
+    for(int i = index; i < length; i++){
+        (*newItems)[i + 1] = (*items)[i];
+    }
     
     return newItems;
 }
