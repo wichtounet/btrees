@@ -26,6 +26,8 @@ struct Info {
     Node* newInternal;      //Internal
     Node* l;                //Leaf
     Update pupdate;
+
+    Info() : gp(nullptr), p(nullptr), newInternal(nullptr), l(nullptr), pupdate(nullptr) {}
 };
 
 typedef Info* Update; 
@@ -49,6 +51,8 @@ struct Node {
     Update update;
     Node* left;
     Node* right;
+
+    Node() : internal(internal), key(key), update(nullptr), left(nullptr), right(nullptr) {};
 };
 
 struct SearchResult {
@@ -115,10 +119,6 @@ template<typename T, int Threads>
 Node* NBBST<T, Threads>::newInternal(int key){
     Node* node = nodes.getFreeNode();
 
-    node->update = nullptr;
-    node->left = nullptr;
-    node->right = nullptr;
-
     node->internal = true;
     node->key = key;
 
@@ -128,10 +128,6 @@ Node* NBBST<T, Threads>::newInternal(int key){
 template<typename T, int Threads>
 Node* NBBST<T, Threads>::newLeaf(int key){
     Node* node = nodes.getFreeNode();
-    
-    node->update = nullptr;
-    node->left = nullptr;
-    node->right = nullptr;
 
     node->internal = false;
     node->key = key;
@@ -143,9 +139,6 @@ template<typename T, int Threads>
 Info* NBBST<T, Threads>::newIInfo(Node* p, Node* newInternal, Node* l){
     Info* info = infos.getFreeNode();
 
-    info->gp = nullptr;
-    
-    info->pupdate = nullptr;
     info->p = p;
     info->newInternal = newInternal;
     info->l = l;
@@ -157,8 +150,6 @@ template<typename T, int Threads>
 Info* NBBST<T, Threads>::newDInfo(Node* gp, Node* p, Node* l, Update pupdate){
     Info* info = infos.getFreeNode();
 
-    info->newInternal = nullptr;
-    
     info->gp = gp;
     info->p = p;
     info->l = l;
@@ -287,57 +278,43 @@ bool NBBST<T, Threads>::remove(T value){
     while(true){
         Search(key, &search);
         nodes.publish(search.l, 0);
-        nodes.publish(search.p, 1);
-        nodes.publish(search.l, 2);
-        
-        infos.publish(search.gpupdate, 0);
-        infos.publish(search.pupdate, 1);
         
         if(search.l->key != key){
-            infos.releaseAll();
-            nodes.releaseAll();
             return false;
         }
 
         if(getState(search.gpupdate) != CLEAN){
+            nodes.releaseAll();
             Help(search.gpupdate);
-            infos.releaseAll();
-            nodes.releaseAll();
         } else if(getState(search.pupdate) != CLEAN){
-            Help(search.pupdate);
-            infos.releaseAll();
             nodes.releaseAll();
+            Help(search.pupdate);
         } else {
-            //Perhaps this test is not necessary
-            if(!search.gp){
-                infos.releaseAll();
-                nodes.releaseAll();
-                
-                //Retry
-                continue;
-            }
+            Info* op = newDInfo(search.gp, search.p, search.l, search.pupdate);
 
             infos.publish(search.gp->update, 0);
-            
-            Info* op = newDInfo(search.gp, search.p, search.l, search.pupdate);
+            infos.publish(search.gpupdate, 1);
 
             Update result = search.gp->update;
             if(CASPTR(&search.gp->update, search.gpupdate, Mark(op, DFLAG))){
-                infos.releaseNode(Unmark(result));
+                infos.releaseAll();
+
+                if(result){
+                    infos.releaseNode(Unmark(result));
+                }
 
                 if(HelpDelete(op)){
-                    infos.releaseAll();
                     nodes.releaseAll();
                     
                     return true;
                 }
             } else {
+                infos.releaseAll();
                 infos.releaseNode(op);
 
                 Help(result);
             }
             
-            infos.releaseAll();
             nodes.releaseAll();
         }
     }
@@ -379,16 +356,18 @@ bool NBBST<T, Threads>::HelpDelete(Info* op){
             infos.releaseNode(Unmark(result));
         }
         nodes.releaseNode(op->l);
-        HelpMarked(Unmark(op));
         infos.releaseAll();
+        HelpMarked(Unmark(op));
         return true;
     } 
     //if another has succeeded for us
     else if(getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op)){
-        HelpMarked(Unmark(op));
         infos.releaseAll();
+        HelpMarked(Unmark(op));
         return true;
     } else {
+        infos.releaseAll();
+
         Help(result);
 
         infos.publish(op->gp->update, 0);
