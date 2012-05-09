@@ -115,11 +115,11 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
     results.set_max(7);
 
     for(int i = 0; i < REPEAT; ++i){
-     //   BENCH(skiplist::SkipList, "skiplist", range, add, remove);
-     //   BENCH(nbbst::NBBST, "nbbst", range, add, remove);
-     //   BENCH(avltree::AVLTree, "avltree", range, add, remove)
-     //   BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
-     //   BENCH(cbtree::CBTree, "cbtree", range, add, remove);
+        //BENCH(skiplist::SkipList, "skiplist", range, add, remove);
+        BENCH(nbbst::NBBST, "nbbst", range, add, remove);
+        //BENCH(avltree::AVLTree, "avltree", range, add, remove)
+        //BENCH(lfmst::MultiwaySearchTree, "lfmst", range, add, remove);
+        //BENCH(cbtree::CBTree, "cbtree", range, add, remove);
     }
 
     results.finish();
@@ -128,15 +128,15 @@ void random_bench(unsigned int range, unsigned int add, unsigned int remove){
 }
 
 void random_bench(unsigned int range){
-    //random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
-    //random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
+    random_bench(range, 50, 50);   //50% put, 50% remove, 0% contains
+    random_bench(range, 20, 10);   //20% put, 10% remove, 70% contains
     random_bench(range, 9, 1);     //9% put, 1% remove, 90% contains
 }
 
 void random_bench(){
-    //random_bench(200);                                  //Key in {0, 200}
-    //random_bench(2000);                                 //Key in {0, 2000}
-    //random_bench(20000);                                //Key in {0, 20000}
+    random_bench(200);                                  //Key in {0, 200}
+    random_bench(2000);                                 //Key in {0, 2000}
+    random_bench(20000);                                //Key in {0, 20000}
     
     //Note: The max number itself cannot be managed by some impl
     random_bench(std::numeric_limits<int>::max() - 1);      //Key in {0, 2^32}
