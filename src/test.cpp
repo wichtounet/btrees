@@ -19,6 +19,9 @@
 //Number of nodes for the tests (for up to 32 threads)
 #define N 1000000         //A too big number can put nodes in swap
 
+#define DEBUG_ENABLED true
+#define DEBUG(message) if(DEBUG_ENABLED) std::cout << message << std::endl;
+
 template<typename T>
 void testST(const std::string& name){
     std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
@@ -33,36 +36,41 @@ void testST(const std::string& name){
     std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max() - 1);
     auto generator = std::bind(distribution, engine);
 
-    //Try remove numbers in the empty tree
+    DEBUG("Remove numbers in the empty tree");
+
     for(unsigned int i = 0; i < N; ++i){
         auto number = generator();
 
         assert(!tree.contains(number));
         assert(!tree.remove(number));
     }
+    
+    DEBUG("Insert sequential numbers");
 
-    //Insert sequential numbers
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
         assert(tree.add(i));
         assert(tree.contains(i));
     }
     
-    //Remove all the sequential numbers
+    DEBUG("Remove all the sequential numbers");
+    
     for(unsigned int i = 0; i < N; ++i){
         assert(tree.contains(i));
         assert(tree.remove(i));     
         assert(!tree.contains(i));
     }
     
-    //Verify again that all the numbers have been removed
+    DEBUG("Verify that the tree is empty");
+    
     for(unsigned int i = 0; i < N; ++i){
         assert(!tree.contains(i));
     }
 
     std::vector<int> rand;
+    
+    DEBUG("Insert N random numbers in the tree");
 
-    //Insert N random numbers in the tree
     for(unsigned int i = 0; i < N; ++i){
         int number = generator();
 
@@ -77,7 +85,8 @@ void testST(const std::string& name){
         }
     }
     
-    //Try remove when the number is not in the tree
+    DEBUG("Remove numbers not present in the tree");
+    
     for(unsigned int i = 0; i < N; ++i){
         int number = generator();
 
@@ -86,17 +95,17 @@ void testST(const std::string& name){
             assert(!tree.contains(number));
         }
     }
+    
+    DEBUG("Remove all the numbers in random order");
 
-    //Avoid removing in the same order
     random_shuffle(rand.begin(), rand.end());
-
-    //Verify that we can remove all the numbers from the tree
     for(int number : rand){
         assert(tree.contains(number));
         assert(tree.remove(number));
     }
     
-    //Try remove numbers in the empty tree
+    DEBUG("Remove numbers in the empty tree");
+    
     for(unsigned int i = 0; i < N; ++i){
         auto number = generator();
 
@@ -232,9 +241,9 @@ void testMT(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    //TEST(skiplist::SkipList, "SkipList")
+    TEST(skiplist::SkipList, "SkipList")
     //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
     //TEST(cbtree::CBTree, "Counter Based Tree");
 }
