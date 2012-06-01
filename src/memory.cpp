@@ -45,7 +45,7 @@ static void rqfree_hook(void* memory, const void* /* source */){
     old_free_hook = __free_hook;
     
     if(!end){
-        allocated -= sizes[memory];
+        //allocated -= sizes[memory];
     }
 
     __malloc_hook = rqmalloc_hook;
