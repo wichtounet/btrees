@@ -153,6 +153,66 @@ void testMT(){
     }
 
     for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+    pool.clear();
+
+    std::vector<unsigned int> fixed_points;
+    
+    std::mt19937_64 fixed_engine(time(NULL));
+    std::uniform_int_distribution<int> fixed_distribution(0, std::numeric_limits<int>::max() - 1);
+
+    //Add one fixed point per thread
+    while(fixed_points.size() < Threads){
+        auto value = fixed_distribution(fixed_engine);
+        
+        if(std::find(fixed_points.begin(), fixed_points.end(), value) == fixed_points.end()){
+            fixed_points.push_back(value);
+        }
+    }
+
+    for(unsigned int i = 0; i < Threads; ++i){
+        pool.push_back(std::thread([&tree, &fixed_points, i](){
+            thread_num = i;
+
+            assert(tree.add(fixed_points[i]));
+
+            std::vector<int> rand;
+            
+            std::mt19937_64 engine(time(0) + i);
+
+            //Note: The max() value cannot be handled by all data structure
+            std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max() - 1);
+            auto generator = std::bind(distribution, engine);
+
+            std::uniform_int_distribution<int> operationDistribution(0, 99);
+            auto operationGenerator = std::bind(operationDistribution, engine);
+
+            for(int n = 0; n < 10000; ++n){
+                auto value = generator();
+
+                if(operationGenerator() < 33){
+                    if(std::find(fixed_points.begin(), fixed_points.end(), value) == fixed_points.end()){
+                        tree.remove(value);
+                    }
+                } else {
+                    tree.add(value);
+
+                    if(std::find(fixed_points.begin(), fixed_points.end(), value) == fixed_points.end()){
+                        rand.push_back(value);
+                    }
+                }
+
+                assert(tree.contains(fixed_points[i]));
+            }
+
+            for(auto& value : rand){
+                tree.remove(value);
+            }
+        }));
+    }
+
+    for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
+
+    for_each(fixed_points.begin(), fixed_points.end(), [&tree](int value){tree.remove(value);});
     
     std::cout << "Test with " << Threads << " threads passed succesfully" << std::endl;
 }
