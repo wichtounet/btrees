@@ -4,6 +4,11 @@
 #include <iostream>
 #include <fstream>
 
+/*!
+ * \brief A sample random distribution that takes its value in a file. 
+ * All the values of the file will be loaded in memory at construction time of the distribution. 
+ * \param Type The type of value contained in the file. 
+ */
 template<class Type = int>
 class file_distribution {
     public:
@@ -19,7 +24,7 @@ class file_distribution {
             std::ifstream stream(file.c_str());
 
             if(!stream){
-                std::cout << "Unable to open the file " << file << std::endl;
+                throw "Unable to open the file " + file;
             }
 
             for(unsigned int i = 0; i < size; ++i){

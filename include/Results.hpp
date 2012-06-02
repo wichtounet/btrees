@@ -9,6 +9,9 @@ typedef std::map<std::string, std::vector<std::vector<unsigned long>>> results_m
 typedef std::map<std::string, std::vector<unsigned long>> stats_map;
 typedef std::map<std::string, int> currents_map;
 
+/*!
+ * Simple class to store the results of a bench and write them to a file. 
+ */
 class Results {
     public:
         void start(const std::string& name);

@@ -45,7 +45,7 @@ static void rqfree_hook(void* memory, const void* /* source */){
     old_free_hook = __free_hook;
     
     if(!end){
-        //allocated -= sizes[memory];
+        allocated -= sizes[memory];
     }
 
     __malloc_hook = rqmalloc_hook;
@@ -57,14 +57,6 @@ void memory_init(){
     old_free_hook = __free_hook;
     __malloc_hook = rqmalloc_hook;
     __free_hook = rqfree_hook;
-    /*
-    malloc_call     = __malloc_hook;
-    __malloc_hook   = rqmalloc_hook;
-
-    free_call       = __free_hook;
-    __free_hook     = rqfree_hook;
-
-    sizes.clear();*/
 }
 
 #include <string>
@@ -83,14 +75,21 @@ void memory_init(){
 #include "lfmst/MultiwaySearchTree.hpp"
 #include "cbtree/CBTree.hpp"
 
+/*!
+ * Launch the memory test on the given Tree. 
+ * \param Tree The type of the tree. 
+ * \param name The name of the tree. 
+ * \param size The number of elements to insert into the tree. 
+ * \param results The results to fill. 
+ */
 template<typename Tree>
 void memory(const std::string& name, unsigned int size, Results& results){
-    //Use random insertion in order to support non-balanced version
     std::vector<int> elements;
     for(unsigned int i = 0; i < size; ++i){
         elements.push_back(i);
     }
 
+    //Use random insertion in order to support non-balanced version
     random_shuffle(elements.begin(), elements.end());
 
     //For now on, count all the allocations
@@ -117,6 +116,13 @@ void memory(const std::string& name, unsigned int size, Results& results){
     delete alloc_tree;
 }
 
+/*!
+ * Launch the memory test on the given Tree. The elements are taken in the range [0, INT_MAX - 1].
+ * \param Tree The type of the tree. 
+ * \param name The name of the tree. 
+ * \param size The number of elements to insert into the tree. 
+ * \param results The results to fill. 
+ */
 template<typename Tree>
 void memory_high(const std::string& name, unsigned int size, Results& results){
     std::mt19937_64 engine(time(0));
@@ -126,16 +132,16 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     auto valueGenerator = std::bind(valueDistribution, engine);
     
     std::set<int> elements;
-    std::vector<int> vector_elements;
-
     while(elements.size() < size){
         elements.insert(valueGenerator());
     }
 
+    std::vector<int> vector_elements;
     for(auto i : elements){
         vector_elements.push_back(i);
     }
 
+    //It is necessary to shuffle as the iteration through set is sorted
     random_shuffle(vector_elements.begin(), vector_elements.end());
 
     //For now on, count all the allocations
@@ -161,6 +167,9 @@ void memory_high(const std::string& name, unsigned int size, Results& results){
     delete alloc_tree;
 }
 
+/*!
+ * Launch the memory tests depending on the arguments
+ */
 int main(int argc, const char* argv[]) {
     memory_init();
 

@@ -14,6 +14,13 @@ extern __thread unsigned int thread_num;
 #include <algorithm>
 #include <iostream>
 
+/*!
+ * A manager for Hazard Pointers manipulation. 
+ * \param Node The type of node to manage. 
+ * \param Threads The maximum number of threads. 
+ * \param Size The number of hazard pointers per thread. 
+ * \param Prefill The number of nodes to precreate in the queue.
+ */
 template<typename Node, unsigned int Threads, unsigned int Size = 2, unsigned int Prefill = 50>
 class HazardManager {
     public:
@@ -23,17 +30,52 @@ class HazardManager {
         HazardManager(const HazardManager& rhs) = delete;
         HazardManager& operator=(const HazardManager& rhs) = delete;
 
-        /* Manage nodes */
+        /*!
+         * Release the node. 
+         */
         void releaseNode(Node* node);
+
+        /*!
+         * \brief Release the node by checking first if it is not already in the queue. 
+         * This method can be slow depending on the number of nodes already released. 
+         * \param node The node to release. 
+         */
         void safe_release_node(Node* node);
+
+        /*!
+         * Return a free node for the calling thread. 
+         * \return A free node
+         */
         Node* getFreeNode();
 
-        /* Manage references  */
+        /*!
+         * Publish a reference to the given Node using ith Hazard Pointer. 
+         * \param node The node to be published
+         * \param i The index of the pointer to use. 
+         */
         void publish(Node* node, unsigned int i);
+
+        /*!
+         * Release the ith reference of the calling thread. 
+         * \param i The reference index. 
+         */
         void release(unsigned int i);
+
+        /*!
+         * Release all the hazard points of the calling thread. 
+         */
         void releaseAll();
 
+        /*!
+         * Return a reference to the internal free queue of the given thread. 
+         * \return A reference to the free queue of the given thread. 
+         */
         std::list<Node*>& direct_free(unsigned int t);
+
+        /*!
+         * Return a reference to the internal local queue of the given thread. 
+         * \return A reference to the local queue of the given thread. 
+         */
         std::list<Node*>& direct_local(unsigned int t);
 
     private:
@@ -136,11 +178,6 @@ void HazardManager<Node, Threads, Size, Prefill>::releaseNode(Node* node){
     //If the node is null, we have nothing to do
     if(node){
 #ifdef DEBUG
-        /*if(std::find(LocalQueues.at(thread_num).begin(), LocalQueues.at(thread_num).end(), node) != LocalQueues.at(thread_num).end()){
-            std::cout << node << std::endl;
-            return;
-        }*/
-
         //Add the node to the localqueue
         LocalQueues.at(thread_num).push_back(node);
 #else

@@ -3,6 +3,9 @@
 #include "test.hpp"
 #include "bench.hpp"
 
+/*!
+ * Launch the test indicated by the arguments.
+ */
 int main(int argc, const char* argv[]) {
     std::cout << "Concurrent Binary Trees test" << std::endl;
 

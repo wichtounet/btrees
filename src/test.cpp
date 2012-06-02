@@ -16,15 +16,24 @@
 #include "lfmst/MultiwaySearchTree.hpp"
 #include "cbtree/CBTree.hpp"
 
-//Number of nodes for the tests (for up to 32 threads)
-#define N 1000000         //A too big number can put nodes in swap
+//Number of nodes inserted in single-threaded mode
+#define ST_N 100000
 
+//Number of nodes inserted in multi-threaded mode (for up to 32 threads)
+#define MT_N 100000         //Warning: This number is inserted for each thread
+
+//Utility macros to print debug messages during the tests
 #define DEBUG_ENABLED true
 #define DEBUG(message) if(DEBUG_ENABLED) std::cout << message << std::endl;
 
+/*!
+ * Launch a single threaded test on the given structure. 
+ * \param T The type of the structure.
+ * \param name The name of the structure being tested. 
+ */
 template<typename T>
 void testST(const std::string& name){
-    std::cout << "Test single-threaded (with " << N << " elements) " << name << std::endl;
+    std::cout << "Test single-threaded (with " << ST_N << " elements) " << name << std::endl;
 
     thread_num = 0;
     
@@ -38,7 +47,7 @@ void testST(const std::string& name){
 
     DEBUG("Remove numbers in the empty tree");
 
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         auto number = generator();
 
         assert(!tree.contains(number));
@@ -47,7 +56,7 @@ void testST(const std::string& name){
     
     DEBUG("Insert sequential numbers");
 
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         assert(!tree.contains(i));
         assert(tree.add(i));
         assert(tree.contains(i));
@@ -55,7 +64,7 @@ void testST(const std::string& name){
     
     DEBUG("Remove all the sequential numbers");
     
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         assert(tree.contains(i));
         assert(tree.remove(i));     
         assert(!tree.contains(i));
@@ -63,7 +72,7 @@ void testST(const std::string& name){
     
     DEBUG("Verify that the tree is empty");
     
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         assert(!tree.contains(i));
     }
 
@@ -71,7 +80,7 @@ void testST(const std::string& name){
     
     DEBUG("Insert N random numbers in the tree");
 
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         int number = generator();
 
         if(tree.contains(number)){
@@ -87,7 +96,7 @@ void testST(const std::string& name){
     
     DEBUG("Remove numbers not present in the tree");
     
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         int number = generator();
 
         if(!tree.contains(number)){
@@ -106,7 +115,7 @@ void testST(const std::string& name){
     
     DEBUG("Remove numbers in the empty tree");
     
-    for(unsigned int i = 0; i < N; ++i){
+    for(unsigned int i = 0; i < ST_N; ++i){
         auto number = generator();
 
         assert(!tree.contains(number));
@@ -116,12 +125,16 @@ void testST(const std::string& name){
     std::cout << "Test passed successfully" << std::endl;
 }
 
-//This test could be improved with some randomness
+/*!
+ * Launch the multithreaded tests on the given tree type. 
+ * \param T The type of tree to test.
+ * \param Threads The number of threads. 
+ */
 template<typename T, unsigned int Threads>
 void testMT(){
-    std::cout << "Test with " << Threads << " threads" << std::endl;
-
     T tree;
+
+    DEBUG("Insert and remove sequential numbers from the tree")
 
     std::vector<std::thread> pool;
     for(unsigned int i = 0; i < Threads; ++i){
@@ -131,14 +144,14 @@ void testMT(){
             int tid = thread_num;
 
             //Insert sequential numbers
-            for(int j = tid * N; j < (tid + 1) * N; ++j){
+            for(int j = tid * MT_N; j < (tid + 1) * MT_N; ++j){
                 assert(!tree.contains(j));
                 assert(tree.add(j));
                 assert(tree.contains(j));
             }
 
             //Remove all the sequential numbers
-            for(int j = tid * N; j < (tid + 1) * N; ++j){
+            for(int j = tid * MT_N; j < (tid + 1) * MT_N; ++j){
                 assert(tree.contains(j));
                 assert(tree.remove(j));   
                 assert(!tree.contains(j));
@@ -147,15 +160,16 @@ void testMT(){
     }
 
     for_each(pool.begin(), pool.end(), [](std::thread& t){t.join();});
-
     pool.clear();
+    
+    DEBUG("Verify that all the numbers have been removed correctly")
     
     for(unsigned int i = 0; i < Threads; ++i){
         pool.push_back(std::thread([&tree, i](){
             thread_num = i;
 
             //Verify that every numbers has been removed correctly
-            for(unsigned int i = 0; i < Threads * N; ++i){
+            for(unsigned int i = 0; i < Threads * MT_N; ++i){
                 assert(!tree.contains(i));
             }
         }));
@@ -168,8 +182,9 @@ void testMT(){
     
     std::mt19937_64 fixed_engine(time(NULL));
     std::uniform_int_distribution<int> fixed_distribution(0, std::numeric_limits<int>::max() - 1);
+    
+    DEBUG("Compute the fixed points")
 
-    //Add one fixed point per thread
     while(fixed_points.size() < Threads){
         auto value = fixed_distribution(fixed_engine);
         
@@ -177,6 +192,8 @@ void testMT(){
             fixed_points.push_back(value);
         }
     }
+    
+    DEBUG("Make some operations by ensuring that the fixed points are not modified")
 
     for(unsigned int i = 0; i < Threads; ++i){
         pool.push_back(std::thread([&tree, &fixed_points, i](){
@@ -226,9 +243,15 @@ void testMT(){
     std::cout << "Test with " << Threads << " threads passed succesfully" << std::endl;
 }
 
+/*!
+ * Launch all the tests on the given type.
+ * \param type The type of the tree. 
+ * \param the The name of the tree. 
+ */
 #define TEST(type, name) \
+    std::cout << "Test with 1 threads" << std::endl;\
     testST<type<int, 1>>(name);\
-    std::cout << "Test multi-threaded (with " << N << " elements) " << name << std::endl;\
+    std::cout << "Test multi-threaded (with " << MT_N << " elements) " << name << std::endl;\
     testMT<type<int, 2>, 2>();\
     testMT<type<int, 3>, 3>();\
     testMT<type<int, 4>, 4>();\
@@ -238,12 +261,15 @@ void testMT(){
     testMT<type<int, 16>, 16>();\
     testMT<type<int, 32>, 32>();
 
+/*!
+ * Test all the different versions.
+ */
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
     TEST(skiplist::SkipList, "SkipList")
-    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
-    //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
-    //TEST(cbtree::CBTree, "Counter Based Tree");
+    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
+    TEST(cbtree::CBTree, "Counter Based Tree");
 }
