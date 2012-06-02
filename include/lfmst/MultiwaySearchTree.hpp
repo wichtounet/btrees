@@ -798,7 +798,7 @@ int compare(Key k1, Key k2){
         return -1;
     }
 
-    return k1.key - k2.key; //TODO Check if 1 - 2 or 2 - 1
+    return k1.key - k2.key;
 }
 
 //node must be published by parent
@@ -1437,9 +1437,9 @@ Search* MultiwaySearchTree<T, Threads>::goodSamaritanCleanNeighbor(Key key, Sear
             shiftChild(sibling, siblingContents, 0, adjustedNephew);
         }
     } else {
-        bool success = slideToNeighbor(sibling, siblingContents, leftBarrier, leftBarrier, child);//TODO check leftBarrier
+        bool success = slideToNeighbor(sibling, siblingContents, leftBarrier, leftBarrier, child);
         if(success){
-            contents = deleteSlidedKey(node, contents, leftBarrier);//TODO Check leftBarrier
+            contents = deleteSlidedKey(node, contents, leftBarrier);
             nodeContents.publish(contents, 2);
             nodeKeys.publish(contents->items, 2);
             nodeChildren.publish(contents->children, 2);
