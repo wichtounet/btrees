@@ -15,7 +15,7 @@ namespace lfmst {
 
 //Constants to manage array of search
 #define FIRST   6
-#define MAX     8 //TODO Perhaps not enough
+#define MAX     8
 
 struct Node;
 
@@ -1095,7 +1095,6 @@ HeadNode* MultiwaySearchTree<T, Threads>::increaseRootHeight(int target){
         
         if(CASPTR(&this->root, root, update)){
             roots.releaseNode(root);
-            //TODO Certainly someting to release...
         } else {
             nodeChildren.releaseNode(children);
             nodeKeys.releaseNode(keys);
