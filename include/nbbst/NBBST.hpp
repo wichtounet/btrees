@@ -216,8 +216,8 @@ bool NBBST<T, Threads>::add(T value){
         infos.publish(search.pupdate, 1);
 
         if(search.l->key == key){
-            nodes.releaseAll();
             nodes.releaseNode(newNode);
+            nodes.releaseAll();
             
             infos.releaseAll();
 
@@ -245,23 +245,23 @@ bool NBBST<T, Threads>::add(T value){
 
             Update result = search.p->update;
             if(CASPTR(&search.p->update, search.pupdate, Mark(op, IFLAG))){
-                nodes.releaseAll();
-                infos.releaseAll();
-
                 HelpInsert(op);
 
                 if(result){
                     infos.releaseNode(Unmark(result));
                 }
+                
+                nodes.releaseAll();
+                infos.releaseAll();
 
                 return true;
             } else {
-                nodes.releaseAll();
                 nodes.releaseNode(newInt);
                 nodes.releaseNode(newSibling);
+                nodes.releaseAll();
                 
-                infos.releaseAll();
                 infos.releaseNode(op);
+                infos.releaseAll();
 
                 Help(result);
             }
@@ -284,24 +284,23 @@ bool NBBST<T, Threads>::remove(T value){
         }
 
         if(getState(search.gpupdate) != CLEAN){
-            nodes.releaseAll();
             Help(search.gpupdate);
         } else if(getState(search.pupdate) != CLEAN){
-            nodes.releaseAll();
             Help(search.pupdate);
         } else {
-            Info* op = newDInfo(search.gp, search.p, search.l, search.pupdate);
-
             infos.publish(search.gp->update, 0);
             infos.publish(search.gpupdate, 1);
 
+            Info* op = newDInfo(search.gp, search.p, search.l, search.pupdate);
+            infos.publish(op, 2);
+
             Update result = search.gp->update;
             if(CASPTR(&search.gp->update, search.gpupdate, Mark(op, DFLAG))){
-                infos.releaseAll();
-
                 if(result){
                     infos.releaseNode(Unmark(result));
                 }
+                
+                infos.releaseAll();
 
                 if(HelpDelete(op)){
                     nodes.releaseAll();
@@ -309,14 +308,14 @@ bool NBBST<T, Threads>::remove(T value){
                     return true;
                 }
             } else {
-                infos.releaseAll();
                 infos.releaseNode(op);
+                infos.releaseAll();
 
                 Help(result);
             }
-            
-            nodes.releaseAll();
         }
+        
+        nodes.releaseAll();
     }
 }
 
@@ -356,18 +355,16 @@ bool NBBST<T, Threads>::HelpDelete(Info* op){
             infos.releaseNode(Unmark(result));
         }
         nodes.releaseNode(op->l);
-        infos.releaseAll();
         HelpMarked(Unmark(op));
+        infos.releaseAll();
         return true;
     } 
     //if another has succeeded for us
     else if(getState(op->p->update) == MARK && Unmark(op->p->update) == Unmark(op)){
-        infos.releaseAll();
         HelpMarked(Unmark(op));
+        infos.releaseAll();
         return true;
     } else {
-        infos.releaseAll();
-
         Help(result);
 
         infos.publish(op->gp->update, 0);

@@ -154,17 +154,15 @@ void testMT(){
         pool.push_back(std::thread([sequential_nodes, &tree, i](){
             thread_num = i;
 
-            int tid = thread_num;
-
             //Insert sequential numbers
-            for(int j = tid * sequential_nodes; j < (tid + 1) * sequential_nodes; ++j){
+            for(unsigned int j = i * sequential_nodes; j < (i + 1) * sequential_nodes; ++j){
                 assert(!tree.contains(j));
                 assert(tree.add(j));
                 assert(tree.contains(j));
             }
 
             //Remove all the sequential numbers
-            for(int j = tid * sequential_nodes; j < (tid + 1) * sequential_nodes; ++j){
+            for(unsigned int j = i * sequential_nodes; j < (i + 1) * sequential_nodes; ++j){
                 assert(tree.contains(j));
                 assert(tree.remove(j));   
                 assert(!tree.contains(j));
@@ -182,8 +180,8 @@ void testMT(){
             thread_num = i;
 
             //Verify that every numbers has been removed correctly
-            for(unsigned int i = 0; i < Threads * sequential_nodes; ++i){
-                assert(!tree.contains(i));
+            for(unsigned int j = 0; j < Threads * sequential_nodes; ++j){
+                assert(!tree.contains(j));
             }
         }));
     }
