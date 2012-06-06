@@ -8,6 +8,7 @@
 
 #include "test.hpp"
 #include "HazardManager.hpp" //To manipulate thread_num
+#include "tree_type_traits.hpp"
 
 //Include all the trees implementations
 #include "skiplist/SkipList.hpp"
@@ -56,7 +57,13 @@ void testST(const std::string& name){
     
     DEBUG("Insert sequential numbers");
 
-    for(unsigned int i = 0; i < ST_N; ++i){
+    unsigned int sequential_nodes = ST_N;
+
+    if(!is_balanced<T>()){
+        sequential_nodes /= 100;
+    }
+
+    for(unsigned int i = 0; i < sequential_nodes; ++i){
         assert(!tree.contains(i));
         assert(tree.add(i));
         assert(tree.contains(i));
@@ -64,7 +71,7 @@ void testST(const std::string& name){
     
     DEBUG("Remove all the sequential numbers");
     
-    for(unsigned int i = 0; i < ST_N; ++i){
+    for(unsigned int i = 0; i < sequential_nodes; ++i){
         assert(tree.contains(i));
         assert(tree.remove(i));     
         assert(!tree.contains(i));
@@ -72,7 +79,7 @@ void testST(const std::string& name){
     
     DEBUG("Verify that the tree is empty");
     
-    for(unsigned int i = 0; i < ST_N; ++i){
+    for(unsigned int i = 0; i < sequential_nodes; ++i){
         assert(!tree.contains(i));
     }
 
@@ -136,22 +143,28 @@ void testMT(){
 
     DEBUG("Insert and remove sequential numbers from the tree")
 
+    int sequential_nodes = MT_N;
+
+    if(!is_balanced<T>()){
+        sequential_nodes /= 100;
+    }
+
     std::vector<std::thread> pool;
     for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, i](){
+        pool.push_back(std::thread([sequential_nodes, &tree, i](){
             thread_num = i;
 
             int tid = thread_num;
 
             //Insert sequential numbers
-            for(int j = tid * MT_N; j < (tid + 1) * MT_N; ++j){
+            for(int j = tid * sequential_nodes; j < (tid + 1) * sequential_nodes; ++j){
                 assert(!tree.contains(j));
                 assert(tree.add(j));
                 assert(tree.contains(j));
             }
 
             //Remove all the sequential numbers
-            for(int j = tid * MT_N; j < (tid + 1) * MT_N; ++j){
+            for(int j = tid * sequential_nodes; j < (tid + 1) * sequential_nodes; ++j){
                 assert(tree.contains(j));
                 assert(tree.remove(j));   
                 assert(!tree.contains(j));
@@ -165,11 +178,11 @@ void testMT(){
     DEBUG("Verify that all the numbers have been removed correctly")
     
     for(unsigned int i = 0; i < Threads; ++i){
-        pool.push_back(std::thread([&tree, i](){
+        pool.push_back(std::thread([sequential_nodes, &tree, i](){
             thread_num = i;
 
             //Verify that every numbers has been removed correctly
-            for(unsigned int i = 0; i < Threads * MT_N; ++i){
+            for(unsigned int i = 0; i < Threads * sequential_nodes; ++i){
                 assert(!tree.contains(i));
             }
         }));
@@ -250,7 +263,7 @@ void testMT(){
  */
 #define TEST(type, name) \
     std::cout << "Test with 1 threads" << std::endl;\
-    /*testST<type<int, 1>>(name);*/\
+    testST<type<int, 1>>(name);\
     std::cout << "Test multi-threaded (with " << MT_N << " elements) " << name << std::endl;\
     testMT<type<int, 2>, 2>();\
     testMT<type<int, 3>, 3>();\
@@ -267,8 +280,8 @@ void testMT(){
 void test(){
     std::cout << "Tests the different versions" << std::endl;
 
-    TEST(skiplist::SkipList, "SkipList")
-    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    //TEST(skiplist::SkipList, "SkipList")
+    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
     //TEST(avltree::AVLTree, "Optimistic AVL Tree")
     //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
     //TEST(cbtree::CBTree, "Counter Based Tree");
