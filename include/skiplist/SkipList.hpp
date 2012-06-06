@@ -69,6 +69,9 @@ Node* SkipList<T, Threads>::newNode(int key, int height){
     node->key = key;
     node->topLevel = height;
 
+    //Make sure everything gets set to null
+    std::fill(node->next, node->next + MAX_LEVEL + 1, nullptr);
+
     return node;
 }
 
