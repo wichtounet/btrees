@@ -60,7 +60,7 @@ void testST(const std::string& name){
     unsigned int sequential_nodes = ST_N;
 
     if(!is_balanced<T>()){
-        sequential_nodes /= 100;
+        sequential_nodes /= 25;
     }
 
     for(unsigned int i = 0; i < sequential_nodes; ++i){
@@ -146,7 +146,7 @@ void testMT(){
     int sequential_nodes = MT_N;
 
     if(!is_balanced<T>()){
-        sequential_nodes /= 100;
+        sequential_nodes /= 25;
     }
 
     std::vector<std::thread> pool;
