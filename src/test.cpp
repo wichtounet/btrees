@@ -190,6 +190,8 @@ void testMT(){
         
         if(std::find(fixed_points.begin(), fixed_points.end(), value) == fixed_points.end()){
             fixed_points.push_back(value);
+            
+            assert(tree.add(value));
         }
     }
     
@@ -198,8 +200,6 @@ void testMT(){
     for(unsigned int i = 0; i < Threads; ++i){
         pool.push_back(std::thread([&tree, &fixed_points, i](){
             thread_num = i;
-
-            assert(tree.add(fixed_points[i]));
 
             std::vector<int> rand;
             
@@ -250,7 +250,7 @@ void testMT(){
  */
 #define TEST(type, name) \
     std::cout << "Test with 1 threads" << std::endl;\
-    testST<type<int, 1>>(name);\
+    /*testST<type<int, 1>>(name);*/\
     std::cout << "Test multi-threaded (with " << MT_N << " elements) " << name << std::endl;\
     testMT<type<int, 2>, 2>();\
     testMT<type<int, 3>, 3>();\
@@ -268,8 +268,8 @@ void test(){
     std::cout << "Tests the different versions" << std::endl;
 
     TEST(skiplist::SkipList, "SkipList")
-    TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
-    TEST(avltree::AVLTree, "Optimistic AVL Tree")
-    TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
-    TEST(cbtree::CBTree, "Counter Based Tree");
+    //TEST(nbbst::NBBST, "Non-Blocking Binary Search Tree")
+    //TEST(avltree::AVLTree, "Optimistic AVL Tree")
+    //TEST(lfmst::MultiwaySearchTree, "Lock Free Multiway Search Tree");
+    //TEST(cbtree::CBTree, "Counter Based Tree");
 }
