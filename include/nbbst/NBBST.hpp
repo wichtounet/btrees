@@ -247,8 +247,8 @@ bool NBBST<T, Threads>::add(T value){
             if(CASPTR(&search.p->update, search.pupdate, Mark(op, IFLAG))){
                 HelpInsert(op);
 
-                if(result){
-                    infos.releaseNode(Unmark(result));
+                if(search.pupdate){
+                    infos.releaseNode(Unmark(search.pupdate));
                 }
                 
                 nodes.releaseAll();
@@ -296,8 +296,8 @@ bool NBBST<T, Threads>::remove(T value){
 
             Update result = search.gp->update;
             if(CASPTR(&search.gp->update, search.gpupdate, Mark(op, DFLAG))){
-                if(result){
-                    infos.releaseNode(Unmark(result));
+                if(search.gpupdate){
+                    infos.releaseNode(Unmark(search.gpupdate));
                 }
                 
                 infos.releaseAll();
@@ -351,12 +351,14 @@ bool NBBST<T, Threads>::HelpDelete(Info* op){
 
     //If we succeed
     if(CASPTR(&op->p->update, op->pupdate, Mark(op, MARK))){
-        if(result){
-            infos.releaseNode(Unmark(result));
+        if(op->pupdate){
+            infos.releaseNode(Unmark(op->pupdate));
         }
+
         nodes.releaseNode(op->l);
         HelpMarked(Unmark(op));
         infos.releaseAll();
+        
         return true;
     } 
     //if another has succeeded for us
